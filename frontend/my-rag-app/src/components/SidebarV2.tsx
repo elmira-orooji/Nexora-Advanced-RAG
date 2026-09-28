@@ -145,9 +145,9 @@ export default function SidebarV2({
         </header>
 
         <div className="nexora-sidebar__tools">
-          <label className="nexora-sidebar__search nexora-sidebar__expanded">
+          <label dir={isFa ? "rtl" : "ltr"} className="nexora-sidebar__search nexora-sidebar__expanded">
             <Search size={16} aria-hidden="true" />
-            <input aria-label={labels.search} value={menuQuery} onChange={(event) => setMenuQuery(event.target.value)} placeholder={labels.search} />
+            <input dir={isFa ? "rtl" : "ltr"} aria-label={labels.search} value={menuQuery} onChange={(event) => setMenuQuery(event.target.value)} placeholder={labels.search} />
             {menuQuery && <button type="button" onClick={() => setMenuQuery("")} aria-label={isFa ? "پاک‌کردن فیلتر ناوبری" : "Clear navigation filter"}><X size={14} /></button>}
           </label>
           <button type="button" onClick={onNewConversation} className="nexora-sidebar__new" title={labels.newChat} aria-label={labels.newChat}>
