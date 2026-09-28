@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Bell, CheckCheck, CircleAlert, CircleCheck, Trash2, X } from "lucide-react";
+import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { notificationService, type AppNotification } from "../services/notificationService";
 
@@ -54,8 +55,9 @@ export default function NotificationCenter({ onNavigate }: NotificationCenterPro
     try {
       await notificationService.delete(id);
       setItems((current) => current.filter((item) => item.id !== id));
-    } catch {
-      // Keep the notification visible if the server could not delete it.
+      toast.success(isFa ? "اعلان حذف شد" : "Notification deleted");
+    } catch (error) {
+      toast.error((error as Error).message || (isFa ? "حذف اعلان انجام نشد" : "Could not delete notification"));
     } finally {
       setDeleting((current) => current.filter((itemId) => itemId !== id));
     }
