@@ -15,4 +15,5 @@ export const notificationService = {
   list: () => apiRequest<AppNotification[]>("/notifications", { headers: {} }),
   markRead: (id: string) => apiRequest<AppNotification>(`/notifications/${id}/read`, { method: "POST", headers: {} }),
   markAllRead: () => apiRequest<void>("/notifications/read-all", { method: "POST", headers: {} }),
+  delete: (id: string) => apiRequest<void>(`/notifications/${id}`, { method: "DELETE", headers: {} }),
 };

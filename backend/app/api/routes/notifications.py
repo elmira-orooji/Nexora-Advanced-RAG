@@ -40,3 +40,18 @@ def mark_read(notification_id: uuid.UUID, db: Session = Depends(get_db), user: U
 def mark_all_read(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     db.execute(update(Notification).where(Notification.user_id == user.id, Notification.organization_id == user.organization_id, Notification.read_at.is_(None)).values(read_at=datetime.now(timezone.utc)))
     db.commit()
+
+
+@router.delete("/{notification_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_notification(notification_id: uuid.UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    item = db.scalar(
+        select(Notification).where(
+            Notification.id == notification_id,
+            Notification.user_id == user.id,
+            Notification.organization_id == user.organization_id,
+        )
+    )
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found")
+    db.delete(item)
+    db.commit()

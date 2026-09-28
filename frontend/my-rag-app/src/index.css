@@ -221,6 +221,8 @@ input[aria-invalid="true"] {
 .notification-center-panel h2 { color: #f7f9ff; }
 .notification-center-panel .app-icon-button { color: rgba(232,237,255,.72); border-color: rgba(255,255,255,.11); background: rgba(255,255,255,.07); }
 .notification-center-panel .app-icon-button:hover { color: #fff; border-color: rgba(196,60,255,.6); background: rgba(196,60,255,.15); }
+.notification-center-delete { border: 0; background: transparent; }
+.notification-center-delete:hover { border: 0; background: rgba(244,63,94,.1); }
 .notification-center-empty { color: rgba(214,223,247,.62); }
 .sidebar-primary-action {
   border: 1px solid rgba(196,60,255,.3);
@@ -320,6 +322,8 @@ html:not(.dark) .notification-center-empty { color: #71809a !important; }
 html:not(.dark) .notification-center-item:hover { background: #f5f2ff !important; }
 html:not(.dark) .notification-center-panel .app-icon-button { color: #60708a !important; border-color: #e1e6ee !important; background: #f8faff !important; }
 html:not(.dark) .notification-center-panel .app-icon-button:hover { color: #5520bd !important; border-color: rgba(124,39,255,.35) !important; background: #f2edff !important; }
+html:not(.dark) .notification-center-delete { color: #758198 !important; }
+html:not(.dark) .notification-center-delete:hover { color: #be123c !important; background: #fff1f2 !important; }
 html:not(.dark) .sidebar-primary-action {
   color: #4d267f;
   border-color: rgba(124,39,255,.14);
