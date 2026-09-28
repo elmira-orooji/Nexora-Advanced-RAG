@@ -155,9 +155,8 @@ html:not(.dark) .nexora-sidebar {
   color: var(--sb-muted); background: transparent; font-size: 14px; font-weight: 500; text-align: start;
 }
 .nexora-sidebar__nav-item:hover { background: var(--sb-hover); color: var(--sb-text); }
-.nexora-sidebar__nav-item.is-active { color: var(--sb-text); background: var(--sb-active); font-weight: 600; }
+.nexora-sidebar__nav-item.is-active { border-color: var(--sb-accent-line); color: var(--sb-text); background: var(--sb-active); font-weight: 600; }
 .nexora-sidebar__nav-item.is-active svg { color: var(--sb-accent); }
-.nexora-sidebar__nav-item.is-active::after { content: ''; width: 4px; height: 4px; margin-inline-start: auto; flex-shrink: 0; border-radius: 50%; background: var(--sb-accent); }
 .nexora-sidebar__recent { display: flex; flex-direction: column; flex: 1; min-height: 0; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--sb-line); overflow: hidden; }
 .nexora-sidebar__recent-heading { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; padding: 0 12px 10px; }
 .nexora-sidebar__count { color: var(--sb-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
@@ -205,7 +204,6 @@ html:not(.dark) .nexora-sidebar {
   .nexora-sidebar.is-collapsed .nexora-sidebar__tools { padding-inline: 14px; }
   .nexora-sidebar.is-collapsed .nexora-sidebar__new,
   .nexora-sidebar.is-collapsed .nexora-sidebar__nav-item { justify-content: center; padding-inline: 0; }
-  .nexora-sidebar.is-collapsed .nexora-sidebar__nav-item::after { display: none; }
   .nexora-sidebar.is-collapsed .nexora-sidebar__account { flex-direction: column; padding-inline: 0; }
 }
 @media (max-height: 680px) {
