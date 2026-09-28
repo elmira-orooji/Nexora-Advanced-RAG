@@ -33,6 +33,12 @@ const overview = {
   negative_reasons: [],
   recent_issues: [],
 };
+const recentIssue = {
+  kind: "document",
+  name: "report.pdf",
+  detail: "OCR processing failed",
+  occurred_at: "2026-09-24T14:46:00Z",
+};
 
 describe("AnalyticsPage", () => {
   beforeEach(() => {
@@ -52,5 +58,25 @@ describe("AnalyticsPage", () => {
     expect(thirtyDays).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "7 days" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getAllByText("12").length).toBeGreaterThan(0);
+  });
+
+  it("marks workspace attention items as seen after opening their details", async () => {
+    mocks.overview.mockReset().mockResolvedValue({ ...overview, recent_issues: [recentIssue] });
+    Object.defineProperty(HTMLDialogElement.prototype, "showModal", {
+      configurable: true,
+      value: vi.fn(function (this: HTMLDialogElement) { this.setAttribute("open", ""); }),
+    });
+
+    const firstView = render(<AnalyticsPage />);
+    const detailsButton = await screen.findByRole("button", { name: /More details/ });
+    expect(detailsButton).toHaveTextContent("1 analytics.issues");
+
+    fireEvent.click(detailsButton);
+    await waitFor(() => expect(detailsButton).not.toHaveTextContent("1 analytics.issues"));
+    expect(localStorage.getItem("nexora:analytics:seen-issues:manager")).toContain("report.pdf");
+
+    firstView.unmount();
+    render(<AnalyticsPage />);
+    expect(await screen.findByRole("button", { name: "More details" })).not.toHaveTextContent("1 analytics.issues");
   });
 });

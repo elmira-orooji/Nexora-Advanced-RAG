@@ -10,11 +10,27 @@ import "../styles/analytics.css";
 import { sectionCopy } from "../locales/copy";
 
 const CW = 760, CH = 250, TOP = 18, BOTTOM = 34;
+type WorkspaceIssue = AnalyticsOverview["recent_issues"][number];
+
+function issueFingerprint(issue: WorkspaceIssue) {
+  return JSON.stringify([issue.kind, issue.name, issue.detail, issue.occurred_at]);
+}
+
+function readSeenIssues(storageKey: string): string[] {
+  try {
+    const stored = localStorage.getItem(storageKey);
+    const parsed: unknown = stored ? JSON.parse(stored) : [];
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function AnalyticsPage({ notificationCenter }: { notificationCenter?: ReactNode }) {
   const { i18n, t } = useTranslation();
   const fa = i18n.language.startsWith("fa");
   const user = authService.getUser();
+  const seenIssuesStorageKey = `nexora:analytics:seen-issues:${user?.organization_id ?? user?.username ?? "workspace"}`;
   const detailsRef = useRef<HTMLDialogElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState<{ days: 7 | 30 | 90; revision: number }>({ days: 30, revision: 0 });
@@ -22,6 +38,8 @@ export default function AnalyticsPage({ notificationCenter }: { notificationCent
   const [data, setData] = useState<AnalyticsOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [, setSeenIssuesRevision] = useState(0);
+  const seenIssues = readSeenIssues(seenIssuesStorageKey);
 
   useEffect(() => {
     let active = true;
@@ -50,6 +68,15 @@ export default function AnalyticsPage({ notificationCenter }: { notificationCent
   };
 
   const c = sectionCopy(t, "analytics", ["welcome", "subtitle", "export", "exportExcel", "exportCsv", "exportPdf", "exportPdfHint", "exportFailed", "reportTitle", "period", "generatedAt", "dailyData", "date", "negativeFeedback", "queries", "users", "grounded", "satisfaction", "noFeedback", "unanswered", "coverage", "citations", "performance", "performanceSub", "query", "groundedLabel", "health", "indexed", "failed", "healthy", "quality", "positive", "feedbackCoverage", "assistants", "knowledge", "issues", "empty"]);
+  const unseenIssueCount = data?.recent_issues.filter((issue) => !seenIssues.includes(issueFingerprint(issue))).length ?? 0;
+  const openDetails = () => {
+    if (data?.recent_issues.length) {
+      const next = [...new Set([...seenIssues, ...data.recent_issues.map(issueFingerprint)])];
+      try { localStorage.setItem(seenIssuesStorageKey, JSON.stringify(next)); } catch { /* Keep the current view usable if storage is unavailable. */ }
+      setSeenIssuesRevision((revision) => revision + 1);
+    }
+    detailsRef.current?.showModal();
+  };
 
   const download = (content: BlobPart, type: string, extension: string) => {
     const url = URL.createObjectURL(new Blob([content], { type }));
@@ -122,9 +149,9 @@ export default function AnalyticsPage({ notificationCenter }: { notificationCent
           <span>{c.feedbackCoverage}: {data.feedback_coverage}%</span>
         </div>
 
-        <button type="button" className="analytics-details-button" onClick={() => detailsRef.current?.showModal()}>
+        <button type="button" className="analytics-details-button" onClick={openDetails}>
           {fa ? "جزئیات بیشتر" : "More details"}
-          {data.recent_issues.length > 0 && <span className="an-danger"> · {data.recent_issues.length} {c.issues}</span>}
+          {unseenIssueCount > 0 && <span className="an-danger"> · {unseenIssueCount} {c.issues}</span>}
         </button>
         <dialog ref={detailsRef} className="analytics-details-dialog" aria-labelledby="analytics-details-title">
           <header className="analytics-dialog-header">
@@ -132,7 +159,7 @@ export default function AnalyticsPage({ notificationCenter }: { notificationCent
             <button type="button" className="analytics-export" onClick={() => detailsRef.current?.close()}>{fa ? "بستن" : "Close"}</button>
           </header>
         {data.recent_issues.length > 0 && <Card className="mb-4 p-5">
-          <h2 className="flex items-center gap-2"><CircleAlert size={16} className="an-danger" />{c.issues}</h2>
+          <h2 className="flex items-center gap-2"><CircleAlert size={16} className={unseenIssueCount ? "an-danger" : "an-muted"} />{c.issues}</h2>
           <ul className="analytics-issues">{data.recent_issues.slice(0, 4).map((item, index) =>
             <li key={`${item.name}-${index}`}><strong>{item.name}</strong><p>{item.detail}</p></li>
           )}</ul>
