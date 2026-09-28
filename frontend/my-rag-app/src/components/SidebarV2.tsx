@@ -59,7 +59,11 @@ export default function SidebarV2({
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const { i18n, t } = useTranslation();
   const isFa = i18n.language.startsWith("fa");
-  const labels = sectionCopy(t, "sidebar", ["home", "upload", "assistants", "users", "settings", "newChat", "recent", "navigation", "search", "collapse", "account"]);
+  const labels = sectionCopy(t, "sidebar", ["home", "upload", "assistants", "users", "settings", "newChat", "recent", "navigation", "search", "collapse", "account", "defaultWorkspace"]);
+  const organizationName = currentUser?.organization_name;
+  const isDefaultWorkspace = !organizationName || organizationName.trim().toLocaleLowerCase() === "default workspace";
+  const displayedOrganization = isFa && isDefaultWorkspace ? labels.defaultWorkspace : organizationName ?? "Workspace";
+  const displayedRole = currentUser?.role ? t(`usersPage.${currentUser.role}`) : isFa ? t("usersPage.user") : "user";
   const navigation = [
     { id: "home" as const, label: labels.home, icon: Home },
     ...(canManageKnowledge(currentUser) ? [{ id: "upload" as const, label: labels.upload, icon: FileUp }] : []),
@@ -200,7 +204,7 @@ export default function SidebarV2({
             <span className="nexora-sidebar__avatar" title={currentUser?.username}>{currentUser?.username.slice(0, 2) ?? "U"}</span>
             <div dir={isFa ? "rtl" : "ltr"} className="nexora-sidebar__account-copy nexora-sidebar__expanded">
               <strong>{currentUser?.username ?? "User"}</strong>
-              <span title={currentUser?.organization_name}>{currentUser?.organization_name ?? "Workspace"} · {currentUser?.role ?? "user"}</span>
+              <span dir={isFa ? "rtl" : "ltr"} title={`${displayedOrganization} · ${displayedRole}`}>{displayedOrganization} · {displayedRole}</span>
             </div>
             <button type="button" onClick={onLogout} aria-label={isFa ? "خروج از حساب" : "Log out"} title={isFa ? "خروج از حساب" : "Log out"} className="nexora-sidebar__icon-button nexora-sidebar__logout"><LogOut size={16} /></button>
           </div>
