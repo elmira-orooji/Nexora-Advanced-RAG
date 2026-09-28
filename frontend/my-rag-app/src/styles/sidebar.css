@@ -164,7 +164,7 @@ html:not(.dark) .nexora-sidebar {
 .nexora-sidebar__conversation { display: flex; align-items: center; min-width: 0; padding-inline: 9px 4px; margin-bottom: 2px; border-radius: 7px; }
 .nexora-sidebar__conversation:hover, .nexora-sidebar__conversation:focus-within { background: var(--sb-hover); }
 .nexora-sidebar__conversation.is-active { background: var(--sb-active); }
-.nexora-sidebar__conversation-link { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; height: 42px; color: var(--sb-muted); font-size: 13px; font-weight: 450; text-align: start; }
+.nexora-sidebar__conversation-link { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; height: 46px; color: var(--sb-muted); font-size: 15px; font-weight: 500; text-align: start; }
 .nexora-sidebar__conversation-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nexora-sidebar__conversation.is-active .nexora-sidebar__conversation-link { color: var(--sb-text); font-weight: 550; }
 .nexora-sidebar__conversation.is-active .nexora-sidebar__conversation-link svg { color: var(--sb-accent); }

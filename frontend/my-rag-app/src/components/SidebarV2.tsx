@@ -181,7 +181,7 @@ export default function SidebarV2({
             {visibleConversations.map((chat) => (
               <div key={chat.id} className={`nexora-sidebar__conversation ${activePage === "chat" && activeConversationId === chat.id ? "is-active" : ""}`}>
                 <button onClick={() => onSelectConversation(chat.id)} type="button" title={chat.title} aria-current={activePage === "chat" && activeConversationId === chat.id ? "page" : undefined} className="nexora-sidebar__conversation-link">
-                  <MessageSquareText size={15} strokeWidth={1.6} aria-hidden="true" />
+                  <MessageSquareText size={17} strokeWidth={1.7} aria-hidden="true" />
                   <span>{chat.title}</span>
                 </button>
                 <div className="nexora-sidebar__conversation-actions">
