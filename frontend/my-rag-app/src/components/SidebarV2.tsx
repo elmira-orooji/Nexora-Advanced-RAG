@@ -196,9 +196,9 @@ export default function SidebarV2({
         </div>
 
         <footer className="nexora-sidebar__footer">
-          <div className="nexora-sidebar__account">
+          <div dir={isFa ? "rtl" : "ltr"} className="nexora-sidebar__account">
             <span className="nexora-sidebar__avatar" title={currentUser?.username}>{currentUser?.username.slice(0, 2) ?? "U"}</span>
-            <div className="nexora-sidebar__account-copy nexora-sidebar__expanded">
+            <div dir={isFa ? "rtl" : "ltr"} className="nexora-sidebar__account-copy nexora-sidebar__expanded">
               <strong>{currentUser?.username ?? "User"}</strong>
               <span title={currentUser?.organization_name}>{currentUser?.organization_name ?? "Workspace"} · {currentUser?.role ?? "user"}</span>
             </div>

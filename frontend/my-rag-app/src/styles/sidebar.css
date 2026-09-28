@@ -175,7 +175,7 @@ html:not(.dark) .nexora-sidebar {
 .nexora-sidebar__footer { padding: 12px; flex-shrink: 0; border-top: 1px solid var(--sb-line); }
 .nexora-sidebar__account { display: flex; align-items: center; gap: 10px; padding: 4px 5px; }
 .nexora-sidebar__avatar { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; border: 1px solid var(--sb-accent-line); border-radius: 10px; background: var(--sb-active); color: var(--sb-accent); font-size: var(--font-size-helper); font-weight: 650; text-transform: uppercase; }
-.nexora-sidebar__account-copy { min-width: 0; flex: 1; }
+.nexora-sidebar__account-copy { min-width: 0; flex: 1; text-align: start; }
 .nexora-sidebar__account-copy strong, .nexora-sidebar__account-copy span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nexora-sidebar__account-copy strong { font-size: 13px; font-weight: 600; }
 .nexora-sidebar__account-copy span { color: var(--sb-muted); font-size: 12px; margin-top: 3px; }
