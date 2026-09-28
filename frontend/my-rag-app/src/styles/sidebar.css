@@ -181,6 +181,8 @@ html:not(.dark) .nexora-sidebar {
 .nexora-sidebar__account-copy span { color: var(--sb-muted); font-size: 12px; margin-top: 3px; }
 .nexora-sidebar__collapse { display: none; align-items: center; justify-content: center; flex: 0 0 28px; width: 28px; height: 28px; margin-inline-start: auto; border-radius: 7px; color: var(--sb-muted); }
 .nexora-sidebar__collapse:hover { color: var(--sb-text); background: var(--sb-hover); }
+.nexora-sidebar[dir="rtl"] .nexora-sidebar__collapse svg,
+.nexora-sidebar[dir="rtl"] .nexora-sidebar__logout svg { transform: scaleX(-1); }
 .nexora-sidebar__mobile-close { margin-inline-start: auto; }
 @media (max-width: 479px) {
   .nexora-sidebar .nexora-sidebar__icon-button { width: 44px; height: 44px; }
