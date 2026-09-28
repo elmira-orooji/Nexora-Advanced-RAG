@@ -11,14 +11,16 @@ interface SettingsPageProps {
   setTheme: (theme: "light" | "dark") => void;
 }
 
+type PasswordFieldKey = "current" | "new" | "confirm";
+
 export default function SettingsPage({ theme, setTheme }: SettingsPageProps) {
   const { i18n, t } = useTranslation();
   const isFa = i18n.language.startsWith("fa");
-  const copy = sectionCopy(t, "settings", ["title", "subtitle", "appearance", "appearanceSub", "light", "dark", "language", "languageSub", "ltr", "rtl", "security", "securitySub", "currentPassword", "newPassword", "confirmPassword", "passwordHint", "showPasswords", "hidePasswords", "savePassword", "savingPassword", "passwordChanged", "passwordMismatch", "passwordTooShort", "passwordRequired", "currentPasswordIncorrect"]);
+  const copy = sectionCopy(t, "settings", ["title", "subtitle", "appearance", "appearanceSub", "light", "dark", "language", "languageSub", "ltr", "rtl", "security", "securitySub", "currentPassword", "newPassword", "confirmPassword", "showPasswords", "hidePasswords", "savePassword", "savingPassword", "passwordChanged", "passwordMismatch", "passwordTooShort", "passwordRequired", "currentPasswordIncorrect"]);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPasswords, setShowPasswords] = useState(false);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<PasswordFieldKey, boolean>>({ current: false, new: false, confirm: false });
   const [passwordError, setPasswordError] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
 
@@ -96,11 +98,24 @@ export default function SettingsPage({ theme, setTheme }: SettingsPageProps) {
           </div>
           <form className="preferences-password-form" onSubmit={(event) => void submitPassword(event)} noValidate>
             <div className="preferences-password-fields">
-              <label><span>{copy.currentPassword}</span><input value={currentPassword} onChange={(event) => { setCurrentPassword(event.target.value); setPasswordError(""); }} type={showPasswords ? "text" : "password"} autoComplete="current-password" disabled={savingPassword} /></label>
-              <label><span>{copy.newPassword}</span><input value={newPassword} onChange={(event) => { setNewPassword(event.target.value); setPasswordError(""); }} type={showPasswords ? "text" : "password"} autoComplete="new-password" disabled={savingPassword} /></label>
-              <label><span>{copy.confirmPassword}</span><input value={confirmPassword} onChange={(event) => { setConfirmPassword(event.target.value); setPasswordError(""); }} type={showPasswords ? "text" : "password"} autoComplete="new-password" disabled={savingPassword} /></label>
+              {([
+                { key: "current", label: copy.currentPassword, value: currentPassword, autoComplete: "current-password", setValue: setCurrentPassword },
+                { key: "new", label: copy.newPassword, value: newPassword, autoComplete: "new-password", setValue: setNewPassword },
+                { key: "confirm", label: copy.confirmPassword, value: confirmPassword, autoComplete: "new-password", setValue: setConfirmPassword },
+              ] as const).map((field) => {
+                const visible = visiblePasswords[field.key];
+                const fieldId = `settings-password-${field.key}`;
+                return <div className="preferences-password-field" key={field.key}>
+                  <label htmlFor={fieldId}>{field.label}</label>
+                  <div className="preferences-password-input-wrap">
+                    <input id={fieldId} value={field.value} onChange={(event) => { field.setValue(event.target.value); setPasswordError(""); }} type={visible ? "text" : "password"} autoComplete={field.autoComplete} disabled={savingPassword} />
+                    <button type="button" className="preferences-password-visibility" onClick={() => setVisiblePasswords((current) => ({ ...current, [field.key]: !current[field.key] }))} aria-label={`${visible ? copy.hidePasswords : copy.showPasswords}: ${field.label}`} aria-pressed={visible} disabled={savingPassword}>
+                      {visible ? <EyeOff size={17} aria-hidden="true" /> : <Eye size={17} aria-hidden="true" />}
+                    </button>
+                  </div>
+                </div>;
+              })}
             </div>
-            <div className="preferences-password-actions"><label className="preferences-password-toggle"><input type="checkbox" checked={showPasswords} onChange={(event) => setShowPasswords(event.target.checked)} disabled={savingPassword} /><span>{showPasswords ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}</span>{showPasswords ? copy.hidePasswords : copy.showPasswords}</label><span className="preferences-password-hint">{copy.passwordHint}</span></div>
             {passwordError && <p className="preferences-password-error" role="alert">{passwordError}</p>}
             <button className="preferences-password-submit" type="submit" disabled={savingPassword}>{savingPassword && <LoaderCircle className="animate-spin" size={15} aria-hidden="true" />}{savingPassword ? copy.savingPassword : copy.savePassword}</button>
           </form>
