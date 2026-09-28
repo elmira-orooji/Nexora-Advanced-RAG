@@ -1,6 +1,6 @@
 import { confirmAction } from "../services/confirmation";
 import { useEffect, useRef, useState } from "react";
-import { Bot, Check, FileStack, MessageSquareText, Pencil, Plus, Power, Trash2, X } from "lucide-react";
+import { Bot, ChevronDown, FileStack, MessageSquareText, Pencil, Plus, Power, Search, Trash2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import "../styles/assistants.css";
@@ -16,7 +16,7 @@ interface AssistantsPageProps {
 export default function AssistantsPage({ onStartConversation }: AssistantsPageProps) {
   const { i18n, t } = useTranslation(); const fa = i18n.language.startsWith("fa"); const admin = authService.getUser()?.role === "admin";
   const [items, setItems] = useState<CustomAssistant[]>([]); const [sets, setSets] = useState<DocumentSet[]>([]); const [editing, setEditing] = useState<CustomAssistant | "new" | null>(null); const [startingAssistantId, setStartingAssistantId] = useState<string | null>(null); const [loading, setLoading] = useState(true);
-  const c = sectionCopy(t, "assistantsPage", ["eyebrow", "title", "subtitle", "add", "empty", "choose", "knowledge", "inactive", "active", "edit", "remove", "noKnowledge"]);
+  const c = sectionCopy(t, "assistantsPage", ["eyebrow", "title", "subtitle", "add", "empty", "choose", "knowledge", "inactive", "active", "edit", "remove", "noKnowledge", "selectKnowledge", "searchKnowledge", "noKnowledgeMatches"]);
   const load = async () => { try { const [assistants, knowledgeSets] = await Promise.all([assistantService.list(), assistantService.listSets()]); setItems(assistants); setSets(knowledgeSets); } catch (e) { toast.error((e as Error).message); } finally { setLoading(false); } };
   useEffect(() => {
     let active = true;
@@ -46,6 +46,8 @@ export default function AssistantsPage({ onStartConversation }: AssistantsPagePr
 }
 
 function AssistantDialog({ item, sets, fa, onClose, onSaved }: { item?: CustomAssistant; sets: DocumentSet[]; fa: boolean; onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation();
+  const pickerCopy = sectionCopy(t, "assistantsPage", ["selectKnowledge", "searchKnowledge", "noKnowledgeMatches"]);
   const [modelId, setModelId] = useState(item?.model_id || "");
   const [models, setModels] = useState<Array<{ id: string; name: string; free: boolean }>>([]);
   const [modelsError, setModelsError] = useState(false);
@@ -59,9 +61,8 @@ function AssistantDialog({ item, sets, fa, onClose, onSaved }: { item?: CustomAs
     return () => { active = false; };
   }, [modelAttempt]);
   const [answerMode, setAnswerMode] = useState<"sources" | "hybrid">(item?.answer_mode || "hybrid");
-  const [setPage, setSetPage] = useState(0);
-  const setPageCount = Math.max(1, Math.ceil(sets.length / 4));
-  const currentSetPage = Math.min(setPage, setPageCount - 1);
+  const [setSearch, setSetSearch] = useState("");
+  const filteredSets = sets.filter((set) => set.name.toLocaleLowerCase().includes(setSearch.trim().toLocaleLowerCase()));
   const modalRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const modal = modalRef.current;
@@ -106,17 +107,23 @@ function AssistantDialog({ item, sets, fa, onClose, onSaved }: { item?: CustomAs
         </div>
         <fieldset className="assistant-form-knowledge">
           <legend>{fa ? "مجموعه‌های دانش" : "Knowledge sets"}</legend>
-          <div className="assistant-form-sets">{sets.slice(currentSetPage * 4, currentSetPage * 4 + 4).map((set) => {
-            const checked = selectedSets.includes(set.id);
-            return <button type="button" key={set.id} aria-pressed={checked} onClick={() => setSelectedSets(checked ? selectedSets.filter((id) => id !== set.id) : [...selectedSets, set.id])} className="assistant-form-set">
-              <FileStack size={16} /><span dir="auto">{set.name}</span><span className="assistant-form-check">{checked && <Check size={12} />}</span>
-            </button>;
-          })}</div>
-          {setPageCount > 1 && <nav className="assistant-set-pagination" aria-label={fa ? "صفحات مجموعه‌های دانش" : "Knowledge set pages"}>
-            <button type="button" disabled={currentSetPage === 0} onClick={() => setSetPage(currentSetPage - 1)}>{fa ? "قبلی" : "Previous"}</button>
-            <span>{currentSetPage + 1} / {setPageCount}</span>
-            <button type="button" disabled={currentSetPage === setPageCount - 1} onClick={() => setSetPage(currentSetPage + 1)}>{fa ? "بعدی" : "Next"}</button>
-          </nav>}
+          {sets.length > 0 && <details className="assistant-set-picker">
+            <summary>
+              <span>{selectedSets.length ? (fa ? `${selectedSets.length} مجموعه انتخاب شده` : `${selectedSets.length} selected`) : pickerCopy.selectKnowledge}</span>
+              {selectedSets.length > 0 && <span className="assistant-set-count">{selectedSets.length}</span>}
+              <ChevronDown className="assistant-set-chevron" size={16} aria-hidden="true" />
+            </summary>
+            <div className="assistant-set-menu">
+              {sets.length > 6 && <label className="assistant-set-search"><Search size={15} aria-hidden="true" /><input type="search" value={setSearch} onChange={(event) => setSetSearch(event.target.value)} placeholder={pickerCopy.searchKnowledge} /></label>}
+              <div className="assistant-set-options">
+                {filteredSets.map((set) => <label className="assistant-set-option" key={set.id}>
+                  <input type="checkbox" checked={selectedSets.includes(set.id)} onChange={(event) => setSelectedSets((current) => event.target.checked ? [...current, set.id] : current.filter((id) => id !== set.id))} />
+                  <span dir="auto">{set.name}</span>
+                </label>)}
+                {!filteredSets.length && <p className="assistant-set-empty">{pickerCopy.noKnowledgeMatches}</p>}
+              </div>
+            </div>
+          </details>}
           {!sets.length && <p className="assistant-form-hint">{fa ? "ابتدا در پایگاه دانش یک مجموعه بسازید." : "Create a knowledge set in Knowledge base first."}</p>}
         </fieldset>
         <button type="button" role="switch" aria-checked={active} onClick={() => setActive(!active)} className="assistant-form-status">
