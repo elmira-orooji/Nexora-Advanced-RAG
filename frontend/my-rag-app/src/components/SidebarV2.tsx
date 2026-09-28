@@ -128,8 +128,8 @@ export default function SidebarV2({
         aria-modal={mobileOpen ? "true" : undefined}
         className={`nexora-sidebar ${collapsed ? "is-collapsed" : ""} ${mobileOpen ? "is-open" : ""}`}
       >
-        <header className="nexora-sidebar__brand" dir="ltr">
-          <div className="nexora-sidebar__brand-lockup">
+        <header className="nexora-sidebar__brand" dir={isFa ? "rtl" : "ltr"}>
+          <div className="nexora-sidebar__brand-lockup" dir="ltr">
             <img src="/brand/nexora-symbol.svg" alt="" width={30} height={30} />
             <div className="nexora-sidebar__expanded nexora-sidebar__wordmark">
               <strong>Nexora</strong>

@@ -179,7 +179,7 @@ html:not(.dark) .nexora-sidebar {
 .nexora-sidebar__account-copy strong, .nexora-sidebar__account-copy span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nexora-sidebar__account-copy strong { font-size: 13px; font-weight: 600; }
 .nexora-sidebar__account-copy span { color: var(--sb-muted); font-size: 12px; margin-top: 3px; }
-.nexora-sidebar__collapse { display: none; align-items: center; justify-content: center; flex: 0 0 28px; width: 28px; height: 28px; margin-left: auto; border-radius: 7px; color: var(--sb-muted); }
+.nexora-sidebar__collapse { display: none; align-items: center; justify-content: center; flex: 0 0 28px; width: 28px; height: 28px; margin-inline-start: auto; border-radius: 7px; color: var(--sb-muted); }
 .nexora-sidebar__collapse:hover { color: var(--sb-text); background: var(--sb-hover); }
 .nexora-sidebar__mobile-close { margin-inline-start: auto; }
 @media (max-width: 479px) {
