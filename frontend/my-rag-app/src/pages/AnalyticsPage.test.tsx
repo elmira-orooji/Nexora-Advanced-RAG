@@ -61,7 +61,7 @@ describe("AnalyticsPage", () => {
   });
 
   it("marks workspace attention items as seen after opening their details", async () => {
-    mocks.overview.mockReset().mockResolvedValue({ ...overview, recent_issues: [recentIssue] });
+    mocks.overview.mockReset().mockResolvedValue({ ...overview, failed_documents: 2, recent_issues: [recentIssue] });
     Object.defineProperty(HTMLDialogElement.prototype, "showModal", {
       configurable: true,
       value: vi.fn(function (this: HTMLDialogElement) { this.setAttribute("open", ""); }),
@@ -70,10 +70,15 @@ describe("AnalyticsPage", () => {
     const firstView = render(<AnalyticsPage />);
     const detailsButton = await screen.findByRole("button", { name: /More details/ });
     expect(detailsButton).toHaveTextContent("1 analytics.issues");
+    const failedDocuments = screen.getByText(/analytics\.failed/).closest("span");
+    expect(failedDocuments).not.toBeNull();
+    expect(failedDocuments).toHaveClass("an-danger");
 
     fireEvent.click(detailsButton);
     await waitFor(() => expect(detailsButton).not.toHaveTextContent("1 analytics.issues"));
+    await waitFor(() => expect(failedDocuments).toHaveClass("an-muted"));
     expect(localStorage.getItem("nexora:analytics:seen-issues:manager")).toContain("report.pdf");
+    expect(localStorage.getItem("nexora:analytics:seen-failed-count:manager")).toBe("2");
 
     firstView.unmount();
     render(<AnalyticsPage />);

@@ -26,11 +26,22 @@ function readSeenIssues(storageKey: string): string[] {
   }
 }
 
+function readSeenFailedCount(storageKey: string): number {
+  try {
+    const count = Number(localStorage.getItem(storageKey));
+    return Number.isFinite(count) && count > 0 ? count : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export default function AnalyticsPage({ notificationCenter }: { notificationCenter?: ReactNode }) {
   const { i18n, t } = useTranslation();
   const fa = i18n.language.startsWith("fa");
   const user = authService.getUser();
-  const seenIssuesStorageKey = `nexora:analytics:seen-issues:${user?.organization_id ?? user?.username ?? "workspace"}`;
+  const organizationKey = user?.organization_id ?? user?.username ?? "workspace";
+  const seenIssuesStorageKey = `nexora:analytics:seen-issues:${organizationKey}`;
+  const seenFailedCountStorageKey = `nexora:analytics:seen-failed-count:${organizationKey}`;
   const detailsRef = useRef<HTMLDialogElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState<{ days: 7 | 30 | 90; revision: number }>({ days: 30, revision: 0 });
@@ -69,10 +80,13 @@ export default function AnalyticsPage({ notificationCenter }: { notificationCent
 
   const c = sectionCopy(t, "analytics", ["welcome", "subtitle", "export", "exportExcel", "exportCsv", "exportPdf", "exportPdfHint", "exportFailed", "reportTitle", "period", "generatedAt", "dailyData", "date", "negativeFeedback", "queries", "users", "grounded", "satisfaction", "noFeedback", "unanswered", "coverage", "citations", "performance", "performanceSub", "query", "groundedLabel", "health", "indexed", "failed", "healthy", "quality", "positive", "feedbackCoverage", "assistants", "knowledge", "issues", "empty"]);
   const unseenIssueCount = data?.recent_issues.filter((issue) => !seenIssues.includes(issueFingerprint(issue))).length ?? 0;
+  const seenFailedDocuments = readSeenFailedCount(seenFailedCountStorageKey);
+  const hasUnseenFailedDocuments = (data?.failed_documents ?? 0) > seenFailedDocuments;
   const openDetails = () => {
-    if (data?.recent_issues.length) {
+    if (data) {
       const next = [...new Set([...seenIssues, ...data.recent_issues.map(issueFingerprint)])];
       try { localStorage.setItem(seenIssuesStorageKey, JSON.stringify(next)); } catch { /* Keep the current view usable if storage is unavailable. */ }
+      try { localStorage.setItem(seenFailedCountStorageKey, String(data.failed_documents)); } catch { /* Keep the current view usable if storage is unavailable. */ }
       setSeenIssuesRevision((revision) => revision + 1);
     }
     detailsRef.current?.showModal();
@@ -145,7 +159,7 @@ export default function AnalyticsPage({ notificationCenter }: { notificationCent
         <div className="analytics-health-summary">
           <span><Database size={16} aria-hidden="true" />{c.health}</span>
           <span><strong>{fmt(data.indexed_documents)}</strong> {c.indexed}</span>
-          {data.failed_documents > 0 && <span className="an-danger"><strong>{fmt(data.failed_documents)}</strong> {c.failed}</span>}
+          {data.failed_documents > 0 && <span className={hasUnseenFailedDocuments ? "an-danger" : "an-muted"}><strong>{fmt(data.failed_documents)}</strong> {c.failed}</span>}
           <span>{c.feedbackCoverage}: {data.feedback_coverage}%</span>
         </div>
 
