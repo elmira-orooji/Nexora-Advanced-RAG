@@ -34,6 +34,12 @@ html:not(.dark) .nexora-toast--warning { --notice-accent: #9a6819; }
 .nexora-toast.is-visible { animation: notice-enter 160ms ease-out both; }
 .nexora-toast.is-leaving { opacity: 0; transition: opacity 120ms ease; }
 .nexora-toast--loading .nexora-toast__icon svg { animation: notice-spin 1s linear infinite; }
+.nexora-toast-stack { position: fixed; z-index: 1400; top: max(16px, env(safe-area-inset-top)); inset-inline-end: 16px; width: min(380px, calc(100vw - 32px)); pointer-events: none; }
+.nexora-toast-stack > .nexora-toast { position: absolute; inset-inline-end: 0; width: 100%; padding: 12px 13px; gap: 10px; border-radius: 10px; box-shadow: 0 8px 26px #101b351a; transition: top 180ms ease, opacity 140ms ease; }
+.nexora-toast-stack .nexora-toast__icon { width: 26px; height: 26px; border: 0; }
+.nexora-toast-stack .nexora-toast__content { align-self: center; font-size: 13px; line-height: 1.6; }
+.nexora-toast-stack .nexora-toast__content > div { margin: 0; max-height: 30vh; overflow: auto; }
+.nexora-toast-stack .nexora-toast__close { pointer-events: auto; width: 26px; height: 26px; }
 @keyframes notice-enter { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes notice-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .nexora-notifications *, .nexora-toast { animation: none !important; transition: none !important; } }
@@ -42,8 +48,8 @@ html:not(.dark) .nexora-toast--warning { --notice-accent: #9a6819; }
 .nexora-message-dialog[open] { display: flex; }
 .nexora-message-dialog {
   position: fixed; inset: 0; margin: auto; flex-direction: column;
-  align-items: stretch; width: min(420px, calc(100vw - 32px));
-  max-height: calc(100dvh - 40px); padding: 24px; gap: 16px;
+  align-items: stretch; width: min(400px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px); padding: 22px; gap: 14px;
   overflow-y: auto; text-align: start;
 }
 .nexora-message-dialog::backdrop {
@@ -55,7 +61,25 @@ html:not(.dark) .nexora-toast--warning { --notice-accent: #9a6819; }
 .nexora-message-dialog h2 { margin: 0 0 6px; font-size: 16px; font-weight: 600; color: var(--notice-text); }
 .nexora-message-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
 .nexora-message-actions button { min-height: 38px; padding: 8px 16px; border: 1px solid var(--notice-border); border-radius: 8px; background: transparent; color: var(--notice-text); font-family: inherit; font-size: 12px; cursor: pointer; }
-.nexora-message-actions .is-primary { background: var(--brand-action); border-color: var(--brand-action); color: var(--text-inverse); }
-.nexora-message-actions .is-confirm { color: var(--notice-accent); }
+.nexora-message-actions .is-primary,
+.nexora-message-actions .is-confirm { background: var(--brand-action); border-color: var(--brand-action); color: var(--text-inverse); }
+.nexora-message-actions .is-confirm:hover,
+.nexora-message-actions .is-primary:hover { background: var(--brand-action-hover); border-color: var(--brand-action-hover); filter: none; }
+.nexora-message-actions button:not(.is-primary):not(.is-confirm):hover { background: var(--surface-raised); }
 .nexora-message-actions button:hover { filter: brightness(1.08); }
 .nexora-message-actions button:focus-visible { outline: 2px solid var(--notice-accent); outline-offset: 3px; }
+.nexora-confirmation__heading { display: flex; align-items: center; justify-content: space-between; }
+.nexora-confirmation__close { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; color: var(--notice-muted); background: transparent; cursor: pointer; }
+.nexora-confirmation__close:hover { color: var(--notice-text); background: var(--surface-raised); }
+.nexora-confirmation__close:focus-visible { outline: 2px solid var(--notice-accent); outline-offset: 2px; }
+.nexora-message-dialog.is-confirmation { gap: 13px; border-radius: 14px; box-shadow: 0 24px 72px #101b3530; }
+.nexora-message-dialog.is-confirmation .nexora-toast__content { font-size: 13px; }
+.nexora-message-dialog.is-confirmation h2 { margin: 0 0 5px; font-size: 17px; font-weight: 650; letter-spacing: -.01em; }
+.nexora-message-dialog.is-confirmation .nexora-toast__content > div { margin: 0; line-height: 1.75; }
+.nexora-message-dialog.is-confirmation .nexora-message-actions { padding-top: 5px; }
+.nexora-message-dialog.is-confirmation .nexora-message-actions button { min-height: 40px; padding-inline: 18px; font-size: 13px; }
+@media (max-width: 480px) {
+  .nexora-message-dialog.is-confirmation { padding: 20px; }
+  .nexora-message-dialog.is-confirmation .nexora-message-actions { flex-direction: column-reverse; }
+  .nexora-message-dialog.is-confirmation .nexora-message-actions button { width: 100%; }
+}
