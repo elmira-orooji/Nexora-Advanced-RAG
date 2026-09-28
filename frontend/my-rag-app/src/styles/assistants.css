@@ -76,7 +76,9 @@ html:not(.dark) .assistants-page {
 .assistants-page .as-muted { color: var(--as-muted); }
 .assistants-page .as-text { color: var(--as-text); }
 .assistants-page .as-accent { color: var(--as-accent); }
-.assistants-header { flex-wrap: wrap; gap: 16px; }
+.assistants-header { display: flex; align-items: flex-start; }
+.assistants-heading-copy { min-width: 0; }
+.assistants-title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
 .assistants-header h1 { font-size: 26px; line-height: 1.5; }
 .assistants-eyebrow { margin-bottom: 6px; color: var(--as-muted); font-size: var(--font-size-helper); font-weight: 500; text-transform: uppercase; letter-spacing: .08em; }
 .assistants-page .assistants-create { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 38px; padding: 8px 14px; border: 1px solid var(--as-line); border-radius: 8px; background: var(--as-tint); color: var(--as-accent); font-size: 12px; font-weight: 600; }
