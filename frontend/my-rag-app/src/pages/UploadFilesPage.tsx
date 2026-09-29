@@ -52,7 +52,7 @@ export default function UploadFilesPage({ initialAction }: UploadFilesPageProps)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isThinking, setIsThinking] = useState(false);
   const [isChatSlow, setIsChatSlow] = useState(false);
-  const [dialog, setDialog] = useState<"create" | "edit" | null>(null);
+  const [dialog, setDialog] = useState<"create" | "edit" | null>(() => initialAction === "create" && isAdmin ? "create" : null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
   const [scopeOpen, setScopeOpen] = useState(false);
@@ -107,10 +107,13 @@ export default function UploadFilesPage({ initialAction }: UploadFilesPageProps)
     chatAbortController.current?.abort();
     if (chatSlowTimer.current !== null) window.clearTimeout(chatSlowTimer.current);
   }, []);
+  const initialUploadFocusHandled = useRef(false);
   useEffect(() => {
-    if (initialAction === "create" && isAdmin) setDialog("create");
-    if (initialAction === "upload" && selectedSetId) window.setTimeout(() => document.getElementById("knowledge-upload-dropzone")?.focus(), 0);
-  }, [initialAction, isAdmin, selectedSetId]);
+    if (initialAction !== "upload" || !selectedSetId || initialUploadFocusHandled.current) return;
+    initialUploadFocusHandled.current = true;
+    const timeoutId = window.setTimeout(() => document.getElementById("knowledge-upload-dropzone")?.focus(), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [initialAction, selectedSetId]);
   useEffect(() => {
     let active = true;
     knowledgeService.listSets()
@@ -142,7 +145,7 @@ export default function UploadFilesPage({ initialAction }: UploadFilesPageProps)
       .then((items) => { if (!controller.signal.aborted) setConnectors(items); })
       .catch((error) => { if (!(error instanceof DOMException && error.name === "AbortError") && !controller.signal.aborted) setConnectors([]); });
     return () => controller.abort();
-  }, [applyDocuments, selectedSetId]);
+  }, [applyDocuments, isFa, selectedSetId]);
   const hasActiveDocuments = documents.some((item) => ["queued", "processing"].includes(item.status));
   useEffect(() => {
     if (!selectedSetId || !hasActiveDocuments) return;
