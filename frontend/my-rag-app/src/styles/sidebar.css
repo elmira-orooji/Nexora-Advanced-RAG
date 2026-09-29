@@ -202,7 +202,7 @@ html:not(.dark) .nexora-sidebar {
   .nexora-sidebar.is-collapsed .nexora-sidebar__expanded { display: none; }
   .nexora-sidebar.is-collapsed .nexora-sidebar__brand { flex-direction: column; justify-content: center; padding: 14px 0; gap: 8px; }
   .nexora-sidebar.is-collapsed .nexora-sidebar__brand-lockup { justify-content: center; }
-  .nexora-sidebar.is-collapsed .nexora-sidebar__collapse { margin-left: 0; }
+  .nexora-sidebar.is-collapsed .nexora-sidebar__collapse { align-self: center; margin-inline: 0; }
   .nexora-sidebar.is-collapsed .nexora-sidebar__tools { padding-inline: 14px; }
   .nexora-sidebar.is-collapsed .nexora-sidebar__new,
   .nexora-sidebar.is-collapsed .nexora-sidebar__nav-item { justify-content: center; padding-inline: 0; }
