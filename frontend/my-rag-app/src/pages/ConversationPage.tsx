@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Check, ChevronDown, FileSearch, FileText, FileUp, Loader2, MessageSquareText, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
+import { BookOpen, Check, ChevronDown, FileSearch, FileText, FileUp, Loader2, MessageSquareText, RefreshCw, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
@@ -214,7 +214,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
       <main className="conversation-welcome">
         <div className="conversation-intro">
           <span className="conversation-emblem">
-            <Sparkles size={23} />
+            <img src="/brand/nexora-symbol.svg" alt="" width={24} height={24} />
           </span>
           <h1 className="conversation-title">
             {isFa ? "امروز چه چیزی را بررسی کنیم؟" : "What would you like to explore?"}

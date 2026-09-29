@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import {
   BookOpen, Building2, Check, ChevronDown, Cloud, Database, FileText, FolderKanban, GitBranch as Github, Globe2, Link2, MessageSquareText, MoreHorizontal,
-  FlaskConical, PanelRightClose, Pencil, Plus, RefreshCw, ScanSearch, Search, Settings2, SlidersHorizontal, Sparkles, Telescope, Trash2, UploadCloud, Zap, X, Filter,
+  FlaskConical, PanelRightClose, Pencil, Plus, RefreshCw, ScanSearch, Search, Settings2, SlidersHorizontal, Telescope, Trash2, UploadCloud, Zap, X, Filter,
 } from "lucide-react";
 import "../styles/knowledge.css";
 import ChatInput from "../components/ChatInput";
@@ -338,7 +338,7 @@ export default function UploadFilesPage({ initialAction }: UploadFilesPageProps)
           </div>
           <button aria-label={isFa ? "بستن دستیار" : "Close assistant"} onClick={() => setChatOpen(false)} className="knowledge-assistant-close app-icon-button grid size-9 shrink-0 place-items-center rounded-xl"><PanelRightClose size={17} className="hidden xl:block" /><X size={17} className="xl:hidden" /></button>
         </header>
-        <div className="relative min-h-0 flex-1 p-4">{chatMessages.length ? <ChatWindow messages={chatMessages} isThinking={isThinking} isSlow={isChatSlow} /> : <div className="knowledge-assistant-empty flex h-full flex-col items-center justify-center px-7 text-center"><span className="knowledge-assistant-empty-icon grid size-14 place-items-center rounded-2xl"><Sparkles size={22} /></span><h3 className="mt-5 text-sm font-semibold">{copy.chatEmpty}</h3><p className="mt-2 max-w-[255px] text-xs leading-5">{copy.chatHint}</p><span className="knowledge-assistant-context mt-5 max-w-[250px] truncate rounded-full px-3 py-1.5 text-xs font-medium">{selectedSet?.name || (isFa ? "مجموعه‌ای انتخاب نشده" : "No set selected")}</span></div>}</div>
+        <div className="relative min-h-0 flex-1 p-4">{chatMessages.length ? <ChatWindow messages={chatMessages} isThinking={isThinking} isSlow={isChatSlow} /> : <div className="knowledge-assistant-empty flex h-full flex-col items-center justify-center px-7 text-center"><span className="knowledge-assistant-empty-icon grid size-14 place-items-center rounded-2xl"><img src="/brand/nexora-symbol.svg" alt="" width={24} height={24} /></span><h3 className="mt-5 text-sm font-semibold">{copy.chatEmpty}</h3><p className="mt-2 max-w-[255px] text-xs leading-5">{copy.chatHint}</p><span className="knowledge-assistant-context mt-5 max-w-[250px] truncate rounded-full px-3 py-1.5 text-xs font-medium">{selectedSet?.name || (isFa ? "مجموعه‌ای انتخاب نشده" : "No set selected")}</span></div>}</div>
         <div className="knowledge-assistant-dock relative shrink-0 p-3.5">
           <div className="knowledge-assistant-tools mb-3 grid grid-cols-2 gap-2">
             <MetadataFilterBar documents={documents} filters={metadataFilters} onChange={setMetadataFilters} isFa={isFa} />
