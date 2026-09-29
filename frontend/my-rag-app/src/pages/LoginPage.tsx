@@ -90,7 +90,7 @@ export default function LoginPage() {
   const [capsLock, setCapsLock] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isLoading, setIsLoading] = useState(false);
-  const [serverError, setServerError] = useState("");
+  const [serverError, setServerError] = useState(() => (location.state as { reason?: string } | null)?.reason === "session-expired" ? (language === "fa" ? "نشست شما منقضی شده است. دوباره وارد شوید." : "Your session has expired. Please sign in again.") : "");
   const [successMessage, setSuccessMessage] = useState("");
   const t = {
     username: translate("login.username"), usernamePlaceholder: translate("login.usernamePlaceholder"),

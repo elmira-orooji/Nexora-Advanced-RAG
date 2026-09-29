@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bot, ChevronDown, FileStack, MessageSquareText, Pencil, Plus, Power, Search, Trash2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import InlineError from "../components/InlineError";
 import "../styles/assistants.css";
 import { authService } from "../services/authService";
 import { assistantService, type AssistantPayload, type CustomAssistant } from "../services/assistantService";
@@ -15,9 +16,9 @@ interface AssistantsPageProps {
 
 export default function AssistantsPage({ onStartConversation }: AssistantsPageProps) {
   const { i18n, t } = useTranslation(); const fa = i18n.language.startsWith("fa"); const admin = authService.getUser()?.role === "admin";
-  const [items, setItems] = useState<CustomAssistant[]>([]); const [sets, setSets] = useState<DocumentSet[]>([]); const [editing, setEditing] = useState<CustomAssistant | "new" | null>(null); const [startingAssistantId, setStartingAssistantId] = useState<string | null>(null); const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<CustomAssistant[]>([]); const [sets, setSets] = useState<DocumentSet[]>([]); const [editing, setEditing] = useState<CustomAssistant | "new" | null>(null); const [startingAssistantId, setStartingAssistantId] = useState<string | null>(null); const [loading, setLoading] = useState(true); const [pageError, setPageError] = useState("");
   const c = sectionCopy(t, "assistantsPage", ["eyebrow", "title", "subtitle", "add", "empty", "choose", "knowledge", "inactive", "active", "edit", "remove", "noKnowledge", "selectKnowledge", "searchKnowledge", "noKnowledgeMatches"]);
-  const load = async () => { try { const [assistants, knowledgeSets] = await Promise.all([assistantService.list(), assistantService.listSets()]); setItems(assistants); setSets(knowledgeSets); } catch (e) { toast.error((e as Error).message); } finally { setLoading(false); } };
+  const load = async () => { try { const [assistants, knowledgeSets] = await Promise.all([assistantService.list(), assistantService.listSets()]); setItems(assistants); setSets(knowledgeSets); setPageError(""); } catch (e) { setPageError((e as Error).message); } finally { setLoading(false); } };
   useEffect(() => {
     let active = true;
     Promise.all([assistantService.list(), assistantService.listSets()])
@@ -26,7 +27,7 @@ export default function AssistantsPage({ onStartConversation }: AssistantsPagePr
         setItems(assistants);
         setSets(knowledgeSets);
       })
-      .catch((error) => { if (active) toast.error((error as Error).message); })
+      .catch((error) => { if (active) setPageError((error as Error).message); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
@@ -36,9 +37,10 @@ export default function AssistantsPage({ onStartConversation }: AssistantsPagePr
     await onStartConversation(item.id);
     setStartingAssistantId(null);
   };
-  const remove = async (item: CustomAssistant) => { if (!await confirmAction(fa ? `دستیار «${item.name}» حذف شود؟` : `Delete “${item.name}”?`)) return; try { await assistantService.remove(item.id); toast.success(fa ? "دستیار حذف شد" : "Assistant deleted"); await load(); } catch (e) { toast.error((e as Error).message); } };
+  const remove = async (item: CustomAssistant) => { if (!await confirmAction(fa ? `دستیار «${item.name}» حذف شود؟` : `Delete “${item.name}”?`)) return; try { await assistantService.remove(item.id); toast.success(fa ? "دستیار حذف شد" : "Assistant deleted"); await load(); } catch (e) { setPageError((e as Error).message); } };
   return <div dir={fa ? "rtl" : "ltr"} className="assistants-page flex h-full min-h-0 overflow-hidden">
     <section className="flex min-w-0 flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8"><header className="assistants-header shrink-0"><div className="assistants-heading-copy"><div className="assistants-eyebrow">{c.eyebrow}</div><div className="assistants-title-row"><h1 className="text-2xl font-semibold tracking-[-.025em]">{c.title}</h1>{admin && <button onClick={() => setEditing("new")} className="assistants-create flex h-10 items-center gap-2 px-4 text-xs font-semibold"><Plus size={15} />{c.add}</button>}</div><p className="mt-2 text-xs leading-6 as-muted">{c.subtitle}</p></div></header>
+      {pageError && <InlineError className="mt-4" message={pageError} onDismiss={() => setPageError("")} />}
       <div className="mt-6 grid min-h-0 flex-1 auto-rows-min grid-cols-1 gap-3 overflow-y-auto pb-2 sm:grid-cols-2 xl:grid-cols-3">{loading ? <div className="col-span-full grid min-h-48 place-items-center"><span className="nexora-loader" /></div> : items.length ? items.map((item) => <article key={item.id} className="assistant-card"><div className="flex items-start justify-between"><span className="assistant-emblem"><Bot size={20} /></span><div className="flex items-center gap-1">{!item.is_active && <span className="rounded-full border border-white/10 px-2 py-1 text-xs as-muted">{c.inactive}</span>}{admin && <button aria-label={`${c.edit}: ${item.name}`} onClick={(e) => { e.stopPropagation(); setEditing(item); }} className="app-icon-button grid size-8 place-items-center rounded-lg as-muted hover:text-white"><Pencil size={13} /></button>}{admin && <button aria-label={`${c.remove}: ${item.name}`} onClick={(e) => { e.stopPropagation(); void remove(item); }} className="app-icon-button grid size-8 place-items-center rounded-lg as-muted hover:text-rose-300"><Trash2 size={13} /></button>}</div></div><h2 className="mt-4 text-sm font-semibold"><button type="button" className="assistant-card-select" onClick={() => void choose(item)} disabled={!item.is_active || startingAssistantId !== null}>{startingAssistantId === item.id ? (fa ? "در حال آغاز گفتگو…" : "Starting conversation…") : item.name}</button></h2><p className="mt-2 line-clamp-2 min-h-10 text-xs leading-5 as-muted">{item.description || item.instructions}</p><div className="mt-4 flex items-center gap-2 border-t border-white/[.06] pt-3 text-xs as-muted"><FileStack size={12} /><span className="truncate">{item.document_set_names.length ? `${item.document_set_names.length} ${c.knowledge}` : c.noKnowledge}</span></div><p className="mt-3 flex items-center gap-1.5 text-xs as-muted"><MessageSquareText size={12} />{fa ? "گفتگوی جدید در گفت‌وگوهای اخیر ذخیره می‌شود" : "New chats are saved in Recent chats"}</p></article>) : <div className="assistants-empty col-span-full"><span className="assistants-empty-icon"><Bot size={24} /></span><h2>{c.empty}</h2><p>{fa ? (admin ? "یک دستیار با دستورالعمل و منابع اختصاصی بسازید." : "دستیارهای فعال پس از ایجاد توسط مدیر اینجا نمایش داده می‌شوند.") : (admin ? "Create an assistant with its own instructions and knowledge sources." : "Active assistants will appear here once your administrator creates them.")}</p>{admin && <button type="button" onClick={() => setEditing("new")} className="assistants-create"><Plus size={15} />{c.add}</button>}</div>}</div>
     </section>
     {editing && <AssistantDialog item={editing === "new" ? undefined : editing} sets={sets} fa={fa} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await load(); }} />}
@@ -69,9 +71,9 @@ function AssistantDialog({ item, sets, fa, onClose, onSaved }: { item?: CustomAs
     modal?.showModal();
     return () => modal?.close();
   }, []);
-  const [name, setName] = useState(item?.name || ""); const [description, setDescription] = useState(item?.description || ""); const [instructions, setInstructions] = useState(item?.instructions || ""); const [selectedSets, setSelectedSets] = useState<string[]>(item?.document_set_ids || []); const [active, setActive] = useState(item?.is_active ?? true); const [saving, setSaving] = useState(false);
+  const [name, setName] = useState(item?.name || ""); const [description, setDescription] = useState(item?.description || ""); const [instructions, setInstructions] = useState(item?.instructions || ""); const [selectedSets, setSelectedSets] = useState<string[]>(item?.document_set_ids || []); const [active, setActive] = useState(item?.is_active ?? true); const [saving, setSaving] = useState(false); const [saveError, setSaveError] = useState("");
   const valid = name.trim().length >= 2 && instructions.trim().length >= 10;
-  const submit = async (e: React.FormEvent) => { e.preventDefault(); if (!valid) return; setSaving(true); const payload: AssistantPayload = { model_id: modelId.trim() || null, answer_mode: answerMode, name: name.trim(), description: description.trim(), instructions: instructions.trim(), document_set_ids: selectedSets, is_active: active }; try { if (item) await assistantService.update(item.id, payload); else await assistantService.create(payload); toast.success(fa ? "دستیار ذخیره شد" : "Assistant saved"); onSaved(); } catch (error) { toast.error((error as Error).message); } finally { setSaving(false); } };
+  const submit = async (e: React.FormEvent) => { e.preventDefault(); if (!valid) return; setSaving(true); setSaveError(""); const payload: AssistantPayload = { model_id: modelId.trim() || null, answer_mode: answerMode, name: name.trim(), description: description.trim(), instructions: instructions.trim(), document_set_ids: selectedSets, is_active: active }; try { if (item) await assistantService.update(item.id, payload); else await assistantService.create(payload); toast.success(fa ? "دستیار ذخیره شد" : "Assistant saved"); onSaved(); } catch (error) { setSaveError((error as Error).message); } finally { setSaving(false); } };
   return <dialog ref={modalRef} className="assistant-form-overlay" aria-labelledby="assistant-form-title" onCancel={(event) => { event.preventDefault(); onClose(); }} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <form onSubmit={submit} onMouseDown={(e) => e.stopPropagation()} className="assistant-dialog assistant-form" dir={fa ? "rtl" : "ltr"}>
       <header className="assistant-form-header">
@@ -132,6 +134,7 @@ function AssistantDialog({ item, sets, fa, onClose, onSaved }: { item?: CustomAs
         </button>
       </div>
       <footer className="assistant-form-footer">
+        {saveError && <InlineError className="mb-3 w-full" message={saveError} onDismiss={() => setSaveError("")} />}
         <button type="button" onClick={onClose} className="assistant-form-cancel">{fa ? "انصراف" : "Cancel"}</button>
         <button type="submit" disabled={!valid || saving} className="assistant-form-save">{saving ? (fa ? "در حال ذخیره…" : "Saving…") : fa ? "ذخیره دستیار" : "Save assistant"}</button>
       </footer>

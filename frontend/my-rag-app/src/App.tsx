@@ -11,7 +11,6 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { lazy, Suspense, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
 import { AUTH_EXPIRED_EVENT } from "./services/apiClient";
 
 const AppLayout = lazy(() => import("./layouts/AppLayout"));
@@ -31,12 +30,6 @@ function SessionExpiryHandler() {
 
   useEffect(() => {
     const handleExpiry = () => {
-      toast.error(
-        i18n.language.startsWith("fa")
-          ? "نشست شما منقضی شده است. دوباره وارد شوید."
-          : "Your session has expired. Please sign in again.",
-        { id: "session-expired" },
-      );
       navigate("/", { replace: true, state: { reason: "session-expired" } });
     };
     window.addEventListener(AUTH_EXPIRED_EVENT, handleExpiry);

@@ -4,6 +4,7 @@ import "../styles/knowledge.css";
 import "./DocumentChunkInspector.css";
 import { Boxes, ChevronRight, Copy, Eye, FileText, Pencil, Power, ScanSearch, Search, Sparkles, Tags, X } from "lucide-react";
 import toast from "react-hot-toast";
+import InlineError from "./InlineError";
 import { knowledgeService, type DocumentChunk, type DocumentDetail } from "../services/knowledgeService";
 import { inspectUnicode, type UnicodeFinding } from "../lib/unicodeInspector";
 import { findPersianSearchMatches, toPersianSearchKey } from "../lib/persianSearch";
@@ -21,10 +22,11 @@ export default function DocumentChunkInspector({ documentId, isAdmin, isFa, onCl
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  const [operationError, setOperationError] = useState("");
 
   useEffect(() => {
     let active = true;
-    knowledgeService.getDocument(documentId).then((result) => { if (active) setDocument(result); }).catch((error) => toast.error((error as Error).message)).finally(() => { if (active) setLoading(false); });
+    knowledgeService.getDocument(documentId).then((result) => { if (active) setDocument(result); }).catch(() => undefined).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [documentId]);
 
@@ -54,22 +56,24 @@ export default function DocumentChunkInspector({ documentId, isAdmin, isFa, onCl
   const updateSelected = async (data: { content?: string; is_active?: boolean }) => {
     if (!document || !selectedChunk) return;
     setSaving(true);
+    setOperationError("");
     try {
       const updated = await knowledgeService.updateChunk(document.id, selectedChunk.id, data);
       const next = { ...document, chunks: document.chunks.map((item) => item.id === updated.id ? updated : item) };
       setDocument(next); setSelectedChunk(updated); setEditing(false);
       toast.success(isFa ? "Chunk به‌روزرسانی شد" : "Chunk updated");
-    } catch (error) { toast.error((error as Error).message); }
+    } catch (error) { setOperationError((error as Error).message); }
     finally { setSaving(false); }
   };
   const enrichSelected = async () => {
     if (!document || !selectedChunk) return;
     setSaving(true);
+    setOperationError("");
     try {
       const updated = await knowledgeService.enrichChunk(document.id, selectedChunk.id);
       setDocument({ ...document, chunks: document.chunks.map((item) => item.id === updated.id ? updated : item) });
       setSelectedChunk(updated); toast.success(isFa ? "Keyword و سؤال‌ها تولید شدند" : "Keywords and questions generated");
-    } catch (error) { toast.error((error as Error).message); }
+    } catch (error) { setOperationError((error as Error).message); }
     finally { setSaving(false); }
   };
 
@@ -80,6 +84,7 @@ export default function DocumentChunkInspector({ documentId, isAdmin, isFa, onCl
       <div className="inspector-stats grid shrink-0 grid-cols-2 gap-2 border-b inspector-border p-4 sm:grid-cols-4">{[[isFa ? "Parentها" : "Parents", parents.length], [isFa ? "Childها" : "Children", document.chunks.length], [isFa ? "توکن‌ها" : "Tokens", tokens || "—"], [isFa ? "وضعیت" : "Status", document.status]].map(([label, value]) => <div key={label} className="rounded-xl border inspector-border inspector-surface p-3"><p className="text-xs inspector-muted">{label}</p><p className="mt-1 text-xs font-semibold inspector-text">{value}</p></div>)}</div>
       <div className="flex shrink-0 gap-2 border-b inspector-border p-4"><label className="relative min-w-0 flex-1"><Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 inspector-muted" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={isFa ? "جست‌وجو در متن قطعه‌ها…" : "Search inside chunks…"} className="h-10 w-full rounded-xl border inspector-border inspector-surface ps-9 pe-3 text-xs outline-none focus:inspector-border" /></label>{document.content_type === "application/pdf" && <button disabled={!previewUrl} onClick={() => setPreviewOpen((value) => !value)} className={`flex h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-xs font-semibold ${previewOpen ? "inspector-border inspector-tint inspector-accent" : "inspector-border inspector-muted"}`}><Eye size={14} /><span className="hidden sm:inline">{isFa ? "پیش‌نمایش PDF" : "PDF preview"}</span></button>}</div>
       {previewOpen && previewUrl && <div className="grid h-[44%] min-h-[260px] shrink-0 border-b inspector-border inspector-subtle md:grid-cols-[1fr_310px]"><iframe title={document.filename} src={`${previewUrl}#page=${selectedChunk?.page_number || 1}&view=FitH`} className="h-full w-full bg-white" /><aside className="min-h-0 overflow-y-auto border-s inspector-border p-4"><div className="flex items-center justify-between"><p className="text-xs font-semibold inspector-accent">{isFa ? "منبع انتخاب‌شده" : "Selected source"}</p>{selectedChunk?.page_number && <span className="rounded-lg inspector-tint px-2 py-1 text-xs inspector-accent">{isFa ? "صفحه" : "Page"} {selectedChunk.page_number}</span>}</div>{selectedChunk ? <HighlightedSource text={selectedChunk.content} query={query} /> : <p className="mt-5 text-xs leading-5 inspector-muted">{isFa ? "یک Child Chunk را انتخاب کنید تا منبع آن برجسته شود." : "Select a child chunk to highlight its source."}</p>}</aside></div>}
+      {operationError && <div className="shrink-0 px-4 pt-3"><InlineError message={operationError} onDismiss={() => setOperationError("")} /></div>}
       {selectedChunk && <ChunkEnrichment chunk={selectedChunk} isFa={isFa} isAdmin={isAdmin} saving={saving} onEnrich={() => void enrichSelected()} />}
       {isAdmin && selectedChunk && <div className="shrink-0 border-b inspector-border inspector-tint p-3">{editing ? <div><textarea autoFocus value={draft} onChange={(event) => setDraft(event.target.value)} className="max-h-40 min-h-24 w-full resize-y rounded-xl border inspector-border inspector-subtle p-3 text-xs leading-5 inspector-text outline-none focus:inspector-border" /><div className="mt-2 flex justify-end gap-2"><button onClick={() => setEditing(false)} className="rounded-lg px-3 py-2 text-xs inspector-muted">{isFa ? "انصراف" : "Cancel"}</button><button disabled={saving || draft.trim().length < 20} onClick={() => void updateSelected({ content: draft.trim() })} className="rounded-lg bg-[#7c27ff] px-4 py-2 text-xs font-semibold disabled:opacity-40">{isFa ? "ذخیره تغییرات" : "Save changes"}</button></div></div> : <div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="truncate text-xs font-semibold inspector-text">CHILD {selectedChunk.chunk_index + 1}</p><p className={`mt-1 text-xs ${selectedChunk.is_active ? "text-emerald-300/55" : "text-amber-300/60"}`}>{selectedChunk.is_active ? (isFa ? "فعال در Retrieval" : "Active in retrieval") : (isFa ? "غیرفعال و خارج از Retrieval" : "Disabled from retrieval")}</p></div><div className="flex gap-2"><button onClick={() => { setDraft(selectedChunk.content); setEditing(true); }} className="flex h-9 items-center gap-1.5 rounded-lg border inspector-border px-3 text-xs inspector-muted"><Pencil size={12} />{isFa ? "ویرایش" : "Edit"}</button><button disabled={saving} onClick={() => void updateSelected({ is_active: !selectedChunk.is_active })} className={`flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs ${selectedChunk.is_active ? "border-amber-300/15 text-amber-200/60" : "border-emerald-300/15 text-emerald-200/60"}`}><Power size={12} />{selectedChunk.is_active ? (isFa ? "غیرفعال‌کردن" : "Disable") : (isFa ? "فعال‌کردن" : "Enable")}</button></div></div>}</div>}
       <div className="inspector-workspace"><nav aria-label={isFa ? "بخش‌های والد" : "Parent blocks"} className="inspector-nav min-h-0 overflow-y-auto border-e inspector-border p-3">{parents.map((item) => <button key={item.index} aria-pressed={parent?.index === item.index} onClick={() => { setParentIndex(item.index); setSelectedChunk(null); setEditing(false); }} className={`mb-1 flex w-full items-center gap-3 rounded-xl p-3 text-start ${parent?.index === item.index ? "inspector-tint inspector-text" : "inspector-muted hover:inspector-surface"}`}><span className="grid size-8 shrink-0 place-items-center rounded-lg inspector-subtle text-xs font-semibold">P{item.index + 1}</span><span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold">{isFa ? "بخش والد" : "Parent block"} {item.index + 1}</span><span className="mt-1 block text-xs inspector-muted">{item.children.length} child · {item.content.length} chars</span></span><ChevronRight size={12} /></button>)}</nav>
@@ -90,6 +95,7 @@ export default function DocumentChunkInspector({ documentId, isAdmin, isFa, onCl
 }
 
 function UnicodeInspector({ text, isFa, scope }: { text: string; isFa: boolean; scope: string }) {
+  const [error, setError] = useState("");
   const report = useMemo(() => inspectUnicode(text), [text]);
   const findingsCount = report.findings.reduce((sum, finding) => sum + finding.count, 0);
   const copyCodePoint = async (finding: UnicodeFinding) => {
@@ -97,13 +103,13 @@ function UnicodeInspector({ text, isFa, scope }: { text: string; isFa: boolean; 
       await navigator.clipboard.writeText(finding.codePoint);
       toast.success(isFa ? `${finding.codePoint} کپی شد` : `${finding.codePoint} copied`);
     } catch {
-      toast.error(isFa ? "کپی کدپوینت انجام نشد" : "Could not copy code point");
+      setError(isFa ? "کپی کدپوینت انجام نشد" : "Could not copy code point");
     }
   };
 
   return <details className="unicode-inspector">
     <summary className="unicode-inspector-summary"><ScanSearch size={15} /><span>{isFa ? "بازرس یونیکد" : "Unicode inspector"}</span><bdi dir="ltr">{scope}</bdi><span className="unicode-inspector-count">{isFa ? `${report.codePointCount} نویسه` : `${report.codePointCount} code points`}</span></summary>
-    <div className="unicode-inspector-body"><div className="unicode-inspector-stats"><span>{isFa ? "کدپوینت" : "Code points"}<bdi dir="ltr">{report.codePointCount}</bdi></span><span>{isFa ? "واحد UTF-16" : "UTF-16 units"}<bdi dir="ltr">{report.utf16UnitCount}</bdi></span><span>{isFa ? "رخدادهای ویژه" : "Special occurrences"}<bdi dir="ltr">{findingsCount}</bdi></span></div>
+    <div className="unicode-inspector-body"><div className="unicode-inspector-stats"><span>{isFa ? "کدپوینت" : "Code points"}<bdi dir="ltr">{report.codePointCount}</bdi></span><span>{isFa ? "واحد UTF-16" : "UTF-16 units"}<bdi dir="ltr">{report.utf16UnitCount}</bdi></span><span>{isFa ? "رخدادهای ویژه" : "Special occurrences"}<bdi dir="ltr">{findingsCount}</bdi></span></div>{error && <InlineError className="mt-3" message={error} onDismiss={() => setError("")} />}
       <p className="unicode-inspector-note">{isFa ? "تحلیل فقط‌خواندنی است؛ متن اصلی تغییر نمی‌کند. نویسه‌های نامرئی ممکن است عمدی باشند." : "Read-only analysis; the original text is unchanged. Invisible characters may be intentional."}</p>
       {report.findings.length ? <ul className="unicode-inspector-findings">{report.findings.map((finding) => <li key={finding.codePoint} className={`unicode-inspector-finding is-${finding.kind}`}><span className="unicode-inspector-glyph" aria-hidden="true">{finding.kind === "bidi-control" || finding.kind === "invisible-format" ? "◌" : finding.character}</span><div className="unicode-inspector-description"><div className="unicode-inspector-title">{isFa ? finding.labelFa : finding.labelEn}<span>×{finding.count}</span></div><p>{isFa ? finding.detailFa : finding.detailEn}</p></div><button type="button" onClick={() => void copyCodePoint(finding)} aria-label={isFa ? `کپی ${finding.codePoint}` : `Copy ${finding.codePoint}`} title={isFa ? `کپی ${finding.codePoint}` : `Copy ${finding.codePoint}`}><bdi dir="ltr">{finding.codePoint}</bdi><Copy size={12} /></button></li>)}</ul> : <p className="unicode-inspector-empty">{isFa ? "در این بخش از متن، نویسهٔ ویژهٔ قابل‌گزارشی پیدا نشد." : "No notable Unicode characters were found in this text."}</p>}
     </div>

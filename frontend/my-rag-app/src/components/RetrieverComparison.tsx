@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { ArrowLeft, GitCompareArrows, Play } from "lucide-react";
-import toast from "react-hot-toast";
 import { knowledgeService, type MetadataFilters, type RetrieverComparison as Comparison, type RetrieverConfig } from "../services/knowledgeService";
+import InlineError from "./InlineError";
 
 type Props = { setId: string; query: string; documentIds: string[]; filters: MetadataFilters; isFa: boolean; onClose: () => void };
 const initialA: RetrieverConfig = { name: "Balanced", vector_weight: 1, bm25_weight: 1, use_reranker: true, top_k: 5 };
 const initialB: RetrieverConfig = { name: "Vector-heavy", vector_weight: 2, bm25_weight: .5, use_reranker: true, top_k: 5 };
 
 export default function RetrieverComparison({ setId, query: initialQuery, documentIds, filters, isFa, onClose }: Props) {
-  const [query, setQuery] = useState(initialQuery); const [a, setA] = useState(initialA); const [b, setB] = useState(initialB); const [data, setData] = useState<Comparison | null>(null); const [loading, setLoading] = useState(false);
-  const run = async () => { if (query.trim().length < 2) return; setLoading(true); try { setData(await knowledgeService.compareRetrievers(query.trim(), setId, a, b, documentIds, filters)); } catch (error) { toast.error((error as Error).message); } finally { setLoading(false); } };
+  const [query, setQuery] = useState(initialQuery); const [a, setA] = useState(initialA); const [b, setB] = useState(initialB); const [data, setData] = useState<Comparison | null>(null); const [loading, setLoading] = useState(false); const [error, setError] = useState("");
+  const run = async () => { if (query.trim().length < 2) return; setLoading(true); setError(""); try { setData(await knowledgeService.compareRetrievers(query.trim(), setId, a, b, documentIds, filters)); } catch (reason) { setError((reason as Error).message); } finally { setLoading(false); } };
   return <div className="retriever-compare" dir={isFa ? "rtl" : "ltr"}>
     <header className="retriever-compare-header">
       <div className="retriever-compare-title">
@@ -23,6 +23,7 @@ export default function RetrieverComparison({ setId, query: initialQuery, docume
       <input id="retriever-compare-input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={isFa ? "پرسشی برای مقایسه وارد کنید" : "Enter a question to compare"} />
       <button type="submit" disabled={loading || query.trim().length < 2}><Play size={14} />{loading ? (isFa ? "در حال مقایسه…" : "Comparing…") : isFa ? "مقایسه" : "Compare"}</button>
     </form>
+    {error && <div className="px-5 pt-3"><InlineError message={error} onDismiss={() => setError("")} /></div>}
     <div className="retriever-compare-body">
       <Variant config={a} onChange={setA} result={data?.variant_a} other={data?.variant_b} isFa={isFa} />
       <Variant config={b} onChange={setB} result={data?.variant_b} other={data?.variant_a} isFa={isFa} right />

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Copy, FileText, Quote, Telescope, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import InlineError from "./InlineError";
 import AnswerMarkdown from "./AnswerMarkdown";
 import NexoraAvatar from "./NexoraAvatar";
 import AnswerSources from "./AnswerSources";
@@ -23,6 +24,7 @@ export default function OnyxChatWindow({ messages, isThinking, isSlow = false, a
   const { i18n } = useTranslation();
   const isFa = i18n.language.startsWith("fa");
   const [evidence, setEvidence] = useState<{ selected: Source; sources: Source[] } | null>(null);
+  const [copyError, setCopyError] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
   useEffect(() => {
@@ -50,10 +52,11 @@ export default function OnyxChatWindow({ messages, isThinking, isSlow = false, a
   }, []);
 
   return <div dir={isFa ? "rtl" : "ltr"} className={`chat-thread h-full${evidence ? " chat-thread--with-evidence" : " relative"}`}>
+    {copyError && <div className="px-3 pt-3"><InlineError message={copyError} onDismiss={() => setCopyError("")} /></div>}
     <div ref={scrollRef} onScroll={(event) => { const node = event.currentTarget; followLatest.current = node.scrollHeight - node.scrollTop - node.clientHeight < 100; }} className="chat-thread-scroll h-full overflow-y-auto pe-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
       <div className="chat-thread-messages">
         {messages.map((message) => message.role === "user" ? <article key={message.id} data-scroll-message={message.id} className="chat-question">
-          <div className="chat-question-stack"><span className="chat-question-label">{isFa ? "شما" : "You"}</span><div className="chat-question-bubble"><div dir="auto">{message.content}</div></div><div className="chat-question-meta"><time dateTime={message.createdAt} title={new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.createdAt))}>{new Intl.DateTimeFormat(i18n.language, { hour: "numeric", minute: "2-digit" }).format(new Date(message.createdAt))}</time><button type="button" onClick={() => { void copyQuestion(message.content, isFa); }} aria-label={isFa ? "کپی پرسش" : "Copy question"} title={isFa ? "کپی پرسش" : "Copy question"}><Copy size={14} /></button></div></div>
+          <div className="chat-question-stack"><span className="chat-question-label">{isFa ? "شما" : "You"}</span><div className="chat-question-bubble"><div dir="auto">{message.content}</div></div><div className="chat-question-meta"><time dateTime={message.createdAt} title={new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.createdAt))}>{new Intl.DateTimeFormat(i18n.language, { hour: "numeric", minute: "2-digit" }).format(new Date(message.createdAt))}</time><button type="button" onClick={() => { void copyQuestion(message.content, isFa, setCopyError); }} aria-label={isFa ? "کپی پرسش" : "Copy question"} title={isFa ? "کپی پرسش" : "Copy question"}><Copy size={14} /></button></div></div>
         </article> : <article key={message.id} data-scroll-message={message.id} className="chat-answer">
           <NexoraAvatar />
           <div className="chat-answer-body">
@@ -64,7 +67,7 @@ export default function OnyxChatWindow({ messages, isThinking, isSlow = false, a
             {message.sources?.length ? <AnswerSources sources={message.sources} isFa={isFa} onOpen={(source) => setEvidence({ selected: source, sources: message.sources ?? [source] })} /> : null}
 
             <div className="chat-answer-actions">
-              <Action label={isFa ? "کپی" : "Copy"} onClick={() => { void navigator.clipboard.writeText(message.content); toast.success(isFa ? "پاسخ کپی شد" : "Response copied"); }}><Copy size={13} /></Action>
+              <Action label={isFa ? "کپی" : "Copy"} onClick={() => { void copyQuestion(message.content, isFa, setCopyError, isFa ? "کپی پاسخ انجام نشد" : "Could not copy response", isFa ? "پاسخ کپی شد" : "Response copied"); }}><Copy size={13} /></Action>
               {message.responseId && <Feedback responseId={message.responseId} isFa={isFa} />}
             </div>
           </div>
@@ -77,12 +80,12 @@ export default function OnyxChatWindow({ messages, isThinking, isSlow = false, a
   </div>;
 }
 
-async function copyQuestion(content: string, isFa: boolean) {
+async function copyQuestion(content: string, isFa: boolean, onError: (message: string) => void, failure?: string, success?: string) {
   try {
     await navigator.clipboard.writeText(content);
-    toast.success(isFa ? "پرسش کپی شد" : "Question copied");
+    toast.success(success || (isFa ? "پرسش کپی شد" : "Question copied"));
   } catch {
-    toast.error(isFa ? "کپی پرسش انجام نشد" : "Could not copy question");
+    onError(failure || (isFa ? "کپی پرسش انجام نشد" : "Could not copy question"));
   }
 }
 
@@ -95,10 +98,11 @@ function Feedback({ responseId, isFa }: { responseId: string; isFa: boolean }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<FeedbackReason | "">("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const reasons: Array<[FeedbackReason, string]> = [["incorrect", isFa ? "پاسخ اشتباه بود" : "Incorrect answer"], ["irrelevant_source", isFa ? "منبع نامرتبط بود" : "Irrelevant source"], ["incomplete", isFa ? "پاسخ ناقص بود" : "Incomplete answer"], ["citation_issue", isFa ? "ارجاع مشکل داشت" : "Citation issue"], ["other", isFa ? "مورد دیگر" : "Something else"]];
-  const positive = async () => { setSaving(true); try { await feedbackService.save(responseId, 1); setRating(1); toast.success(isFa ? "از بازخورد شما متشکریم" : "Thanks for your feedback"); } catch (error) { toast.error((error as Error).message); } finally { setSaving(false); } };
-  const negative = async () => { if (!reason) return; setSaving(true); try { await feedbackService.save(responseId, -1, reason); setRating(-1); setOpen(false); toast.success(isFa ? "بازخورد ثبت شد" : "Feedback saved"); } catch (error) { toast.error((error as Error).message); } finally { setSaving(false); } };
-  return <div className="relative flex items-center"><Action label={isFa ? "مفید" : "Helpful"} onClick={() => void positive()}><ThumbsUp size={13} className={rating === 1 ? "text-emerald-300" : ""} /></Action><Action label={isFa ? "غیرمفید" : "Not helpful"} onClick={() => setOpen((value) => !value)}><ThumbsDown size={13} className={rating === -1 ? "text-rose-300" : ""} /></Action>{open && <div className="nexora-dropdown absolute bottom-10 start-0 z-30 w-64 rounded-2xl border border-white/10 bg-[rgba(15,11,22,.98)] p-3 shadow-2xl backdrop-blur-2xl"><div className="flex items-center justify-between"><p className="text-xs font-semibold text-white/75">{isFa ? "مشکل پاسخ چه بود؟" : "What went wrong?"}</p><button onClick={() => setOpen(false)} className="text-white/50"><X size={13} /></button></div><div className="mt-2 space-y-1">{reasons.map(([value, label]) => <button key={value} aria-pressed={reason === value} onClick={() => setReason(value)} className={`w-full rounded-lg px-2.5 py-2 text-start text-xs ${reason === value ? "bg-[#7c27ff]/40 text-white/80" : "text-white/55 hover:bg-white/[.04]"}`}>{label}</button>)}</div><button disabled={!reason || saving} onClick={() => void negative()} className="mt-2 h-9 w-full rounded-xl bg-[#7c27ff] text-xs font-semibold disabled:opacity-40">{saving ? "…" : isFa ? "ثبت بازخورد" : "Submit"}</button></div>}</div>;
+  const positive = async () => { setSaving(true); setError(""); try { await feedbackService.save(responseId, 1); setRating(1); toast.success(isFa ? "از بازخورد شما متشکریم" : "Thanks for your feedback"); } catch (error) { setError((error as Error).message); } finally { setSaving(false); } };
+  const negative = async () => { if (!reason) return; setSaving(true); setError(""); try { await feedbackService.save(responseId, -1, reason); setRating(-1); setOpen(false); toast.success(isFa ? "بازخورد ثبت شد" : "Feedback saved"); } catch (error) { setError((error as Error).message); } finally { setSaving(false); } };
+  return <div className="relative flex items-center"><Action label={isFa ? "مفید" : "Helpful"} onClick={() => void positive()}><ThumbsUp size={13} className={rating === 1 ? "text-emerald-300" : ""} /></Action><Action label={isFa ? "غیرمفید" : "Not helpful"} onClick={() => setOpen((value) => !value)}><ThumbsDown size={13} className={rating === -1 ? "text-rose-300" : ""} /></Action>{open && <div className="nexora-dropdown absolute bottom-10 start-0 z-30 w-64 rounded-2xl border border-white/10 bg-[rgba(15,11,22,.98)] p-3 shadow-2xl backdrop-blur-2xl"><div className="flex items-center justify-between"><p className="text-xs font-semibold text-white/75">{isFa ? "مشکل پاسخ چه بود؟" : "What went wrong?"}</p><button onClick={() => setOpen(false)} className="text-white/50"><X size={13} /></button></div><div className="mt-2 space-y-1">{reasons.map(([value, label]) => <button key={value} aria-pressed={reason === value} onClick={() => setReason(value)} className={`w-full rounded-lg px-2.5 py-2 text-start text-xs ${reason === value ? "bg-[#7c27ff]/40 text-white/80" : "text-white/55 hover:bg-white/[.04]"}`}>{label}</button>)}</div>{error && <InlineError className="mt-2" message={error} onDismiss={() => setError("")} />}<button disabled={!reason || saving} onClick={() => void negative()} className="mt-2 h-9 w-full rounded-xl bg-[#7c27ff] text-xs font-semibold disabled:opacity-40">{saving ? "…" : isFa ? "ثبت بازخورد" : "Submit"}</button></div>}{error && !open && <div className="absolute bottom-10 start-0 z-30 w-64"><InlineError message={error} onDismiss={() => setError("")} /></div>}</div>;
 }
 
 function Evidence({ sources, selected, isFa, onSelect, onClose }: { sources: Source[]; selected: Source; isFa: boolean; onSelect: (source: Source) => void; onClose: () => void }) {

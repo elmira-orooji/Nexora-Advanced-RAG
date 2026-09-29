@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Bell, CheckCheck, CircleAlert, CircleCheck, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
+import InlineError from "./InlineError";
 import { useTranslation } from "react-i18next";
 import { notificationService, type AppNotification } from "../services/notificationService";
 
@@ -13,6 +14,7 @@ export default function NotificationCenter({ onNavigate }: NotificationCenterPro
   const isFa = i18n.language.startsWith("fa");
   const [items, setItems] = useState<AppNotification[]>([]);
   const [deleting, setDeleting] = useState<string[]>([]);
+  const [deleteError, setDeleteError] = useState("");
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const unread = items.filter((item) => !item.read_at).length;
@@ -52,12 +54,13 @@ export default function NotificationCenter({ onNavigate }: NotificationCenterPro
   const deleteNotification = async (id: string) => {
     if (deleting.includes(id)) return;
     setDeleting((current) => [...current, id]);
+    setDeleteError("");
     try {
       await notificationService.delete(id);
       setItems((current) => current.filter((item) => item.id !== id));
       toast.success(isFa ? "اعلان حذف شد" : "Notification deleted");
     } catch (error) {
-      toast.error((error as Error).message || (isFa ? "حذف اعلان انجام نشد" : "Could not delete notification"));
+      setDeleteError((error as Error).message || (isFa ? "حذف اعلان انجام نشد" : "Could not delete notification"));
     } finally {
       setDeleting((current) => current.filter((itemId) => itemId !== id));
     }
@@ -73,6 +76,7 @@ export default function NotificationCenter({ onNavigate }: NotificationCenterPro
         <h2 className="text-sm font-semibold">{isFa ? "اعلان‌ها" : "Notifications"}</h2>
         <div className="flex items-center gap-1"><button type="button" onClick={() => void markAllRead()} disabled={!unread} aria-label={isFa ? "خواندن همه" : "Mark all as read"} className="app-icon-button grid size-8 place-items-center rounded-lg text-white/55 hover:text-white disabled:opacity-30"><CheckCheck size={15} /></button><button type="button" onClick={() => setOpen(false)} aria-label={isFa ? "بستن" : "Close"} className="app-icon-button grid size-8 place-items-center rounded-lg text-white/55 hover:text-white"><X size={15} /></button></div>
       </header>
+      {deleteError && <div className="px-3 pt-3"><InlineError message={deleteError} onDismiss={() => setDeleteError("")} /></div>}
       <div className="max-h-[min(26rem,calc(100vh-7rem))] overflow-y-auto p-2">
         {items.map((item) => <div key={item.id} className={`notification-center-item group flex items-start gap-1 rounded-xl transition hover:bg-white/[.055] ${item.read_at ? "opacity-60" : "bg-white/[.035]"}`}>
           <button type="button" onClick={() => void openNotification(item)} className="flex min-w-0 flex-1 items-start gap-3 p-3 text-start">

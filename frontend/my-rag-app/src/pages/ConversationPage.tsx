@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, Check, ChevronDown, FileSearch, FileText, FileUp, Loader2, MessageSquareText, RefreshCw, ShieldCheck } from "lucide-react";
-import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
 import "../styles/conversation.css";
 import NexoraAvatar from "../components/NexoraAvatar";
+import InlineError from "../components/InlineError";
 import { assistantService, type CustomAssistant } from "../services/assistantService";
 import ChatInput from "../components/ChatInput";
 import OnyxChatWindow from "../components/OnyxChatWindow";
@@ -52,6 +52,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
   const [selectedSetId, setSelectedSetId] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState("");
   const [loadRevision, setLoadRevision] = useState(0);
   const [sending, setSending] = useState(false);
   const [sendSlow, setSendSlow] = useState(false);
@@ -81,7 +82,6 @@ export default function ConversationPage({ conversationId, onConversationChange,
         if (!active) return;
         const message = (error as Error).message || (isFa ? "دریافت گفتگو ناموفق بود." : "We couldn't load this conversation.");
         setLoadError(message);
-        toast.error(message);
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -134,6 +134,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
   };
 
   const send = async (content: string) => {
+    setSendError("");
     setPendingPrompt(content);
     setSending(true);
     setSendSlow(false);
@@ -160,7 +161,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
       return true;
     } catch (error) {
       if (controller.signal.aborted || (error instanceof DOMException && error.name === "AbortError")) return false;
-      toast.error((error as Error).message);
+      setSendError((error as Error).message);
       return false;
     } finally {
       if (sendAbortController.current === controller) {
@@ -239,6 +240,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
             {selectedSetId && <span className="shrink-0 text-xs conversation-muted">{indexedDocumentCount} {isFa ? "سند آماده" : "indexed documents"}</span>}
           </div>
 
+          {knowledgeReady && sendError && <InlineError className="mb-3" message={sendError} onDismiss={() => setSendError("")} />}
           {knowledgeReady ? <ChatInput key={suggestedPrompt.revision} initialValue={suggestedPrompt.value} prominent disabled={false} isSending={sending} onSend={send} onCancel={cancelSend} /> : <KnowledgeStartPanel isFa={isFa} hasSet={Boolean(selectedSet) || (isAllKnowledgeSets && sets.length > 0)} canCreate={canCreateKnowledge} onOpenKnowledge={onOpenKnowledge} />}
 
           {knowledgeReady && <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -278,7 +280,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
         </label>}
       </div>}
     </section>
-    <div className="conversation-dock relative z-20 shrink-0 px-0 pb-4 pt-3 sm:px-3 sm:pb-5"><ChatInput prominent disabled={!conversationId && !selectedSetId} isSending={sending} onSend={send} onCancel={cancelSend} /><div className="mt-2 flex items-center justify-center gap-1.5 text-xs conversation-muted"><FileText size={10} />{isFa ? "پاسخ‌ها ممکن است خطا داشته باشند؛ منابع را بررسی کنید." : "AI can make mistakes. Verify important details in the cited sources."}</div></div>
+    <div className="conversation-dock relative z-20 shrink-0 px-0 pb-4 pt-3 sm:px-3 sm:pb-5">{sendError && <InlineError className="mb-3" message={sendError} onDismiss={() => setSendError("")} />}<ChatInput prominent disabled={!conversationId && !selectedSetId} isSending={sending} onSend={send} onCancel={cancelSend} /><div className="mt-2 flex items-center justify-center gap-1.5 text-xs conversation-muted"><FileText size={10} />{isFa ? "پاسخ‌ها ممکن است خطا داشته باشند؛ منابع را بررسی کنید." : "AI can make mistakes. Verify important details in the cited sources."}</div></div>
   </div>;
 }
 

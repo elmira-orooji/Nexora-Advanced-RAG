@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Activity, ArrowDownToLine, Bot, ChevronDown, CircleAlert, Database, FileSpreadsheet, FileText, FileCheck2, MessageSquareText, Printer, UsersRound, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import toast from "react-hot-toast";
+import InlineError from "../components/InlineError";
 
 import { analyticsService, type AnalyticsOverview, type DailyMetric, type RankedMetric } from "../services/analyticsService";
 import { authService } from "../services/authService";
@@ -49,6 +49,7 @@ export default function AnalyticsPage({ notificationCenter }: { notificationCent
   const [data, setData] = useState<AnalyticsOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [inlineError, setInlineError] = useState("");
   const [, setSeenIssuesRevision] = useState(0);
   const seenIssues = readSeenIssues(seenIssuesStorageKey);
 
@@ -56,7 +57,7 @@ export default function AnalyticsPage({ notificationCenter }: { notificationCent
     let active = true;
     analyticsService.overview(query.days)
       .then((result) => { if (active) { setData(result); setLoadedDays(query.days); } })
-      .catch((error) => { if (active) toast.error(error.message); })
+      .catch((error) => { if (active) setInlineError(error.message); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [query]);
@@ -112,13 +113,13 @@ export default function AnalyticsPage({ notificationCenter }: { notificationCent
       const reportRows = [[c.reportTitle], [c.period, `${loadedDays} ${fa ? "روز" : "days"}`], [c.generatedAt, new Date().toLocaleString(fa ? "fa-IR" : "en")], [], [c.queries, data.total_queries], [c.users, data.active_users], [c.grounded, `${data.grounded_rate}%`], [c.satisfaction, data.positive_feedback_rate == null ? c.noFeedback : `${data.positive_feedback_rate}%`], [c.health, `${data.indexed_documents} ${c.indexed}`]];
       const dailyRows = [[c.date, c.queries, c.grounded, c.negativeFeedback], ...data.daily.map((item) => [formatAnalyticsDate(item.date, fa), item.queries, item.grounded, item.negative_feedback])];
       download(createXlsxWorkbook([{ name: fa ? "خلاصه" : "Overview", rows: reportRows }, { name: fa ? "داده روزانه" : "Daily data", rows: dailyRows }]), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx");
-    } catch { toast.error(c.exportFailed); }
+    } catch { setInlineError(c.exportFailed); }
   };
 
   const exportPdf = () => {
     if (!data) return;
     const report = window.open("", "_blank");
-    if (!report) { toast.error(c.exportFailed); return; }
+    if (!report) { setInlineError(c.exportFailed); return; }
     report.opener = null;
     const escape = (value: string | number) => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
     const rows = data.daily.map((item) => `<tr><td>${escape(formatAnalyticsDate(item.date, fa))}</td><td>${item.queries}</td><td>${item.grounded}</td><td>${item.negative_feedback}</td></tr>`).join("");
@@ -134,6 +135,7 @@ export default function AnalyticsPage({ notificationCenter }: { notificationCent
         <div><h1 className="mt-2 text-xl font-semibold tracking-[-.025em] sm:text-[25px]">{c.welcome}, <span className="an-text">{user?.username ?? (fa ? "کاربر" : "User")}</span></h1><p className="mt-1.5 text-xs an-muted">{c.subtitle}</p></div>
         <div className="flex flex-wrap items-center gap-2"><div className="analytics-period" role="group" aria-label={fa ? "بازه زمانی" : "Date range"}>{([7, 30, 90] as const).map((value) => <button key={value} onClick={() => selectPeriod(value)} disabled={loading} aria-pressed={loadedDays === value} className={loadedDays === value ? "is-active" : ""}>{fa ? `${value} روز` : `${value} days`}</button>)}</div>{notificationCenter && <div className="analytics-notification-control">{notificationCenter}</div>}<div className="analytics-export-menu" ref={exportMenuRef}><button type="button" onClick={() => setExportMenuOpen((value) => !value)} disabled={!data || loading} className="analytics-export" aria-haspopup="menu" aria-expanded={exportMenuOpen}><ArrowDownToLine size={13} />{c.export}<ChevronDown size={13} aria-hidden="true" /></button>{exportMenuOpen && <div className="analytics-export-options" role="menu"><button type="button" role="menuitem" onClick={() => { setExportMenuOpen(false); exportExcel(); }}><FileSpreadsheet size={15} aria-hidden="true" /><span>{c.exportExcel}</span></button><button type="button" role="menuitem" onClick={() => { setExportMenuOpen(false); exportCsv(); }}><FileText size={15} aria-hidden="true" /><span>{c.exportCsv}</span></button><button type="button" role="menuitem" title={c.exportPdfHint} onClick={() => { setExportMenuOpen(false); exportPdf(); }}><Printer size={15} aria-hidden="true" /><span>{c.exportPdf}</span></button></div>}</div></div>
       </header>
+      {inlineError && <InlineError message={inlineError} onDismiss={() => setInlineError("")} />}
 
       {data && <>
         <section className="analytics-summary">

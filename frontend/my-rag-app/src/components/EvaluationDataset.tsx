@@ -2,6 +2,7 @@ import { confirmAction } from "../services/confirmation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Database, Play, Plus, Square, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
+import InlineError from "./InlineError";
 import { knowledgeService, type EvaluationCase, type MetadataFilters, type PipelineTraceResponse } from "../services/knowledgeService";
 import "./RetrievalPlayground.css";
 
@@ -14,6 +15,7 @@ export default function EvaluationDataset({ setId, documentIds, filters, isFa, c
   const [relevantChunks, setRelevantChunks] = useState("");
   const [running, setRunning] = useState<string | null>(null); const [results, setResults] = useState<Record<string, PipelineTraceResponse>>({});
   const [batchRunning, setBatchRunning] = useState(false); const [batchProgress, setBatchProgress] = useState(0); const stopBatch = useRef(false);
+  const [error, setError] = useState("");
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const dialog = dialogRef.current;
@@ -35,10 +37,10 @@ export default function EvaluationDataset({ setId, documentIds, filters, isFa, c
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   };
-  const load = useCallback(() => knowledgeService.listEvaluationCases(setId).then(setCases).catch((error) => toast.error((error as Error).message)).finally(() => setLoading(false)), [setId]);
+  const load = useCallback(() => knowledgeService.listEvaluationCases(setId).then(setCases).catch((error) => setError((error as Error).message)).finally(() => setLoading(false)), [setId]);
   useEffect(() => { void load(); }, [load]);
-  const create = async () => { if (question.trim().length < 2) return; try { const item = await knowledgeService.createEvaluationCase(setId, { question: question.trim(), expected_answer: answer.trim() || null, expected_keywords: keywords.split(",").map((value) => value.trim()).filter(Boolean), relevant_chunk_ids: relevantChunks.split(",").map((value) => value.trim()).filter(Boolean) }); setCases((items) => [item, ...items]); setQuestion(""); setAnswer(""); setKeywords(""); setRelevantChunks(""); setAdding(false); } catch (error) { toast.error((error as Error).message); } };
-  const run = async (item: EvaluationCase) => { setRunning(item.id); try { const result = await knowledgeService.tracePipeline(item.question, setId, 5, documentIds, filters); setResults((values) => ({ ...values, [item.id]: result })); } catch (error) { toast.error((error as Error).message); } finally { setRunning(null); } };
+  const create = async () => { if (question.trim().length < 2) return; setError(""); try { const item = await knowledgeService.createEvaluationCase(setId, { question: question.trim(), expected_answer: answer.trim() || null, expected_keywords: keywords.split(",").map((value) => value.trim()).filter(Boolean), relevant_chunk_ids: relevantChunks.split(",").map((value) => value.trim()).filter(Boolean) }); setCases((items) => [item, ...items]); setQuestion(""); setAnswer(""); setKeywords(""); setRelevantChunks(""); setAdding(false); } catch (error) { setError((error as Error).message); } };
+  const run = async (item: EvaluationCase) => { setError(""); setRunning(item.id); try { const result = await knowledgeService.tracePipeline(item.question, setId, 5, documentIds, filters); setResults((values) => ({ ...values, [item.id]: result })); } catch (error) { setError((error as Error).message); } finally { setRunning(null); } };
   const runAll = async () => {
     if (!cases.length) return; stopBatch.current = false; setBatchRunning(true); setBatchProgress(0); setResults({});
     let completed = 0;
@@ -46,7 +48,7 @@ export default function EvaluationDataset({ setId, documentIds, filters, isFa, c
       if (stopBatch.current) break;
       setRunning(item.id);
       try { const result = await knowledgeService.tracePipeline(item.question, setId, 5, documentIds, filters); setResults((values) => ({ ...values, [item.id]: result })); }
-      catch (error) { toast.error(`${item.question.slice(0, 35)}: ${(error as Error).message}`); }
+      catch (error) { setError(`${item.question.slice(0, 35)}: ${(error as Error).message}`); }
       completed += 1; setBatchProgress(completed);
     }
     setRunning(null); setBatchRunning(false);
@@ -86,6 +88,7 @@ export default function EvaluationDataset({ setId, documentIds, filters, isFa, c
           <button type="button" onClick={onClose} aria-label={isFa ? "بازگشت به آزمایشگاه بازیابی" : "Back to retrieval lab"} className="evaluation-icon-button"><ArrowLeft size={16} /></button>
         </div>
       </header>
+      {error && <InlineError className="mx-4 mt-3" message={error} onDismiss={() => setError("")} />}
       {(batchRunning || summary) && <section className="evaluation-summary" aria-label={isFa ? "خلاصهٔ ارزیابی" : "Evaluation summary"}>
         {batchRunning && <div className="evaluation-progress"><div><span>{isFa ? "در حال اجرای گروهی" : "Running batch evaluation"}</span><span dir="ltr">{batchProgress} / {cases.length}</span></div><div className="evaluation-progress-track"><span style={{ width: `${cases.length ? batchProgress / cases.length * 100 : 0}%` }} /></div></div>}
         {summary && <div className="evaluation-metrics">{metrics.map(([label, value]) => <div key={label}><p>{label}</p><strong>{value}</strong></div>)}</div>}
@@ -110,7 +113,7 @@ export default function EvaluationDataset({ setId, documentIds, filters, isFa, c
             const passed = Boolean(result?.grounded && (coverage === null || coverage >= 70));
             return <article key={item.id} className="evaluation-case">
               <div className="evaluation-case-heading"><div className="evaluation-case-copy"><p>{item.question}</p>{item.expected_keywords.length > 0 && <div className="evaluation-keywords">{item.expected_keywords.map((keyword) => <span key={keyword}>{keyword}</span>)}</div>}</div>
-                <div className="evaluation-case-actions"><button type="button" disabled={running === item.id || batchRunning} onClick={() => void run(item)} aria-label={isFa ? `اجرای سناریوی ${item.question}` : `Run evaluation: ${item.question}`} className="evaluation-icon-button is-primary"><Play size={13} /></button>{canManage && <button type="button" disabled={batchRunning} aria-label={isFa ? `حذف سناریوی ${item.question}` : `Delete evaluation: ${item.question}`} onClick={async () => { if (!await confirmAction(isFa ? `سناریوی «${item.question}» حذف شود؟` : `Delete evaluation case “${item.question}”?`)) return; try { await knowledgeService.deleteEvaluationCase(setId, item.id); setCases((values) => values.filter((value) => value.id !== item.id)); } catch (error) { toast.error((error as Error).message); } }} className="evaluation-icon-button is-danger"><Trash2 size={13} /></button>}</div>
+                <div className="evaluation-case-actions"><button type="button" disabled={running === item.id || batchRunning} onClick={() => void run(item)} aria-label={isFa ? `اجرای سناریوی ${item.question}` : `Run evaluation: ${item.question}`} className="evaluation-icon-button is-primary"><Play size={13} /></button>{canManage && <button type="button" disabled={batchRunning} aria-label={isFa ? `حذف سناریوی ${item.question}` : `Delete evaluation: ${item.question}`} onClick={async () => { if (!await confirmAction(isFa ? `سناریوی «${item.question}» حذف شود؟` : `Delete evaluation case “${item.question}”?`)) return; setError(""); try { await knowledgeService.deleteEvaluationCase(setId, item.id); setCases((values) => values.filter((value) => value.id !== item.id)); } catch (error) { setError((error as Error).message); } }} className="evaluation-icon-button is-danger"><Trash2 size={13} /></button>}</div>
               </div>
               {result && <div className="evaluation-result"><div className="evaluation-result-meta"><span className={passed ? "is-success" : "is-danger"}>{passed ? "PASS" : "FAIL"}</span><span className={result.grounded ? "is-success" : "is-warning"}>{result.grounded ? (isFa ? "مستند" : "Grounded") : (isFa ? "بدون استناد" : "Ungrounded")}</span><span>{result.citations.length.toLocaleString(isFa ? "fa-IR" : "en-US")} {isFa ? "استناد" : "citations"}</span><span>{result.total_duration_ms.toLocaleString(isFa ? "fa-IR" : "en-US")} {isFa ? "میلی‌ثانیه" : "ms"}</span>{coverage !== null && <span className={coverage >= 70 ? "is-success" : "is-warning"}>{isFa ? "پوشش کلیدواژه" : "Keyword coverage"}: {coverage.toLocaleString(isFa ? "fa-IR" : "en-US")}٪</span>}</div><p>{result.answer}</p></div>}
             </article>;

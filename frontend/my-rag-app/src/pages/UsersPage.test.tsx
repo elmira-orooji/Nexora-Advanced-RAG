@@ -43,7 +43,7 @@ describe("UsersPage", () => {
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("We couldn't load team members. Check the service connection and try again.");
     expect(screen.getByText("Technical details")).toBeInTheDocument();
-    expect(mocks.toastError).toHaveBeenCalledWith("We couldn't load team members. Check the service connection and try again.");
+    expect(mocks.toastError).not.toHaveBeenCalled();
   });
 
   it("lists admins first and orders each role by creation time", async () => {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUpRight, Play, LoaderCircle, Bot, Database, FlaskConical, GitCompareArrows, ListFilter, Search, Sparkles, X } from "lucide-react";
-import toast from "react-hot-toast";
+import InlineError from "./InlineError";
 import { knowledgeService, type MetadataFilters, type PipelineTraceResponse } from "../services/knowledgeService";
 import "./RetrievalPlayground.css";
 import RetrieverComparison from "./RetrieverComparison";
@@ -24,8 +24,9 @@ export default function RetrievalPlayground({ setId, documentIds, filters, isFa,
   const [limit, setLimit] = useState(5);
   const [loading, setLoading] = useState(false);
   const [trace, setTrace] = useState<PipelineTraceResponse | null>(null);
+  const [runError, setRunError] = useState("");
   const [comparisonOpen, setComparisonOpen] = useState(false);
-  const run = async () => { if (query.trim().length < 2 || running.current) return; running.current = true; setLoading(true); try { setTrace(await knowledgeService.tracePipeline(query.trim(), setId, limit, documentIds, filters)); } catch (error) { toast.error((error as Error).message); } finally { running.current = false; setLoading(false); } };
+  const run = async () => { if (query.trim().length < 2 || running.current) return; running.current = true; setLoading(true); setRunError(""); try { setTrace(await knowledgeService.tracePipeline(query.trim(), setId, limit, documentIds, filters)); } catch (error) { setRunError((error as Error).message); } finally { running.current = false; setLoading(false); } };
 
   const labels = sectionCopy(t, "retrieval", ["title", "sub", "placeholder", "run", "total", "grounded", "ungrounded", "empty", "question", "retrieval", "rerank", "answer", "questionDescription", "retrievalDescription", "rerankDescription", "answerDescription"]);
 
@@ -57,6 +58,7 @@ export default function RetrievalPlayground({ setId, documentIds, filters, isFa,
         <button className="trace-run" type="submit" disabled={loading || query.trim().length < 2}>{loading ? <LoaderCircle size={16} className="trace-spinner" /> : <Play size={15} />} {loading ? (isFa ? "در حال اجرا…" : "Running…") : labels.run}</button></div>
         <p className="trace-query-hint">{isFa ? "بازیابی، رتبه‌بندی و منابع پاسخ را در یک مسیر بررسی کنید." : "Inspect retrieval, ranking, and answer sources in a single run."}</p>
       </form>
+      {runError && <div className="px-6 pt-3"><InlineError message={runError} onDismiss={() => setRunError("")} /></div>}
       <div className="trace-body" aria-busy={loading}>
         {loading && <div className="trace-progress" role="status"><LoaderCircle size={16} className="trace-spinner" />{isFa ? "در حال بازیابی منابع و ساخت پاسخ…" : "Retrieving sources and generating your answer…"}</div>}
         {!trace ? <div className="trace-empty">

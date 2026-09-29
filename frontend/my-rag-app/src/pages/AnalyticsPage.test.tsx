@@ -54,7 +54,8 @@ describe("AnalyticsPage", () => {
     await waitFor(() => expect(thirtyDays).toHaveAttribute("aria-pressed", "true"));
     fireEvent.click(screen.getByRole("button", { name: "7 days" }));
 
-    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith("Analytics unavailable"));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Analytics unavailable");
+    expect(mocks.toastError).not.toHaveBeenCalled();
     expect(thirtyDays).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "7 days" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getAllByText("12").length).toBeGreaterThan(0);
