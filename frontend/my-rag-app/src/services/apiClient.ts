@@ -39,6 +39,12 @@ function errorMessage(payload: ErrorPayload | null, fallback: string) {
   return fallback;
 }
 
+function hasApiErrorMessage(payload: ErrorPayload | null) {
+  return typeof payload?.error?.message === "string"
+    || typeof payload?.detail === "string"
+    || (payload?.detail !== null && typeof payload?.detail === "object" && typeof payload.detail.message === "string");
+}
+
 export async function apiFetch(path: string, init: ApiRequestInit = {}) {
   const { timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, signal: externalSignal, ...fetchInit } = init;
   const controller = new AbortController();
@@ -80,11 +86,17 @@ export async function apiRequest<T>(path: string, init?: ApiRequestInit, fallbac
   const payload = (await response.json().catch(() => null)) as ErrorPayload | T | null;
   if (!response.ok) {
     const error = payload as ErrorPayload | null;
+    const requestId = typeof error?.error?.request_id === "string"
+      ? error.error.request_id
+      : response.headers.get("X-Request-ID");
+    const message = hasApiErrorMessage(error)
+      ? errorMessage(error, fallback)
+      : `${fallback} (HTTP ${response.status})`;
     throw new ApiResponseError(
-      errorMessage(error, fallback),
+      response.status >= 500 && requestId ? `${message} · Request ID: ${requestId}` : message,
       response.status,
       typeof error?.error?.code === "string" ? error.error.code : null,
-      typeof error?.error?.request_id === "string" ? error.error.request_id : response.headers.get("X-Request-ID"),
+      requestId,
     );
   }
   return payload as T;

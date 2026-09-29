@@ -17,6 +17,7 @@ from app.api.routes.auth import get_current_user
 from app.core.rate_limit import auth_limiter, general_limiter
 from app.db.database import get_db
 from app.main import app
+from app.services.openrouter import LLMResult
 
 
 @pytest.fixture(autouse=True)
@@ -55,6 +56,65 @@ def test_v1_validation_errors_keep_detail_and_expose_a_stable_error_contract(cli
     assert response.json()["error"]["code"] == "validation_error"
     assert response.json()["error"]["request_id"] == response.headers["X-Request-ID"]
     assert response.headers["X-API-Version"] == "1"
+
+
+@pytest.mark.integration
+def test_unhandled_v1_errors_return_a_safe_body_and_request_id(client):
+    def fail():
+        raise RuntimeError("sensitive internal detail")
+
+    app.add_api_route("/api/v1/test/unhandled", fail, methods=["GET"])
+    try:
+        response = client.get("/api/v1/test/unhandled", headers={"X-Request-ID": "trace-failure-test"})
+    finally:
+        app.router.routes[:] = [route for route in app.router.routes if getattr(route, "path", None) != "/api/v1/test/unhandled"]
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Internal server error"
+    assert response.json()["error"]["request_id"] == "trace-failure-test"
+    assert response.headers["X-Request-ID"] == "trace-failure-test"
+    assert "sensitive internal detail" not in response.text
+
+
+@pytest.mark.integration
+def test_search_trace_records_usage_and_returns_the_answer(client):
+    user = SimpleNamespace(id=uuid4(), organization_id=uuid4(), role="admin")
+    document_set_id = uuid4()
+    document_id = uuid4()
+    chunk_id = uuid4()
+    app.dependency_overrides[get_current_user] = lambda: user
+    db = MagicMock()
+    db.scalar.return_value = object()
+    db.scalars.return_value.all.return_value = [document_id]
+    app.dependency_overrides[get_db] = lambda: db
+    point = {
+        "payload": {
+            "chunk_id": str(chunk_id), "document_id": str(document_id), "filename": "guide.pdf",
+            "chunk_index": 0, "content": "Evidence", "matched_child_content": "Evidence", "parent_index": 0,
+        },
+        "score": 0.9,
+        "retrieval": {"method": "hybrid", "vector_rank": 1, "bm25_rank": 1},
+    }
+    llm_result = LLMResult(
+        content="Supported answer [Source 1]", model="test/model", latency_ms=12,
+        prompt_tokens=10, completion_tokens=5, total_tokens=15, estimated_cost_usd=0.001,
+    )
+
+    with (
+        patch("app.api.routes.search.require_set_access"),
+        patch("app.api.routes.search.hybrid_search", return_value=[point]),
+        patch("app.api.routes.search.OpenRouterClient.answer_with_usage", return_value=llm_result),
+    ):
+        response = client.post(
+            "/api/v1/search/trace",
+            json={"query": "Question?", "document_set_id": str(document_set_id), "limit": 5},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["answer"] == "Supported answer [1]"
+    assert response.json()["usage"]["model"] == "test/model"
+    db.add.assert_called_once()
+    db.commit.assert_called_once()
 
 
 @pytest.mark.integration

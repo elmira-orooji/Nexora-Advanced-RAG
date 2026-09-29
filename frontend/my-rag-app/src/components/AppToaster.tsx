@@ -1,4 +1,4 @@
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import toast, { useToaster, resolveValue } from "react-hot-toast";
 import { CircleCheck, CircleAlert, Info, LoaderCircle, TriangleAlert, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -12,6 +12,7 @@ export default function AppToaster() {
   const confirmation = useSyncExternalStore(confirmationStore.subscribe, confirmationStore.getSnapshot);
   const dialog = useRef<HTMLDialogElement>(null);
   const action = useRef<HTMLButtonElement>(null);
+  const updateToastHeight = handlers.updateHeight;
 
   useEffect(() => {
     const element = dialog.current;
@@ -33,11 +34,9 @@ export default function AppToaster() {
     <div className="nexora-toast-stack" dir={fa ? "rtl" : "ltr"} onMouseEnter={handlers.startPause} onMouseLeave={handlers.endPause} aria-label={fa ? "اعلان‌های برنامه" : "Application notifications"}>
       {notifications.map((item) => {
         const Icon = IconFor(item.className?.includes("nexora-toast--warning") ? "warning" : item.type);
-        return <article key={item.id} ref={(element) => { if (element) handlers.updateHeight(item.id, element.getBoundingClientRect().height); }} className={`nexora-toast is-visible nexora-toast--${item.className?.includes("nexora-toast--warning") ? "warning" : item.type}`} style={{ top: handlers.calculateOffset(item, { gutter: 8, defaultPosition: "top-right" }) }} {...item.ariaProps}>
-          <span className="nexora-toast__icon" aria-hidden="true"><Icon size={18} /></span>
-          <div className="nexora-toast__content"><div dir="auto">{resolveValue(item.message, item)}</div></div>
-          <button type="button" className="nexora-toast__close" aria-label={fa ? `بستن پیام ${labels[item.type]}` : `Dismiss ${labels[item.type]}`} onClick={() => toast.dismiss(item.id)}><X size={15} /></button>
-        </article>;
+        return <ToastItem key={item.id} item={item} fa={fa} label={labels[item.type]} Icon={Icon} offset={handlers.calculateOffset(item, { gutter: 8, defaultPosition: "top-right" })} onHeightUpdate={updateToastHeight} onDismiss={() => toast.dismiss(item.id)}>
+          {resolveValue(item.message, item)}
+        </ToastItem>;
       })}
     </div>
     <dialog ref={dialog} dir={fa ? "rtl" : "ltr"} className="nexora-toast nexora-message-dialog is-confirmation nexora-toast--warning"
@@ -59,4 +58,30 @@ export default function AppToaster() {
       </>}
     </dialog>
   </>;
+}
+
+function ToastItem({ item, fa, label, Icon, offset, onHeightUpdate, onDismiss, children }: {
+  item: ReturnType<typeof useToaster>["toasts"][number];
+  fa: boolean;
+  label: string;
+  Icon: typeof CircleCheck;
+  offset: number;
+  onHeightUpdate: (id: string, height: number) => void;
+  onDismiss: () => void;
+  children: ReactNode;
+}) {
+  const ref = useCallback((element: HTMLElement | null) => {
+    if (!element) return;
+    const updateHeight = () => onHeightUpdate(item.id, element.getBoundingClientRect().height);
+    updateHeight();
+    const observer = new MutationObserver(updateHeight);
+    observer.observe(element, { subtree: true, childList: true, characterData: true });
+  }, [item.id, onHeightUpdate]);
+  const variant = item.className?.includes("nexora-toast--warning") ? "warning" : item.type;
+
+  return <article ref={ref} className={`nexora-toast is-visible nexora-toast--${variant}`} style={{ top: offset }} {...item.ariaProps}>
+    <span className="nexora-toast__icon" aria-hidden="true"><Icon size={18} /></span>
+    <div className="nexora-toast__content"><div dir="auto">{children}</div></div>
+    <button type="button" className="nexora-toast__close" aria-label={fa ? `بستن پیام ${label}` : `Dismiss ${label}`} onClick={onDismiss}><X size={15} /></button>
+  </article>;
 }

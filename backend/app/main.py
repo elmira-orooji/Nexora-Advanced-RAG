@@ -62,6 +62,17 @@ async def collect_request_metrics(request, call_next):
     except Exception:
         increment("http_errors_total", path=request.url.path, status="500")
         logger.exception("HTTP request failed", extra={"method": request.method, "path": request.url.path})
+        if request.url.path.startswith(API_PREFIX):
+            response = JSONResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                content=error_body(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Internal server error",
+                    request_id=request_id,
+                ),
+                headers={"X-Request-ID": request_id, "X-API-Version": API_MAJOR_VERSION},
+            )
+            return response
         raise
     else:
         if request.url.path.startswith(API_PREFIX):

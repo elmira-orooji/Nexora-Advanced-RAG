@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GitCompareArrows, Play, X } from "lucide-react";
+import { ArrowLeft, GitCompareArrows, Play } from "lucide-react";
 import toast from "react-hot-toast";
 import { knowledgeService, type MetadataFilters, type RetrieverComparison as Comparison, type RetrieverConfig } from "../services/knowledgeService";
 
@@ -16,7 +16,7 @@ export default function RetrieverComparison({ setId, query: initialQuery, docume
         <span className="retriever-compare-mark"><GitCompareArrows size={18} /></span>
         <div><h2>{isFa ? "مقایسهٔ بازیاب‌ها" : "Retriever comparison"}</h2><p>{isFa ? "دو تنظیم را با پرسش و منابع یکسان مقایسه کنید." : "Compare two configurations with the same question and sources."}</p></div>
       </div>
-      <button type="button" onClick={onClose} aria-label={isFa ? "بستن" : "Close"} className="retriever-compare-close app-icon-button"><X size={17} /></button>
+      <button type="button" onClick={onClose} aria-label={isFa ? "بازگشت" : "Back"} className="retriever-compare-close app-icon-button"><ArrowLeft size={17} /></button>
     </header>
     <form className="retriever-compare-query" onSubmit={(event) => { event.preventDefault(); void run(); }}>
       <label htmlFor="retriever-compare-input">{isFa ? "پرسش" : "Question"}</label>

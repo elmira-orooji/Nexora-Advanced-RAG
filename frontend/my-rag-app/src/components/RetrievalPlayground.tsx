@@ -4,15 +4,14 @@ import { ArrowDown, ArrowUpRight, Play, LoaderCircle, Bot, Database, FlaskConica
 import toast from "react-hot-toast";
 import { knowledgeService, type MetadataFilters, type PipelineTraceResponse } from "../services/knowledgeService";
 import "./RetrievalPlayground.css";
-import EvaluationDataset from "./EvaluationDataset";
 import RetrieverComparison from "./RetrieverComparison";
 import { useTranslation } from "react-i18next";
 import { sectionCopy } from "../locales/copy";
 
-type Props = { setId: string; documentIds: string[]; filters: MetadataFilters; isFa: boolean; canManage: boolean; onClose: () => void };
+type Props = { setId: string; documentIds: string[]; filters: MetadataFilters; isFa: boolean; onClose: () => void };
 const icons = { question: Search, retrieval: ListFilter, rerank: Sparkles, answer: Bot };
 
-export default function RetrievalPlayground({ setId, documentIds, filters, isFa, canManage, onClose }: Props) {
+export default function RetrievalPlayground({ setId, documentIds, filters, isFa, onClose }: Props) {
   const { t } = useTranslation();
   const panel = useRef<HTMLElement>(null);
   const running = useRef(false);
@@ -25,7 +24,6 @@ export default function RetrievalPlayground({ setId, documentIds, filters, isFa,
   const [limit, setLimit] = useState(5);
   const [loading, setLoading] = useState(false);
   const [trace, setTrace] = useState<PipelineTraceResponse | null>(null);
-  const [datasetOpen, setDatasetOpen] = useState(false);
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const run = async () => { if (query.trim().length < 2 || running.current) return; running.current = true; setLoading(true); try { setTrace(await knowledgeService.tracePipeline(query.trim(), setId, limit, documentIds, filters)); } catch (error) { toast.error((error as Error).message); } finally { running.current = false; setLoading(false); } };
 
@@ -36,7 +34,7 @@ export default function RetrievalPlayground({ setId, documentIds, filters, isFa,
 
   return createPortal(<div className="app-shell trace-overlay" style={{ background: "#18213380", fontFamily: isFa ? "Vazirmatn, sans-serif" : "Inter, sans-serif" }} onMouseDown={onClose}>
     <aside ref={panel} className="trace-panel" dir={isFa ? "rtl" : "ltr"} role="dialog" aria-modal="true" aria-labelledby="trace-heading" onMouseDown={(event) => event.stopPropagation()} onKeyDown={(event) => {
-        if (datasetOpen || comparisonOpen) return;
+        if (comparisonOpen) return;
         if (event.key === "Escape") { event.stopPropagation(); onClose(); }
         if (event.key === "Tab") {
           const focusable = Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), summary, [tabindex="0"]') ?? []).filter((element) => element.getClientRects().length > 0);
@@ -49,7 +47,6 @@ export default function RetrievalPlayground({ setId, documentIds, filters, isFa,
         <div className="trace-heading"><span className="trace-logo"><FlaskConical size={22} /></span><div><p className="trace-eyebrow">{isFa ? "آزمایشگاه بازیابی" : "RETRIEVAL LAB"}</p><h2 id="trace-heading">{labels.title}</h2></div></div>
         <nav className="trace-actions" aria-label={isFa ? "ابزارهای آزمایش" : "Testing tools"}>
           <button onClick={() => setComparisonOpen(true)}><GitCompareArrows size={16} /><span>{isFa ? "مقایسه A/B" : "A/B compare"}</span></button>
-          <button onClick={() => setDatasetOpen(true)}><Database size={16} /><span>{isFa ? "مجموعه ارزیابی" : "Dataset"}</span></button>
           <button className="trace-close" onClick={onClose} aria-label={isFa ? "بستن" : "Close trace"}><X size={19} /></button>
         </nav>
       </header>
@@ -70,14 +67,13 @@ export default function RetrievalPlayground({ setId, documentIds, filters, isFa,
           <ol className="trace-path">{steps.map((step, index) => { const Icon = icons[step]; return <li key={step}><div className="trace-path-top"><Icon size={20} /><span>0{index + 1}</span></div><h4>{labels[step]}</h4><p>{descriptions[index]}</p>{index < 3 && <ArrowUpRight className="trace-path-arrow" size={14} />}</li>; })}</ol>
           <p className="trace-empty-note">{isFa ? "برای شروع، پرسشی دربارهٔ اسناد این پایگاه دانش وارد کنید." : "Start with a question about the documents in this knowledge base."}</p>
         </div> : <>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs text-white/45">{labels.total}</p><p className="mt-1 text-lg font-semibold text-white/75">{trace.total_duration_ms.toLocaleString()} ms</p></div><span className={`rounded-full border px-3 py-1.5 text-xs ${trace.grounded ? "border-emerald-300/15 bg-emerald-300/[.05] text-emerald-200/75" : "border-amber-300/15 bg-amber-300/[.05] text-amber-200/75"}`}>{trace.grounded ? labels.grounded : labels.ungrounded}</span></div>
-      <div className="grid gap-2 sm:grid-cols-4">{trace.stages.map((stage, index) => { const Icon = icons[stage.key]; return <div key={stage.key} className="relative rounded-2xl border border-white/[.08] bg-white/[.025] p-4">{index < trace.stages.length - 1 && <ArrowDown size={12} className="absolute -bottom-3 left-1/2 z-10 -translate-x-1/2 text-[#18c7f4] sm:-right-3 sm:bottom-auto sm:left-auto sm:top-1/2 sm:-translate-y-1/2 sm:-rotate-90" />}<div className="flex items-center justify-between"><span className="grid size-8 place-items-center rounded-lg bg-[#7c27ff]/25 text-[#d9a6ff]"><Icon size={14} /></span><span className="text-xs text-white/45">{stage.duration_ms} ms</span></div><p className="mt-3 text-xs font-semibold text-white/75">{labels[stage.key]}</p><p className="mt-1 text-xs text-white/45">{stage.input_count} in → {stage.output_count} out</p></div>; })}</div>
-      <section className="mt-5 rounded-2xl border border-white/[.08] bg-white/[.02] p-4"><p className="text-xs font-semibold uppercase tracking-[.08em] text-white/45">01 · {labels.question}</p><p className="mt-3 text-sm leading-6 text-white/75">{trace.question}</p></section>
-      <section className="mt-3 rounded-2xl border border-white/[.08] bg-white/[.02] p-4"><p className="text-xs font-semibold uppercase tracking-[.08em] text-white/45">02–03 · {labels.retrieval} + {labels.rerank}</p><div className="mt-3 space-y-2">{trace.results.map((item, index) => <details key={`${item.chunk_id}-${index}`} className="rounded-xl border border-white/[.06] bg-black/15 p-3"><summary className="flex cursor-pointer list-none items-center justify-between gap-3"><span className="nexora-file-name text-xs font-semibold text-white/65">#{index + 1} · {item.filename} · Child {item.chunk_index + 1}</span><span className="shrink-0 rounded-lg bg-[#7c27ff]/25 px-2 py-1 text-xs text-[#e6c7ff]">{Math.round(item.score * 100)}%</span></summary><div className="mt-3 grid grid-cols-3 gap-2">{[["Vector", item.diagnostics.vector_rank ?? "—"], ["BM25", item.diagnostics.bm25_rank ?? "—"], ["Rerank", item.diagnostics.reranker_score.toFixed(3)]].map(([name, value]) => <div key={name} className="rounded-lg bg-white/[.025] p-2"><p className="text-xs text-white/45">{name}</p><p className="mt-1 text-xs text-white/65">{value}</p></div>)}</div><p className="nexora-text-wrap mt-3 whitespace-pre-wrap text-xs leading-5 text-white/55">{item.matched_child_content}</p></details>)}</div></section>
-      <section className="mt-3 rounded-2xl border border-[#18c7f4]/15 bg-[#7c27ff]/10 p-4"><div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-[.08em] text-[#d9a6ff]">04 · {labels.answer}</p><span className="text-xs text-white/45">{trace.citations.length} citations</span></div><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-white/75">{trace.answer}</p>{trace.citations.length > 0 && <div className="mt-4 flex flex-wrap gap-2 border-t border-white/[.07] pt-3">{trace.citations.map((citation) => <span key={citation.id} className="rounded-lg border border-white/[.07] bg-black/15 px-2.5 py-1.5 text-xs text-white/55">[{citation.id}] {citation.filename}</span>)}</div>}</section>
-      {trace.usage && <section className="mt-3 grid grid-cols-2 gap-2 rounded-2xl border border-white/[.07] bg-white/[.02] p-3 sm:grid-cols-5">{[["Model", trace.usage.model], ["LLM latency", `${trace.usage.latency_ms} ms`], ["Input", trace.usage.prompt_tokens], ["Output", trace.usage.completion_tokens], ["Cost", `$${trace.usage.estimated_cost_usd.toFixed(6)}`]].map(([label, value]) => <div key={label} className="min-w-0 rounded-xl bg-black/15 p-2"><p className="text-xs text-white/45">{label}</p><p className="mt-1 truncate text-xs text-white/65">{value}</p></div>)}</section>}
+      <div className="trace-summary"><div><p>{labels.total}</p><strong>{trace.total_duration_ms.toLocaleString(isFa ? "fa-IR" : "en-US")} ms</strong></div><span className={trace.grounded ? "is-grounded" : "is-ungrounded"}>{trace.grounded ? labels.grounded : labels.ungrounded}</span></div>
+      <div className="trace-stage-grid">{trace.stages.map((stage, index) => { const Icon = icons[stage.key]; return <div key={stage.key} className="trace-stage">{index < trace.stages.length - 1 && <ArrowDown size={13} className="trace-stage-arrow" />}<div className="trace-stage-top"><span><Icon size={15} /></span><time>{stage.duration_ms.toLocaleString(isFa ? "fa-IR" : "en-US")} {isFa ? "میلی‌ثانیه" : "ms"}</time></div><p>{labels[stage.key]}</p><small>{isFa ? `${stage.input_count.toLocaleString("fa-IR")} ورودی ← ${stage.output_count.toLocaleString("fa-IR")} خروجی` : `${stage.input_count} in → ${stage.output_count} out`}</small></div>; })}</div>
+      <section className="trace-result-card"><p className="trace-result-label">01 · {labels.question}</p><p className="trace-result-question">{trace.question}</p></section>
+      <section className="trace-result-card"><p className="trace-result-label">02–03 · {labels.retrieval} + {labels.rerank}</p><div className="trace-result-list">{trace.results.map((item, index) => <details key={`${item.chunk_id}-${index}`}><summary><span className="nexora-file-name">#{(index + 1).toLocaleString(isFa ? "fa-IR" : "en-US")} · {item.filename} · {isFa ? "قطعه" : "Child"} {(item.chunk_index + 1).toLocaleString(isFa ? "fa-IR" : "en-US")}</span><span>{Math.round(item.score * 100).toLocaleString(isFa ? "fa-IR" : "en-US")}{isFa ? "٪" : "%"}</span></summary><div className="trace-diagnostics">{[["Vector", item.diagnostics.vector_rank ?? "—"], ["BM25", item.diagnostics.bm25_rank ?? "—"], [isFa ? "بازرتبه‌بندی" : "Rerank", item.diagnostics.reranker_score.toFixed(3)]].map(([name, value]) => <div key={name}><p>{name}</p><strong>{value}</strong></div>)}</div><p className="nexora-text-wrap">{item.matched_child_content}</p></details>)}</div></section>
+      <section className="trace-answer-card"><div><p className="trace-result-label">04 · {labels.answer}</p><span>{trace.citations.length.toLocaleString(isFa ? "fa-IR" : "en-US")} {isFa ? "منبع" : "citations"}</span></div><p className="trace-answer-text">{trace.answer}</p>{trace.citations.length > 0 && <div className="trace-citations">{trace.citations.map((citation) => <span key={citation.id}>[{citation.id.toLocaleString(isFa ? "fa-IR" : "en-US")}] {citation.filename}</span>)}</div>}</section>
+      {trace.usage && <section className="trace-usage-grid">{[["Model", trace.usage.model], [isFa ? "زمان پاسخ مدل" : "LLM latency", `${trace.usage.latency_ms} ms`], [isFa ? "ورودی" : "Input", trace.usage.prompt_tokens], [isFa ? "خروجی" : "Output", trace.usage.completion_tokens], [isFa ? "هزینه" : "Cost", `$${trace.usage.estimated_cost_usd.toFixed(6)}`]].map(([label, value]) => <div key={label}><p>{label}</p><strong>{value}</strong></div>)}</section>}
     </>}</div>
-    {datasetOpen && <EvaluationDataset setId={setId} documentIds={documentIds} filters={filters} isFa={isFa} canManage={canManage} onClose={() => setDatasetOpen(false)} />}
     {comparisonOpen && <RetrieverComparison setId={setId} query={query} documentIds={documentIds} filters={filters} isFa={isFa} onClose={() => setComparisonOpen(false)} />}
   </aside></div>, document.body);
 }

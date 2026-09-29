@@ -34,4 +34,30 @@ describe("apiRequest authentication handling", () => {
       requestId: "req-contract-1",
     });
   });
+
+  it("includes the HTTP status when a gateway returns a non-JSON error", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("Bad Gateway", {
+      status: 502,
+      headers: { "Content-Type": "text/plain" },
+    }));
+
+    await expect(apiRequest("/search/trace")).rejects.toMatchObject({
+      name: "ApiResponseError",
+      message: "Request failed (HTTP 502)",
+      status: 502,
+    });
+  });
+
+  it("includes the request ID for server errors", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      detail: "Internal server error",
+      error: { code: "internal_error", message: "Internal server error", request_id: "trace-failure-test" },
+    }), { status: 500, headers: { "Content-Type": "application/json" } }));
+
+    await expect(apiRequest("/search/trace")).rejects.toMatchObject({
+      name: "ApiResponseError",
+      message: "Internal server error · Request ID: trace-failure-test",
+      requestId: "trace-failure-test",
+    });
+  });
 });

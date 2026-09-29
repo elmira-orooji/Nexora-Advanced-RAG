@@ -16,6 +16,7 @@ from app.schemas.search import PipelineTraceResponse, PlaygroundHit, PlaygroundR
 from app.services.openrouter import OpenRouterClient, OpenRouterError
 from app.services.qdrant import QdrantClient, QdrantError
 from app.services.retrieval import hybrid_search
+from app.services.usage_tracking import record_usage
 
 router = APIRouter(prefix="/search", tags=["search"])
 

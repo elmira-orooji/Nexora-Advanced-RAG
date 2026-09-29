@@ -354,7 +354,7 @@ export default function UploadFilesPage({ initialAction }: UploadFilesPageProps)
     </aside>
     {dialog && <SetDialog mode={dialog} item={dialog === "edit" ? selectedSet : undefined} isFa={isFa} copy={copy} onClose={() => setDialog(null)} onSaved={async () => { setDialog(null); await loadSets(); }} />}
     {connectorDialog && selectedSetId && <CloudConnectorDialog setId={selectedSetId} isFa={isFa} onClose={() => setConnectorDialog(false)} onSaved={async () => { const setId = selectedSetId; setConnectorDialog(false); await refreshSetData(setId); await loadSets(); }} />}
-    {playgroundOpen && selectedSetId && <RetrievalPlayground setId={selectedSetId} documentIds={selectedDocumentIds} filters={metadataFilters} isFa={isFa} canManage={Boolean(selectedSet && (isAdmin || selectedSet.access_level === "manage"))} onClose={() => setPlaygroundOpen(false)} />}
+    {playgroundOpen && selectedSetId && <RetrievalPlayground setId={selectedSetId} documentIds={selectedDocumentIds} filters={metadataFilters} isFa={isFa} onClose={() => setPlaygroundOpen(false)} />}
     {chunkingOpen && selectedSet && <ChunkingSettingsDialog item={selectedSet} isFa={isFa} onClose={() => setChunkingOpen(false)} onSaved={async () => { setChunkingOpen(false); await loadSets(); }} />}
   </div>;
 }

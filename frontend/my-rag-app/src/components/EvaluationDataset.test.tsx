@@ -14,7 +14,7 @@ function Harness() {
   const [open, setOpen] = useState(false);
   return <>
     <button onClick={() => setOpen(true)}>Open evaluations</button>
-    {open && <EvaluationDataset setId="set-1" documentIds={[]} filters={{}} isFa={false} canManage onClose={() => setOpen(false)} />}
+    {open && <aside role="dialog" aria-modal="true" aria-labelledby="evaluation-dialog-title"><EvaluationDataset setId="set-1" documentIds={[]} filters={{}} isFa={false} canManage onClose={() => setOpen(false)} /></aside>}
   </>;
 }
 
@@ -27,13 +27,14 @@ describe("EvaluationDataset dialog", () => {
     const opener = screen.getByRole("button", { name: "Open evaluations" });
     await user.click(opener);
 
-    expect(screen.getByRole("dialog", { name: "Evaluation Dataset" })).toHaveAttribute("aria-modal", "true");
-    const add = screen.getByRole("button", { name: "Add evaluation case" });
-    const close = screen.getByRole("button", { name: "Close evaluation dataset" });
+    expect(screen.getByRole("dialog", { name: "Evaluation dataset" })).toHaveAttribute("aria-modal", "true");
+    const add = screen.getByRole("button", { name: "Add case" });
+    const emptyStateAdd = screen.getByRole("button", { name: "Add a case" });
+    expect(screen.getByRole("button", { name: "Back to retrieval lab" })).toBeInTheDocument();
     await waitFor(() => expect(add).toHaveFocus());
 
     await user.tab({ shift: true });
-    expect(close).toHaveFocus();
+    expect(emptyStateAdd).toHaveFocus();
     await user.tab();
     expect(add).toHaveFocus();
 
