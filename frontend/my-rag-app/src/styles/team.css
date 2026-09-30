@@ -8,13 +8,14 @@ html:not(.dark) .team-page { --tm-bg: var(--surface-canvas); --tm-panel: var(--s
 .team-primary { border: 1px solid var(--tm-line); border-radius: 8px; color: var(--tm-accent); background: var(--tm-tint); }
 .team-primary:hover { border-color: var(--tm-accent); }
 .app-shell .team-page .app-glass-panel { background: var(--tm-panel); border-color: var(--tm-line); border-radius: 12px; box-shadow: none; backdrop-filter: none; }
-.team-member-row { display: flex; width: 100%; align-items: center; gap: 12px; padding: 16px; text-align: start; transition: background-color 140ms ease; }
-.team-member-row:hover, .team-member-row:focus-visible { background: var(--tm-tint); }
+.team-member-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 88px 16px 36px; width: 100%; min-height: 84px; align-items: center; gap: 14px; padding: 18px 20px; text-align: start; transition: background-color 140ms ease; }
+.team-member-row:hover, .team-member-row:focus-within { background: color-mix(in srgb, var(--tm-tint) 45%, var(--tm-panel)); }
 .team-avatar { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border: 1px solid var(--tm-line); border-radius: 10px; background: var(--tm-tint); color: var(--tm-accent); font-size: var(--font-size-helper); font-weight: 600; text-transform: uppercase; }
-.team-role { padding: 4px 9px; border: 1px solid var(--tm-line); border-radius: 6px; color: var(--tm-muted); font-size: var(--font-size-helper); }
-.team-role.is-admin { background: var(--tm-tint); color: var(--tm-accent); }
-.team-status { width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: var(--tm-muted); }
+.team-role { display: inline-flex; align-items: center; justify-content: center; min-height: 30px; padding: 4px 12px; border: 1px solid var(--tm-line); border-radius: 7px; color: var(--tm-muted); background: var(--tm-bg); font-size: var(--font-size-helper); font-weight: 500; white-space: nowrap; }
+.team-role.is-admin { background: var(--tm-tint); border-color: color-mix(in srgb, var(--tm-accent) 20%, var(--tm-line)); color: var(--tm-accent); }
+.team-status { justify-self: center; width: 7px; height: 7px; border-radius: 50%; background: var(--tm-muted); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tm-muted) 10%, transparent); }
 .team-status.is-active { background: var(--tm-success); }
+.team-status.is-active { box-shadow: 0 0 0 4px color-mix(in srgb, var(--tm-success) 10%, transparent); }
 .team-empty { padding: 48px 20px; text-align: center; color: var(--tm-muted); font-size: 12px; }
 .app-shell .team-page input, .app-shell .team-page select, .app-shell .team-page textarea { color: var(--tm-text); background: var(--tm-panel); border-color: var(--tm-line); border-radius: 8px; }
 .app-shell .team-page input::placeholder { color: var(--tm-muted); }
@@ -32,9 +33,9 @@ html.dark .team-page .team-member-form [role="alert"] { color: #ee91a0; }
 @media (max-width: 640px) { .team-header h1 { font-size: 23px; } .team-member-row { padding: 12px; gap: 8px; } }
 @media (prefers-reduced-motion: reduce) { .team-page *, .team-page button { transition: none !important; animation: none !important; } }
 
-.team-page .team-delete { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; min-height: 36px; padding: 8px; flex-shrink: 0; border: 1px solid var(--tm-line); border-radius: 8px; color: #b43b53; background: var(--tm-panel); font-size: var(--font-size-control); transition: background-color 140ms ease, border-color 140ms ease; }
+.team-page .team-delete { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 8px; border: 1px solid transparent; border-radius: 8px; color: var(--tm-muted); background: transparent; font-size: var(--font-size-control); transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease; }
 html.dark .team-page .team-delete { color: #ee91a0; }
-.team-page .team-delete:hover:not(:disabled) { background: #bc435b12; border-color: currentColor; }
+.team-page .team-delete:hover:not(:disabled), .team-page .team-delete:focus-visible { color: #b43b53; background: #bc435b12; border-color: #bc435b30; }
 .team-page .team-delete:disabled { opacity: .5; }
 .team-page .team-delete > span { display: none; }
 @media (max-width: 479px) {
@@ -45,7 +46,9 @@ html.dark .team-page .team-delete { color: #ee91a0; }
   .team-page .app-glass-panel > div:first-child > div { flex-wrap: wrap; width: 100%; }
   .team-page .app-glass-panel > div:first-child > div > label:first-child { flex-basis: 100%; width: 100%; }
   .team-page .app-glass-panel > div:first-child > div > label:first-child input { width: 100%; }
-  .team-member-row { align-items: flex-start; flex-wrap: wrap; }
-  .team-member-row > div { min-width: calc(100% - 56px); }
-  .team-member-row .team-role { margin-inline-start: 48px; }
+  .team-member-row { grid-template-columns: 36px minmax(0, 1fr) 16px 36px; gap: 10px; padding: 16px 12px; }
+  .team-member-row > div { grid-column: 2 / -1; }
+  .team-member-row .team-role { grid-column: 2; grid-row: 2; justify-self: start; min-width: 88px; }
+  .team-member-row .team-status { grid-column: 3; grid-row: 2; }
+  .team-member-row .team-delete { grid-column: 4; grid-row: 2; }
 }
