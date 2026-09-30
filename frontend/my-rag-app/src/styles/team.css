@@ -13,6 +13,9 @@ html:not(.dark) .team-page { --tm-bg: var(--surface-canvas); --tm-panel: var(--s
 .team-avatar { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border: 1px solid var(--tm-line); border-radius: 10px; background: var(--tm-tint); color: var(--tm-accent); font-size: var(--font-size-helper); font-weight: 600; text-transform: uppercase; }
 .team-role { display: inline-flex; align-items: center; justify-content: center; min-height: 30px; padding: 4px 12px; border: 1px solid var(--tm-line); border-radius: 7px; color: var(--tm-muted); background: var(--tm-bg); font-size: var(--font-size-helper); font-weight: 500; white-space: nowrap; }
 .team-role.is-admin { background: var(--tm-tint); border-color: color-mix(in srgb, var(--tm-accent) 20%, var(--tm-line)); color: var(--tm-accent); }
+.team-member-details { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; }
+.team-member-job { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-member-details time { flex-shrink: 0; unicode-bidi: isolate; white-space: nowrap; }
 .team-status { justify-self: center; width: 7px; height: 7px; border-radius: 50%; background: var(--tm-muted); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tm-muted) 10%, transparent); }
 .team-status.is-active { background: var(--tm-success); }
 .team-status.is-active { box-shadow: 0 0 0 4px color-mix(in srgb, var(--tm-success) 10%, transparent); }
