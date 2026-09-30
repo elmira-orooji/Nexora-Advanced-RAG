@@ -87,6 +87,11 @@ html:not(.dark) .assistants-page {
 .assistants-page .as-text { color: var(--as-text); }
 .assistants-page .as-accent { color: var(--as-accent); }
 .assistants-header { display: flex; align-items: flex-start; }
+@container workspace (max-width: 600px) {
+  .assistants-page .assistants-header { flex-direction: column; align-items: stretch; gap: 14px; }
+  .assistants-page .assistants-create { width: 100%; }
+  .assistants-page > section > .grid { grid-template-columns: minmax(0, 1fr); }
+}
 .assistants-heading-copy { min-width: 0; }
 .assistants-title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
 .assistants-header h1 { font-size: 26px; line-height: 1.5; }

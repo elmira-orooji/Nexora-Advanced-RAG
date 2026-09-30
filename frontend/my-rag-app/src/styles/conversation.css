@@ -108,6 +108,11 @@ html:not(.dark) .conversation-page {
 .conversation-assistant-context { display: inline-flex; max-width: 240px; align-items: center; gap: 6px; overflow: hidden; padding: 5px 8px; border: 1px solid var(--cv-line); border-radius: 999px; color: var(--cv-muted); background: var(--cv-panel); font-size: var(--font-size-helper); white-space: nowrap; text-overflow: ellipsis; }
 .conversation-assistant-context svg { flex-shrink: 0; color: var(--cv-accent); }
 .conversation-page:has(.chat-thread--with-evidence) > section { position: static; z-index: 40; overflow: visible; }
+@container workspace (max-width: 900px) {
+  .conversation-page:has(.chat-thread--with-evidence) > header,
+  .conversation-page:has(.chat-thread--with-evidence) > section,
+  .conversation-page:has(.chat-thread--with-evidence) > .conversation-dock { width: 100% !important; }
+}
 
 @media (min-width: 761px) {
   .conversation-page:has(.chat-thread--with-evidence) > header,

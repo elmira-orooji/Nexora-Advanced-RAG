@@ -79,3 +79,9 @@ html:not(.dark) .preferences-page {
   .preferences-password-submit { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .preferences-choice { transition: none; } }
+@container workspace (max-width: 600px) {
+  .preferences-page { padding: 20px 16px; }
+  .preferences-card { padding: 16px; }
+  .preferences-password-fields { grid-template-columns: 1fr; gap: 12px; }
+  .preferences-password-submit { width: 100%; }
+}

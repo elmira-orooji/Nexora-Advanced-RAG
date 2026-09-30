@@ -118,6 +118,15 @@ html:not(.dark) .analytics-dashboard {
 }
 .analytics-spinner { width: 28px; height: 28px; border: 2px solid var(--an-line); border-top-color: var(--an-violet); border-radius: 50%; animation: analytics-spin .8s linear infinite; }
 @keyframes analytics-spin { to { transform: rotate(360deg); } }
+@container workspace (max-width: 700px) {
+  .analytics-viewport { overflow-y: auto; padding: 16px; }
+  .analytics-content { height: auto; min-height: 100%; }
+  .analytics-header { flex-direction: column; align-items: stretch; }
+  .analytics-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .analytics-metric:nth-child(3) { border-inline-start: 0; }
+  .analytics-metric:nth-child(n+3) { border-top: 1px solid var(--an-line); }
+  .analytics-chart-section { flex: none; height: 260px; }
+}
 @media (max-width: 640px) {
   .analytics-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .analytics-metric:nth-child(3) { border-inline-start: 0; }

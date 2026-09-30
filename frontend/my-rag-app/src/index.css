@@ -14,6 +14,8 @@
 @import "./styles/theme.css";
 @import "./styles/design-system.css";
 
+.nexora-app-content { container: workspace / inline-size; }
+
 @font-face {
   font-family: "Inter";
   src: url("./assets/fonts/Inter-Variable.ttf")

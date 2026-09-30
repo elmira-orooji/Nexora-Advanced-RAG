@@ -41,6 +41,15 @@ html.dark .team-page .team-delete { color: #ee91a0; }
 .team-page .team-delete:hover:not(:disabled), .team-page .team-delete:focus-visible { color: #b43b53; background: #bc435b12; border-color: #bc435b30; }
 .team-page .team-delete:disabled { opacity: .5; }
 .team-page .team-delete > span { display: none; }
+@container workspace (max-width: 600px) {
+  .team-header { align-items: stretch; flex-direction: column; gap: 12px; }
+  .team-header > button { justify-content: center; width: 100%; }
+  .team-member-row { grid-template-columns: 36px minmax(0, 1fr) 16px 36px; gap: 10px; padding: 16px 12px; }
+  .team-member-row > div { grid-column: 2 / -1; }
+  .team-member-row .team-role { grid-column: 2; grid-row: 2; justify-self: start; min-width: 88px; }
+  .team-member-row .team-status { grid-column: 3; grid-row: 2; }
+  .team-member-row .team-delete { grid-column: 4; grid-row: 2; }
+}
 @media (max-width: 479px) {
   .team-page main { padding: 14px 12px; }
   .team-header { align-items: stretch; flex-direction: column; gap: 12px; }
