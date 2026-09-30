@@ -134,14 +134,38 @@
   transition: background-color 9999s ease-out 0s;
 }
 
-@media (max-width: 760px) {
-  .nexora-login__shell { display: block; }
-  .nexora-login__visual { display: none; }
-  .nexora-login__main { min-height: 100dvh; padding: 96px 28px 40px; border: 0; }
+@media (max-width: 760px), (min-width: 761px) and (max-width: 1400px) and (orientation: portrait) {
+  .nexora-login { padding: 0; }
+  .nexora-login__shell { display: flex; flex-direction: column; min-height: 100dvh; width: 100%; max-width: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+  .nexora-login__visual { display: block; flex-shrink: 0; width: 100%; min-height: 0; height: clamp(140px, 24dvh, 220px); overflow: hidden; background: url("/assets/nexora-gradient-bg-4k.jpg") center / cover no-repeat; }
+  .nexora-login__visual > img:first-child { inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center; filter: saturate(1.04) contrast(1.03); }
+  .nexora-login__main { flex: 1; min-height: 0; padding: 64px 24px max(24px, env(safe-area-inset-bottom)); overflow: visible; border: 0; }
   /* Prevent iOS Safari from zooming when a login field receives focus. */
   .nexora-login__field .nexora-login__control > input { font-size: 16px; }
-  .nexora-login__toolbar { top: 16px; right: 20px; }
-  .nexora-login__brand { margin-bottom: 44px; }
+  .nexora-login__toolbar { top: 12px; right: 16px; }
+  .nexora-login__brand { margin-bottom: 26px; }
+  .nexora-login__form { margin-top: 20px; gap: 16px; }
+  .nexora-login__submit { width: 100%; }
+}
+@media (min-width: 761px) and (max-width: 1400px) and (orientation: portrait) {
+  .nexora-login__visual { height: clamp(240px, 32dvh, 440px); }
+  .nexora-login__main { flex: 1; padding: 72px 40px 40px; }
+  .nexora-login__form-wrap { max-width: 400px; }
+  .nexora-login__toolbar { top: 20px; right: 28px; }
+  .nexora-login__brand { margin-bottom: 36px; }
+  .nexora-login__form { margin-top: 28px; gap: 22px; }
+}
+@media (min-width: 761px) and (max-width: 1400px) and (orientation: landscape) {
+  .nexora-login__shell { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .nexora-login__visual { min-height: 100dvh; overflow: hidden; }
+  .nexora-login__visual > img:first-child { width: 100%; object-position: center; }
+  .nexora-login__main { padding-inline: clamp(24px, 4vw, 48px); }
+}
+@media (max-width: 760px) and (max-height: 700px) {
+  .nexora-login__visual { height: clamp(100px, 20dvh, 140px); }
+  .nexora-login__main { padding-top: 56px; }
+  .nexora-login__brand { margin-bottom: 22px; }
+  .nexora-login__form { margin-top: 16px; gap: 12px; }
 }
 @media (max-width: 380px) {
   .nexora-login__main { padding-inline: 20px; }
