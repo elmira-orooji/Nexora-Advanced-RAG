@@ -224,6 +224,9 @@ html:not(.dark) .conversation-scroll-preview > span { color: #687287; }
 .answer-source-label > span { font-size: var(--font-size-helper); padding: 0 6px; border-radius: 4px; background: var(--answer-tint); color: var(--answer-accent); }
 .answer-source-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
 .answer-source-card { position: relative; display: flex; min-width: 0; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--answer-border); border-radius: 10px; text-align: start; background: transparent; cursor: pointer; }
+html.dark .answer-source-card { background: var(--answer-panel); border-color: color-mix(in srgb, var(--text-muted) 20%, transparent); transition: background-color 160ms ease, border-color 160ms ease; }
+html.dark .answer-source-card:hover { background: color-mix(in srgb, var(--answer-accent) 5%, var(--answer-panel)); border-color: color-mix(in srgb, var(--answer-accent) 36%, transparent); }
+html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-accent); outline-offset: 3px; }
 .answer-source-highlight { position: absolute; inset: 0; border-radius: 9px; background: var(--answer-tint); pointer-events: none; }
 .answer-source-icon, .answer-source-info, .answer-source-arrow { position: relative; z-index: 1; }
 .answer-source-icon { display: grid; place-items: center; flex: 0 0 28px; height: 32px; color: var(--answer-accent); border-radius: 6px; background: var(--answer-tint); }
@@ -238,6 +241,7 @@ html:not(.dark) .conversation-scroll-preview > span { color: #687287; }
 @media (hover: none) { .chat-question-meta { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .chat-question-meta { transition: none; } }
 @media (prefers-reduced-motion: reduce) { .answer-source-arrow { transition: none; } }
+@media (prefers-reduced-motion: reduce) { html.dark .answer-source-card { transition: none; } }
 
 .chat-evidence { position: absolute; inset-block: 0; inset-inline-end: 0; z-index: 40; display: flex; flex-direction: column; width: min(100%, 450px); border: 1px solid var(--answer-border); border-radius: 16px; background: var(--answer-panel); color: var(--answer-text); box-shadow: -12px 0 40px #00000012; overflow: hidden; }
 .chat-evidence-header { display: flex; align-items: center; gap: 12px; flex-shrink: 0; padding: 20px; border-bottom: 1px solid var(--answer-border); }
