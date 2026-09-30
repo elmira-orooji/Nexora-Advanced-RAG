@@ -6,6 +6,7 @@ import InlineError from "../components/InlineError";
 import { analyticsService, type AnalyticsOverview, type DailyMetric, type RankedMetric } from "../services/analyticsService";
 import { authService } from "../services/authService";
 import { createXlsxWorkbook } from "../services/xlsxExport";
+import { analyticsPrintReport } from "../services/analyticsPrintReport";
 import "../styles/analytics.css";
 import { sectionCopy } from "../locales/copy";
 
@@ -121,9 +122,7 @@ export default function AnalyticsPage({ notificationCenter }: { notificationCent
     const report = window.open("", "_blank");
     if (!report) { setInlineError(c.exportFailed); return; }
     report.opener = null;
-    const escape = (value: string | number) => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
-    const rows = data.daily.map((item) => `<tr><td>${escape(formatAnalyticsDate(item.date, fa))}</td><td>${item.queries}</td><td>${item.grounded}</td><td>${item.negative_feedback}</td></tr>`).join("");
-    report.document.write(`<!doctype html><html dir="${fa ? "rtl" : "ltr"}" lang="${fa ? "fa" : "en"}"><head><title>${escape(c.reportTitle)}</title><style>body{font-family:${fa ? "Vazirmatn, Tahoma, sans-serif" : "Inter, Arial, sans-serif"};color:#15203a;padding:32px}h1{font-size:20px}p{color:#52617a}table{width:100%;border-collapse:collapse;margin-top:24px;font-size:12px}th,td{border:1px solid #dce2eb;padding:9px;text-align:start}th{background:#f4f1ff;color:#5520bd}@media print{body{padding:0}}</style></head><body><h1>${escape(c.reportTitle)}</h1><p>${escape(c.period)}: ${loadedDays} ${fa ? "روز" : "days"} · ${escape(c.generatedAt)}: ${escape(new Date().toLocaleString(fa ? "fa-IR" : "en"))}</p><table><thead><tr><th>${escape(c.date)}</th><th>${escape(c.queries)}</th><th>${escape(c.grounded)}</th><th>${escape(c.negativeFeedback)}</th></tr></thead><tbody>${rows}</tbody></table><script>window.onload=()=>window.print()</script></body></html>`);
+    report.document.write(analyticsPrintReport(data, loadedDays, fa, c, formatAnalyticsDate));
     report.document.close();
   };
 
