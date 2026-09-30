@@ -33,7 +33,7 @@ export default function RetrievalPlayground({ setId, documentIds, filters, isFa,
   const steps = ["question", "retrieval", "rerank", "answer"] as const;
   const descriptions = [labels.questionDescription, labels.retrievalDescription, labels.rerankDescription, labels.answerDescription];
 
-  return createPortal(<div className="app-shell trace-overlay" style={{ background: "#18213380", fontFamily: isFa ? "Vazirmatn, sans-serif" : "Inter, sans-serif" }} onMouseDown={onClose}>
+  return createPortal(<div className="app-shell trace-overlay" style={{ fontFamily: isFa ? "Vazirmatn, sans-serif" : "Inter, sans-serif" }} onMouseDown={onClose}>
     <aside ref={panel} className="trace-panel" dir={isFa ? "rtl" : "ltr"} role="dialog" aria-modal="true" aria-labelledby="trace-heading" onMouseDown={(event) => event.stopPropagation()} onKeyDown={(event) => {
         if (comparisonOpen) return;
         if (event.key === "Escape") { event.stopPropagation(); onClose(); }

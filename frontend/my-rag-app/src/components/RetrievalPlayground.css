@@ -1,6 +1,6 @@
 .trace-overlay { position: fixed; inset: 0; z-index: 95; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--modal-backdrop); -webkit-backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(112%); backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(112%); }
 .trace-panel { --trace-bg: #f7f8fb; --trace-card: #fff; --trace-line: #e2e6ef; --trace-text: #202b40; --trace-muted: #6b7891; --trace-accent: #703bd1; --trace-tint: #f0eafa; position: relative; display: flex; flex-direction: column; width: 100%; max-width: 760px; height: min(600px, calc(100dvh - 48px)); max-height: calc(100dvh - 48px); overflow: hidden; border: 1px solid var(--trace-line); border-radius: 20px; color: var(--trace-text); background: var(--trace-bg); box-shadow: 0 24px 80px #101b3530; }
-.dark .trace-panel { --trace-bg: #0a1229; --trace-card: #101d3a; --trace-line: #253352; --trace-text: #e9edf7; --trace-muted: #95a3bf; --trace-accent: #c29aff; --trace-tint: #251d44; }
+.dark .trace-panel { --trace-bg: var(--surface-panel); --trace-card: var(--surface-panel); --trace-line: var(--border-subtle); --trace-text: var(--text-primary); --trace-muted: var(--text-muted); --trace-accent: var(--brand); --trace-tint: var(--brand-soft); box-shadow: var(--shadow-panel); }
 .trace-header { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 22px 24px; border-bottom: 1px solid var(--trace-line); background: var(--trace-card); }
 .trace-heading { display: flex; align-items: center; gap: 14px; }
 .trace-logo, .trace-empty-icon { display: grid; place-items: center; color: var(--trace-accent); background: var(--trace-tint); border: 1px solid color-mix(in srgb, var(--trace-accent) 18%, transparent); }
@@ -23,8 +23,11 @@
 .trace-panel .trace-limit select { border: 0; background: transparent; padding: 6px; color: var(--trace-text); font-size: 13px; }
 .trace-panel .trace-run { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 20px; min-height: 50px; border-radius: 12px; border: 1px solid #7132cb; background: #7132cb; color: white; font-size: 13px; font-weight: 600; transition: background .15s; }
 .trace-panel .trace-run:hover:not(:disabled) { background: #5923a8; }
+.dark .trace-panel .trace-run { border-color: var(--brand-action); background: var(--brand-action); color: var(--text-inverse); }
+.dark .trace-panel .trace-run:hover:not(:disabled) { border-color: var(--brand-action-hover); background: var(--brand-action-hover); }
 .trace-panel .trace-run:disabled { opacity: .5; cursor: not-allowed; }
 .retriever-compare { position: absolute; inset: 0; z-index: 20; display: flex; min-width: 0; flex-direction: column; overflow: hidden; color: var(--text-primary); background: var(--surface-canvas); }
+.dark .retriever-compare { background: var(--surface-panel); }
 .retriever-compare-header { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 24px; border-bottom: 1px solid var(--border-subtle); background: var(--surface-panel); }
 .retriever-compare-title { display: flex; min-width: 0; align-items: center; gap: 12px; }
 .retriever-compare-mark { display: grid; width: 40px; height: 40px; flex-shrink: 0; place-items: center; border: 1px solid var(--brand-line); border-radius: 11px; color: var(--brand); background: var(--brand-soft); }
