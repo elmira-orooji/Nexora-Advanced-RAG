@@ -88,6 +88,7 @@ def extract_scanned_document_text_with_provenance(file_path: Path, content_type:
                 )
         except OCRUnavailableError as exc:
             errors.append(str(exc))
+            logger.warning("OCR provider request failed", extra={"provider": _provider_name(provider), "error_type": type(exc).__name__, "error_summary": str(exc)[:500]})
             if provider is not providers[-1]:
                 logger.warning(
                     "OCR provider failed; trying fallback",
@@ -178,8 +179,18 @@ def _jina_page(page: bytes, content_type: str) -> str:
     try:
         with urlopen(request, timeout=OCR_TIMEOUT_SECONDS) as response:
             result = json.loads(response.read().decode("utf-8"))
-    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
-        raise OCRUnavailableError("Jina OCR request failed") from exc
+    except HTTPError as exc:
+        # Never persist the response body, URL or API key.
+        raise OCRUnavailableError(f"Jina OCR request failed (HTTP {exc.code})") from exc
+    except TimeoutError as exc:
+        raise OCRUnavailableError("Jina OCR request timed out") from exc
+    except URLError as exc:
+        reason = "timed out" if isinstance(exc.reason, TimeoutError) else "network error"
+        raise OCRUnavailableError(f"Jina OCR request failed: {reason}") from exc
+    except OSError as exc:
+        raise OCRUnavailableError("Jina OCR request failed: network error") from exc
+    except json.JSONDecodeError as exc:
+        raise OCRUnavailableError("Jina OCR returned an invalid JSON response") from exc
     choices = result.get("choices") or []
     message = choices[0].get("message") if choices and isinstance(choices[0], dict) else None
     text = message.get("content") if isinstance(message, dict) else None

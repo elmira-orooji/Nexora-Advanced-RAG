@@ -1,5 +1,6 @@
 import uuid
 import logging
+import re
 import threading
 import time
 from contextlib import contextmanager
@@ -8,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import case, or_, select, update
 from sqlalchemy.orm import selectinload
 
-from app.core.config import BASE_DIR, DOCUMENT_JOB_HEARTBEAT_SECONDS, DOCUMENT_JOB_LEASE_SECONDS, DOCUMENT_JOB_MAX_ATTEMPTS, DOCUMENT_JOB_RETRY_BASE_SECONDS, DOCUMENT_JOB_RETRY_MAX_SECONDS, document_storage_relative, resolve_document_path
+from app.core.config import BASE_DIR, DOCUMENT_JOB_HEARTBEAT_SECONDS, DOCUMENT_JOB_LEASE_SECONDS, DOCUMENT_JOB_MAX_ATTEMPTS, DOCUMENT_JOB_RETRY_BASE_SECONDS, DOCUMENT_JOB_RETRY_MAX_SECONDS, WORKER_STALE_THRESHOLD_SECONDS, document_storage_relative, resolve_document_path
 from app.db.database import SessionLocal
 from app.models.document import Document
 from app.models.indexing_outbox import IndexingOutbox
@@ -66,7 +67,10 @@ def _expired_document_job_ids(cutoff: datetime):
 
 def recover_document_jobs() -> int:
     """Atomically release expired claims without waiting on active heartbeats."""
-    cutoff = datetime.now(timezone.utc) - timedelta(seconds=DOCUMENT_JOB_LEASE_SECONDS)
+    # Job heartbeats run independently of OCR; a dead process must not remain
+    # marked extracting until a potentially hour-long lease expires.
+    stale_seconds = min(DOCUMENT_JOB_LEASE_SECONDS, max(WORKER_STALE_THRESHOLD_SECONDS, 3 * DOCUMENT_JOB_HEARTBEAT_SECONDS))
+    cutoff = datetime.now(timezone.utc) - timedelta(seconds=stale_seconds)
     expired = _expired_document_job_ids(cutoff).cte("expired_document_jobs")
     statement = (
         update(ProcessingJob)
@@ -75,11 +79,27 @@ def recover_document_jobs() -> int:
             ProcessingJob.status == "running",
             (ProcessingJob.locked_at.is_(None)) | (ProcessingJob.locked_at < cutoff),
         )
-        .values(status="queued", stage="queued", worker_id=None, locked_at=None)
-        .returning(ProcessingJob.id)
+        .values(status="queued", stage="queued", progress=0, worker_id=None, locked_at=None)
+        .returning(ProcessingJob.id, ProcessingJob.document_id, ProcessingJob.attempts)
     )
     with SessionLocal() as db, db.begin():
-        return len(list(db.scalars(statement)))
+        recovered = list(db.execute(statement))
+        for job_id, document_id, attempts in recovered:
+            exhausted = attempts >= DOCUMENT_JOB_MAX_ATTEMPTS
+            message = "Document processing was interrupted; queued for another attempt."
+            if exhausted:
+                message = "Document processing was interrupted and reached its retry limit."
+                db.execute(update(ProcessingJob).where(ProcessingJob.id == job_id).values(
+                    status="dead_letter", stage="dead_letter", error=message,
+                    error_type="WorkerUnavailable", completed_at=datetime.now(timezone.utc),
+                    dead_lettered_at=datetime.now(timezone.utc),
+                ))
+            db.execute(update(Document).where(Document.id == document_id).values(
+                status="failed" if exhausted else "queued",
+                processing_stage="dead_letter" if exhausted else "requeued",
+                processing_progress=0, processing_error=message,
+            ))
+        return len(recovered)
 
 
 def claim_document_job(worker_id: str) -> uuid.UUID | None:
@@ -116,7 +136,7 @@ def _retryable_document_error(exc: Exception) -> bool:
         return exc.status_code is None or exc.status_code in {408, 429} or exc.status_code >= 500
     if isinstance(exc, ExtractionError):
         message = str(exc).lower()
-        return "network error" in message or "timed out" in message
+        return "network error" in message or "timed out" in message or bool(re.search(r"jina ocr request failed \(http (?:408|429|5\d\d)\)", message))
     return isinstance(exc, (TimeoutError, ConnectionError))
 
 
@@ -211,6 +231,7 @@ def _progress(
         raise DocumentJobOwnershipLost(f"Document job {job.id} is no longer owned by {worker_id}")
     document.processing_progress = value
     document.processing_stage = stage
+    document.processing_error = None
     document.status = "processing" if value < 100 else "indexed"
     db.commit()
 

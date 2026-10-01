@@ -30,6 +30,7 @@ class DocumentJobRecoveryTests(unittest.TestCase):
     def setUp(self):
         self.engine = create_engine("sqlite://")
         ProcessingJob.__table__.create(self.engine)
+        Document.__table__.create(self.engine)
         self.sessions = sessionmaker(bind=self.engine, expire_on_commit=True)
         self.addCleanup(self.engine.dispose)
 
@@ -61,6 +62,29 @@ class DocumentJobRecoveryTests(unittest.TestCase):
     def test_empty_queue_returns_zero(self):
         with patch("app.services.document_jobs.SessionLocal", self.sessions):
             self.assertEqual(recover_document_jobs(), 0)
+
+    def test_stale_heartbeat_recovery_updates_document_before_hour_long_lease(self):
+        doc_id, job_id = uuid4(), uuid4()
+        with self.sessions() as db:
+            db.add(Document(id=doc_id, organization_id=uuid4(), filename="scan.pdf", status="processing", processing_stage="extracting", processing_progress=10))
+            db.add(ProcessingJob(id=job_id, organization_id=uuid4(), document_id=doc_id, status="running", worker_id="dead", stage="extracting", attempts=1, locked_at=datetime.now(timezone.utc) - timedelta(minutes=5)))
+            db.commit()
+        with patch.object(document_jobs, "SessionLocal", self.sessions), patch.object(document_jobs, "DOCUMENT_JOB_LEASE_SECONDS", 3600), patch.object(document_jobs, "WORKER_STALE_THRESHOLD_SECONDS", 120), patch.object(document_jobs, "DOCUMENT_JOB_HEARTBEAT_SECONDS", 30):
+            self.assertEqual(recover_document_jobs(), 1)
+        with self.sessions() as db:
+            document = db.get(Document, doc_id)
+            self.assertEqual((document.status, document.processing_stage, document.processing_progress), ("queued", "requeued", 0))
+            self.assertIn("interrupted", document.processing_error)
+
+    def test_interrupted_job_does_not_retry_forever(self):
+        job_id = uuid4()
+        with self.sessions() as db:
+            db.add(ProcessingJob(id=job_id, organization_id=uuid4(), document_id=uuid4(), status="running", worker_id="dead", attempts=5, locked_at=datetime.now(timezone.utc) - timedelta(hours=2)))
+            db.commit()
+        with patch.object(document_jobs, "SessionLocal", self.sessions), patch.object(document_jobs, "DOCUMENT_JOB_MAX_ATTEMPTS", 5):
+            self.assertEqual(recover_document_jobs(), 1)
+        with self.sessions() as db:
+            self.assertEqual(db.get(ProcessingJob, job_id).status, "dead_letter")
 
     def test_claim_persists_owner_and_attempt_before_returning(self):
         queued_id = uuid4()
