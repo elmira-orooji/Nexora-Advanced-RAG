@@ -146,6 +146,7 @@ export const knowledgeService = {
     request(`/document-sets/${setId}/documents/${documentId}`, { method: "DELETE", headers: headers() }),
   deleteDocument: (documentId: string) => request(`/documents/${documentId}`, { method: "DELETE", headers: headers() }),
   retryDocument: (documentId: string) => request<KnowledgeDocument>(`/documents/${documentId}/retry`, { method: "POST", headers: headers() }),
+  pauseDocument: (documentId: string) => request<KnowledgeDocument>(`/documents/${documentId}/pause`, { method: "POST", headers: headers() }),
   updateMetadata: (documentId: string, data: { author?: string | null; language?: string | null; source_type?: string | null; document_date?: string | null; tags?: string[] }) =>
     request<KnowledgeDocument>(`/documents/${documentId}/metadata`, { method: "PATCH", headers: headers(true), body: JSON.stringify(data) }),
   testRetrieval: (query: string, documentSetId: string, limit: number, documentIds?: string[], filters?: MetadataFilters) =>

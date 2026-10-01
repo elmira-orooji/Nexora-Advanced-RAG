@@ -255,6 +255,21 @@ def retry_document(document_id: uuid.UUID, db: Session = Depends(get_db), user: 
     return IngestResponse(**DocumentResponse.model_validate(document).model_dump(), job_id=job.id)
 
 
+@router.post("/{document_id}/pause", response_model=DocumentResponse)
+def pause_document(document_id: uuid.UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    document = require_document_access(db, user, document_id, "edit")
+    # Same lock order as claiming/deletion. Removing ownership makes existing
+    # extraction checkpoints stop, without deleting the document or its source.
+    job = db.scalar(select(ProcessingJob).where(ProcessingJob.document_id == document_id).with_for_update())
+    if job is None or job.status not in {"queued", "running", "retrying", "paused"}:
+        raise HTTPException(status_code=409, detail="Document processing cannot be paused in its current state")
+    job.status = "paused"; job.stage = "paused"
+    job.worker_id = None; job.locked_at = None; job.next_attempt_at = None
+    document.status = "paused"; document.processing_stage = "paused"
+    db.commit(); db.refresh(document)
+    return document
+
+
 @router.post("/{document_id}/chunks", response_model=DocumentDetail)
 def create_document_chunks(
     document_id: uuid.UUID,

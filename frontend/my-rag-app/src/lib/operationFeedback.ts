@@ -44,6 +44,7 @@ export function operationError(error: unknown, operation: OperationKind, isFa: b
 export function processingStageLabel(stage: string, isFa: boolean): string {
   const labels: Record<string, [string, string]> = {
     queued: ["در صف پردازش", "Queued for processing"],
+    paused: ["پردازش موقتاً متوقف شده است", "Processing paused"],
     retry_wait: ["خطای پردازش؛ در انتظار تلاش مجدد", "Processing failed; waiting to retry"],
     requeued: ["پردازش قبلی متوقف شد؛ دوباره در صف قرار گرفت", "Processing interrupted; queued again"],
     dead_letter: ["پردازش ناموفق؛ نیاز به بررسی", "Processing failed; review required"],

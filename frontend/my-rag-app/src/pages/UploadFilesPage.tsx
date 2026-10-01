@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import {
   BookOpen, Building2, Check, ChevronDown, Cloud, Database, FileText, FolderKanban, GitBranch as Github, Globe2, Link2, MessageSquareText, MoreHorizontal,
-  FlaskConical, PanelRightClose, Pencil, Plus, RefreshCw, ScanSearch, Search, Settings2, SlidersHorizontal, Telescope, Trash2, UploadCloud, Zap, X, Filter,
+  FlaskConical, PanelRightClose, Pause, Play, Pencil, Plus, RefreshCw, ScanSearch, Search, Settings2, SlidersHorizontal, Telescope, Trash2, UploadCloud, Zap, X, Filter,
 } from "lucide-react";
 import "../styles/knowledge.css";
 import ChatInput from "../components/ChatInput";
@@ -324,7 +324,7 @@ export default function UploadFilesPage({ initialAction }: UploadFilesPageProps)
           <section className="kb-library app-glass-panel flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="kb-library-toolbar flex shrink-0 flex-col gap-3 border-b border-white/[.07] p-4 sm:flex-row sm:items-center sm:justify-between"><h2 className="text-sm font-semibold">{copy.library}</h2><div className="flex gap-2"><label className="relative flex-1 sm:w-56"><Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 kb-muted" /><input value={query} onChange={(e) => setQuery(e.target.value)} aria-label={copy.search} placeholder={copy.search} className="h-9 w-full rounded-xl border border-white/[.09] bg-white/[.035] ps-9 pe-3 text-xs outline-none placeholder:text-white/20" /></label><label className="relative"><select aria-label={copy.allStatuses} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-9 appearance-none rounded-xl border border-white/[.09] bg-[#0a1530] ps-3 pe-8 text-xs kb-muted"><option value="all">{copy.allStatuses}</option><option value="indexed">Indexed</option><option value="failed">Failed</option></select><ChevronDown size={13} className="absolute end-2.5 top-1/2 -translate-y-1/2 kb-muted" /></label></div></div>
             <div className="kb-document-list min-h-0 flex-1 divide-y divide-white/[.055] overflow-y-auto" tabIndex={0} role="region" aria-label={copy.library}>
-{loading ? <div className="grid h-full place-items-center"><span className="nexora-loader" /></div> : filtered.length ? filtered.map((doc) => <DocumentRow key={doc.id} document={doc} isAdmin={isAdmin || selectedSet?.access_level === "edit" || selectedSet?.access_level === "manage"} isFa={isFa} canDelete={isAdmin} onRetry={async () => { await knowledgeService.retryDocument(doc.id); await refreshSetData(selectedSetId); await loadSets(); }} onRemove={async () => { if (!selectedSetId || !await confirmAction(isFa ? `سند «${doc.filename}» برای همیشه حذف و پردازش آن لغو شود؟` : `Permanently delete “${doc.filename}” and cancel its processing?`)) return; try { await knowledgeService.deleteDocument(doc.id); setDocuments((items) => items.filter((item) => item.id !== doc.id)); await loadSets(); toast.success(isFa ? "سند حذف و پردازش آن لغو شد" : "Document deleted and processing cancelled"); } catch (error) { setPageError(operationError(error, "load", isFa)); } }} />) : <div className="grid h-full min-h-28 place-items-center text-xs kb-muted">{selectedSet ? copy.empty : (isFa ? "یک مجموعه انتخاب کنید" : "Select a knowledge set")}</div>}
+{loading ? <div className="grid h-full place-items-center"><span className="nexora-loader" /></div> : filtered.length ? filtered.map((doc) => <DocumentRow key={doc.id} document={doc} isAdmin={isAdmin || selectedSet?.access_level === "edit" || selectedSet?.access_level === "manage"} isFa={isFa} canDelete={isAdmin} onPause={async () => { await knowledgeService.pauseDocument(doc.id); await refreshSetData(selectedSetId); await loadSets(); }} onRetry={async () => { await knowledgeService.retryDocument(doc.id); await refreshSetData(selectedSetId); await loadSets(); }} onRemove={async () => { if (!selectedSetId || !await confirmAction(isFa ? `سند «${doc.filename}» برای همیشه حذف و پردازش آن لغو شود؟` : `Permanently delete “${doc.filename}” and cancel its processing?`)) return; try { await knowledgeService.deleteDocument(doc.id); setDocuments((items) => items.filter((item) => item.id !== doc.id)); await loadSets(); toast.success(isFa ? "سند حذف و پردازش آن لغو شد" : "Document deleted and processing cancelled"); } catch (error) { setPageError(operationError(error, "load", isFa)); } }} />) : <div className="grid h-full min-h-28 place-items-center text-xs kb-muted">{selectedSet ? copy.empty : (isFa ? "یک مجموعه انتخاب کنید" : "Select a knowledge set")}</div>}
             </div>
           </section>
         </div>
@@ -420,31 +420,39 @@ function ConnectorStatus({ connector, syncing, isFa, onSync }: { connector: Conn
   </div>;
 }
 
-function DocumentRow({ document, isAdmin, isFa, canDelete, onRetry, onRemove }: { document: KnowledgeDocument; isAdmin: boolean; isFa: boolean; canDelete: boolean; onRetry: () => Promise<void>; onRemove: () => Promise<void> }) {
+function DocumentRow({ document, isAdmin, isFa, canDelete, onRetry, onPause, onRemove }: { document: KnowledgeDocument; isAdmin: boolean; isFa: boolean; canDelete: boolean; onRetry: () => Promise<void>; onPause: () => Promise<void>; onRemove: () => Promise<void> }) {
   const [retryError, setRetryError] = useState("");
   const [retrying, setRetrying] = useState(false);
+  const [pausing, setPausing] = useState(false);
   const ready = document.status === "indexed";
-  const active = ["queued", "processing"].includes(document.status);
+  const active = ["queued", "processing", "paused"].includes(document.status);
   if (ready) return <IndexedDocumentRow document={document} isAdmin={isAdmin} isFa={isFa} canDelete={canDelete} onRemove={onRemove} />;
   if (active) {
-    const waiting = ["retry_wait", "requeued", "queued"].includes(document.processing_stage);
+    const paused = document.status === "paused";
+    const waiting = paused || ["retry_wait", "requeued", "queued"].includes(document.processing_stage);
     return <div className="group grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3.5 hover:bg-white/[.025]">
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/[.07] bg-white/[.035] kb-accent"><RefreshCw size={16} className={waiting ? "" : "animate-spin"} /></span>
+      <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/[.07] bg-white/[.035] kb-accent">{paused ? <Pause size={16} /> : <RefreshCw size={16} className={waiting ? "" : "animate-spin"} />}</span>
       <div className="min-w-0 flex-1">
         <p className="nexora-file-name text-sm font-semibold kb-text">{document.filename}</p>
         <div className="mt-2 max-w-sm">
           <div className="mb-1 flex justify-between text-xs kb-muted"><span>{processingStageLabel(document.processing_stage, isFa)}</span>{!waiting && <span>{document.processing_progress}%</span>}</div>
           {!waiting && <div className="h-1 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full rounded-full bg-gradient-to-r from-[#7c27ff] to-[#c43cff] transition-all duration-500" style={{ width: `${document.processing_progress}%` }} /></div>}
-          <p className="nexora-text-wrap mt-1 text-xs kb-muted">{isFa ? "پس از ایندکس‌شدن، پاسخ‌ها می‌توانند از این سند استفاده کنند." : "This document will become available to answers after indexing."}</p>
+          <p className="nexora-text-wrap mt-1 text-xs kb-muted">{paused ? (isFa ? "با ادامه، استخراج سند از ابتدا شروع می‌شود." : "Resuming restarts document extraction from the beginning.") : (isFa ? "پس از ایندکس‌شدن، پاسخ‌ها می‌توانند از این سند استفاده کنند." : "This document will become available to answers after indexing.")}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {isAdmin && document.processing_stage === "retry_wait" && <button disabled={retrying} onClick={async () => {
+        {isAdmin && !paused && <button disabled={pausing || retrying} onClick={async () => {
+          setRetryError(""); setPausing(true);
+          try { await onPause(); }
+          catch (error) { setRetryError(operationError(error, "processing", isFa)); }
+          finally { setPausing(false); }
+        }} title={isFa ? "مکث پردازش" : "Pause processing"} aria-label={isFa ? "مکث پردازش" : "Pause processing"} className="app-icon-button grid size-8 place-items-center rounded-lg kb-muted hover:text-[#d9a6ff] disabled:opacity-50"><Pause size={14} /></button>}
+        {isAdmin && (paused || document.processing_stage === "retry_wait") && <button disabled={retrying || pausing} onClick={async () => {
           setRetryError(""); setRetrying(true);
           try { await onRetry(); }
           catch (error) { setRetryError(operationError(error, "processing", isFa)); }
           finally { setRetrying(false); }
-        }} title={isFa ? "تلاش مجدد برای پردازش" : "Retry processing"} aria-label={isFa ? "تلاش مجدد برای پردازش" : "Retry processing"} className="app-icon-button grid size-8 place-items-center rounded-lg text-amber-200/70 hover:text-amber-200 disabled:opacity-50"><RefreshCw size={14} className={retrying ? "animate-spin" : ""} /></button>}
+        }} title={paused ? (isFa ? "ادامهٔ پردازش از ابتدا" : "Resume processing from the beginning") : (isFa ? "تلاش مجدد برای پردازش" : "Retry processing")} aria-label={paused ? (isFa ? "ادامهٔ پردازش" : "Resume processing") : (isFa ? "تلاش مجدد برای پردازش" : "Retry processing")} className="app-icon-button grid size-8 place-items-center rounded-lg text-amber-200/70 hover:text-amber-200 disabled:opacity-50">{paused && !retrying ? <Play size={14} /> : <RefreshCw size={14} className={retrying ? "animate-spin" : ""} />}</button>}
         {canDelete && <button onClick={() => void onRemove()} aria-label={isFa ? "حذف سند و لغو پردازش" : "Delete document and cancel processing"} className="app-icon-button grid size-8 place-items-center rounded-lg kb-muted hover:text-rose-300"><X size={14} /></button>}
       </div>
       {document.processing_error && <div className="col-start-2 col-end-3 min-w-0"><InlineError message={operationError(document.processing_error, "processing", isFa)} /></div>}

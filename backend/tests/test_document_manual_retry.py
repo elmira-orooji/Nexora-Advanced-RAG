@@ -8,9 +8,10 @@ from fastapi import HTTPException
 from app.api.routes import documents
 
 
-def test_manual_retry_releases_backoff_and_resets_attempt_budget():
+@pytest.mark.parametrize("status", ["retrying", "paused"])
+def test_manual_retry_releases_backoff_and_resets_attempt_budget(status):
     doc = SimpleNamespace(id=uuid4())
-    job = SimpleNamespace(id=uuid4(), status="retrying", attempts=4, next_attempt_at="later")
+    job = SimpleNamespace(id=uuid4(), status=status, attempts=4, next_attempt_at="later")
     db = MagicMock()
     db.scalar.side_effect = [doc, job]
     user = SimpleNamespace(id=uuid4(), organization_id=uuid4())
