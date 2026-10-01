@@ -422,12 +422,13 @@ function ConnectorStatus({ connector, syncing, isFa, onSync }: { connector: Conn
 
 function DocumentRow({ document, isAdmin, isFa, canDelete, onRetry, onRemove }: { document: KnowledgeDocument; isAdmin: boolean; isFa: boolean; canDelete: boolean; onRetry: () => Promise<void>; onRemove: () => Promise<void> }) {
   const [retryError, setRetryError] = useState("");
+  const [retrying, setRetrying] = useState(false);
   const ready = document.status === "indexed";
   const active = ["queued", "processing"].includes(document.status);
   if (ready) return <IndexedDocumentRow document={document} isAdmin={isAdmin} isFa={isFa} canDelete={canDelete} onRemove={onRemove} />;
   if (active) {
     const waiting = ["retry_wait", "requeued", "queued"].includes(document.processing_stage);
-    return <div className="group grid grid-cols-[2.5rem_minmax(0,1fr)_2rem] items-center gap-x-3 gap-y-2 px-4 py-3.5 hover:bg-white/[.025]">
+    return <div className="group grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3.5 hover:bg-white/[.025]">
       <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/[.07] bg-white/[.035] kb-accent"><RefreshCw size={16} className={waiting ? "" : "animate-spin"} /></span>
       <div className="min-w-0 flex-1">
         <p className="nexora-file-name text-sm font-semibold kb-text">{document.filename}</p>
@@ -437,8 +438,17 @@ function DocumentRow({ document, isAdmin, isFa, canDelete, onRetry, onRemove }: 
           <p className="nexora-text-wrap mt-1 text-xs kb-muted">{isFa ? "پس از ایندکس‌شدن، پاسخ‌ها می‌توانند از این سند استفاده کنند." : "This document will become available to answers after indexing."}</p>
         </div>
       </div>
-      {canDelete && <button onClick={() => void onRemove()} aria-label={isFa ? "حذف سند و لغو پردازش" : "Delete document and cancel processing"} className="app-icon-button grid size-8 place-items-center rounded-lg kb-muted hover:text-rose-300"><X size={14} /></button>}
+      <div className="flex items-center gap-2">
+        {isAdmin && document.processing_stage === "retry_wait" && <button disabled={retrying} onClick={async () => {
+          setRetryError(""); setRetrying(true);
+          try { await onRetry(); }
+          catch (error) { setRetryError(operationError(error, "processing", isFa)); }
+          finally { setRetrying(false); }
+        }} title={isFa ? "تلاش مجدد برای پردازش" : "Retry processing"} aria-label={isFa ? "تلاش مجدد برای پردازش" : "Retry processing"} className="app-icon-button grid size-8 place-items-center rounded-lg text-amber-200/70 hover:text-amber-200 disabled:opacity-50"><RefreshCw size={14} className={retrying ? "animate-spin" : ""} /></button>}
+        {canDelete && <button onClick={() => void onRemove()} aria-label={isFa ? "حذف سند و لغو پردازش" : "Delete document and cancel processing"} className="app-icon-button grid size-8 place-items-center rounded-lg kb-muted hover:text-rose-300"><X size={14} /></button>}
+      </div>
       {document.processing_error && <div className="col-start-2 col-end-3 min-w-0"><InlineError message={operationError(document.processing_error, "processing", isFa)} /></div>}
+      {retryError && <div className="col-start-2 col-end-3 min-w-0"><InlineError message={retryError} onDismiss={() => setRetryError("")} /></div>}
     </div>;
   }
   if (document.status === "failed") return <div className="group flex flex-wrap items-center gap-3 px-4 py-3.5 hover:bg-white/[.025]"><span className="grid size-10 shrink-0 place-items-center rounded-xl border border-rose-300/10 bg-rose-300/[.04] text-rose-200/60"><FileText size={17} /></span><div className="min-w-0 flex-1"><p className="nexora-file-name text-sm font-semibold kb-text">{document.filename}</p><p className="nexora-text-wrap mt-1 line-clamp-2 text-xs leading-5 text-rose-200/80">{operationError(document.processing_error, "processing", isFa)}</p></div>{isAdmin && <button onClick={async () => { setRetryError(""); try { await onRetry(); toast.success(isFa ? "پردازش مجدد آغاز شد؛ وضعیت را در همین فهرست دنبال کنید." : "Processing restarted. Follow its status in this list."); } catch (error) { setRetryError(operationError(error, "processing", isFa)); } }} title={isFa ? "تلاش مجدد برای پردازش" : "Retry processing"} aria-label={isFa ? "تلاش مجدد برای پردازش" : "Retry processing"} className="app-icon-button grid size-8 place-items-center rounded-lg text-amber-200/70 hover:text-amber-200"><RefreshCw size={13} /></button>}{canDelete && <button onClick={() => void onRemove()} className="app-icon-button grid size-8 place-items-center rounded-lg kb-muted hover:text-rose-300"><X size={14} /></button>}{retryError && <div className="basis-full"><InlineError message={retryError} onDismiss={() => setRetryError("")} /></div>}</div>;
