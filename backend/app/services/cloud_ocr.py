@@ -19,6 +19,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 from zipfile import BadZipFile, ZipFile
+from app.services.processing_cancellation import ProcessingCancelled, check_processing_cancelled
 
 from app.core.config import (
     AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT,
@@ -66,6 +67,7 @@ def extract_scanned_document_text_with_provenance(file_path: Path, content_type:
 
     errors: list[str] = []
     for provider in providers:
+        check_processing_cancelled()
         try:
             text = provider(file_path, content_type).strip()
             if text:
@@ -141,7 +143,10 @@ def _jina(file_path: Path, content_type: str) -> str:
         raise OCRUnavailableError("Jina OCR requires JINA_API_KEY")
     pages = _vision_pages(file_path, content_type)
     page_content_type = "image/png" if content_type == "application/pdf" else content_type
-    page_texts = [_jina_page(page, page_content_type) for page in pages]
+    page_texts = []
+    for page in pages:
+        check_processing_cancelled()
+        page_texts.append(_jina_page(page, page_content_type))
     return "\n\n".join(text for text in page_texts if text)
 
 
@@ -218,6 +223,7 @@ def _mineru_upload(upload_url: str, content: bytes) -> None:
     urllib adds ``application/x-www-form-urlencoded`` for request bodies. That
     extra header invalidates the object-storage signature issued by MinerU.
     """
+    check_processing_cancelled()
     target = urlsplit(upload_url)
     if target.scheme not in {"http", "https"} or not target.netloc:
         raise OCRUnavailableError("MinerU returned an invalid upload URL")
@@ -249,6 +255,7 @@ def _mineru_upload(upload_url: str, content: bytes) -> None:
 def _mineru_wait_for_result(batch_id: str, headers: dict[str, str]) -> dict:
     deadline = time.monotonic() + MINERU_TIMEOUT_SECONDS
     while time.monotonic() < deadline:
+        check_processing_cancelled()
         response = _mineru_json_request(f"{MINERU_API_BASE_URL}/extract-results/batch/{batch_id}", headers=headers)
         data = _mineru_success_data(response)
         results = data.get("extract_result") or []
@@ -269,6 +276,7 @@ def _mineru_success_data(response: dict) -> dict:
 
 
 def _mineru_json_request(url: str, *, headers: dict[str, str], payload: dict | None = None) -> dict:
+    check_processing_cancelled()
     request = Request(
         url,
         data=json.dumps(payload).encode("utf-8") if payload is not None else None,
@@ -304,6 +312,7 @@ def _google_vision(file_path: Path, content_type: str) -> str:
     pages = _vision_pages(file_path, content_type)
     chunks: list[str] = []
     for page in pages:
+        check_processing_cancelled()
         payload = {
             "requests": [{
                 "image": {"content": base64.b64encode(page).decode("ascii")},
@@ -337,13 +346,14 @@ def _vision_pages(file_path: Path, content_type: str) -> list[bytes]:
             raise OCRUnavailableError(f"PDF OCR is limited to {OCR_MAX_PAGES} pages")
         pages: list[bytes] = []
         for index in range(len(pdf)):
+            check_processing_cancelled()
             image = pdf[index].render(scale=2).to_pil()
             from io import BytesIO
             buffer = BytesIO()
             image.save(buffer, format="PNG", optimize=True)
             pages.append(buffer.getvalue())
         return pages
-    except OCRUnavailableError:
+    except (OCRUnavailableError, ProcessingCancelled):
         raise
     except Exception as exc:
         raise OCRUnavailableError("Could not render the PDF for OCR") from exc
@@ -365,6 +375,7 @@ def _azure_document_intelligence(file_path: Path, content_type: str) -> str:
         raise OCRUnavailableError("Azure Document Intelligence did not return an operation URL")
     deadline = time.monotonic() + OCR_TIMEOUT_SECONDS
     while time.monotonic() < deadline:
+        check_processing_cancelled()
         poll = Request(operation_url, headers={"Ocp-Apim-Subscription-Key": AZURE_DOCUMENT_INTELLIGENCE_KEY})
         try:
             with urlopen(poll, timeout=min(10, OCR_TIMEOUT_SECONDS)) as response:

@@ -11,6 +11,7 @@ from sqlalchemy import select, update
 
 from app.db.database import SessionLocal
 from app.models.indexing_outbox import IndexingOutbox
+from app.models.document import Document
 from app.services.qdrant import QdrantClient
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,11 @@ def reconcile_indexing_outbox() -> int:
                 payload = entry.payload
                 action = entry.action
                 if action == "replace_document_chunks":
+                    # Share the document lock with deletion and immediate apply.
+                    # A stale outbox snapshot must not recreate deleted vectors.
+                    if db.scalar(select(Document.id).where(Document.id == entry.document_id).with_for_update()) is None:
+                        db.rollback()
+                        continue
                     qdrant.replace_document_chunks(
                         payload["document_id"],
                         payload["filename"],

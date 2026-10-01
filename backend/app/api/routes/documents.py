@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, status
 from fastapi.responses import FileResponse
 from pypdf import PdfReader
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
@@ -350,6 +350,9 @@ def delete_document(document_id: uuid.UUID, db: Session = Depends(get_db), user:
         raise HTTPException(status_code=404, detail="Document not found")
 
     document_dir = _get_document_directory(document)
+    # Match the worker's lock order (job, then document).
+    db.scalar(select(ProcessingJob.id).where(ProcessingJob.document_id == document_id).with_for_update())
+    db.scalar(select(Document.id).where(Document.id == document_id).with_for_update())
     try:
         qdrant = QdrantClient()
         qdrant.ensure_collection()
@@ -361,6 +364,9 @@ def delete_document(document_id: uuid.UUID, db: Session = Depends(get_db), user:
         ) from exc
 
     try:
+        # Delete queued/running jobs explicitly: workers detect the missing claim
+        # at the next extraction checkpoint instead of continuing OCR/fallback.
+        db.execute(delete(ProcessingJob).where(ProcessingJob.document_id == document_id))
         db.delete(document)
         db.commit()
     except SQLAlchemyError as exc:

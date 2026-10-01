@@ -7,6 +7,7 @@ from pathlib import Path
 from pypdf import PdfReader
 
 from app.services.cloud_ocr import OCRUnavailableError, extract_scanned_document_text_with_provenance
+from app.services.processing_cancellation import ProcessingCancelled, check_processing_cancelled
 
 
 class ExtractionError(ValueError):
@@ -63,7 +64,13 @@ def _extract_pdf(file_path: Path) -> str:
 def _extract_pdf_with_provenance(file_path: Path) -> ExtractionResult:
     try:
         reader = PdfReader(file_path)
-        text = "\n\n".join((page.extract_text() or "").strip() for page in reader.pages)
+        parts = []
+        for page in reader.pages:
+            check_processing_cancelled()
+            parts.append((page.extract_text() or "").strip())
+        text = "\n\n".join(parts)
+    except ProcessingCancelled:
+        raise
     except Exception as exc:
         raise ExtractionError("Could not read the PDF file") from exc
 

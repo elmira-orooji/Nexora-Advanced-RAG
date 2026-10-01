@@ -22,13 +22,25 @@ from app.services.operational_metrics import increment, observe
 from app.services.notifications import create_notification
 from app.services.incremental_index import checksum, incremental_chunks
 from app.services.file_storage import atomic_write_text
+from app.services.processing_cancellation import ProcessingCancelled, cancellation_scope
 from app.core.config import CHUNKING_STRATEGY, SEMANTIC_CHUNK_MIN_SIZE, SEMANTIC_CHUNK_MAX_SIZE, SEMANTIC_SIMILARITY_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
 
-class DocumentJobOwnershipLost(RuntimeError):
+class DocumentJobOwnershipLost(ProcessingCancelled):
     pass
+
+
+def check_document_job_ownership(job_id: uuid.UUID, worker_id: str) -> None:
+    with SessionLocal() as db:
+        owned = db.scalar(select(ProcessingJob.id).where(
+            ProcessingJob.id == job_id,
+            ProcessingJob.status == "running",
+            ProcessingJob.worker_id == worker_id,
+        ))
+    if owned is None:
+        raise DocumentJobOwnershipLost("Document processing was cancelled or ownership changed")
 
 
 def _chunking_config() -> str:
@@ -177,22 +189,23 @@ def _progress(
     completed: bool = False,
 ) -> None:
     now = datetime.now(timezone.utc)
-    result = db.execute(
-        update(ProcessingJob)
-        .where(
-            ProcessingJob.id == job.id,
-            ProcessingJob.status == "running",
-            ProcessingJob.worker_id == worker_id,
+    with db.no_autoflush:
+        result = db.execute(
+            update(ProcessingJob)
+            .where(
+                ProcessingJob.id == job.id,
+                ProcessingJob.status == "running",
+                ProcessingJob.worker_id == worker_id,
+            )
+            .values(
+                progress=value,
+                stage=stage,
+                status="completed" if completed else "running",
+                completed_at=now if completed else None,
+                worker_id=None if completed else worker_id,
+                locked_at=None if completed else now,
+            )
         )
-        .values(
-            progress=value,
-            stage=stage,
-            status="completed" if completed else "running",
-            completed_at=now if completed else None,
-            worker_id=None if completed else worker_id,
-            locked_at=None if completed else now,
-        )
-    )
     if result.rowcount != 1:
         db.rollback()
         raise DocumentJobOwnershipLost(f"Document job {job.id} is no longer owned by {worker_id}")
@@ -232,13 +245,13 @@ def process_document_job(
             source_path = resolve_document_path(stored_source)
             extraction_started = time.perf_counter()
             try:
-                extraction = extract_text_with_provenance(source_path, document.content_type or "")
+                with cancellation_scope(lambda: check_document_job_ownership(job_id, worker_id)):
+                    extraction = extract_text_with_provenance(source_path, document.content_type or "")
             except Exception:
                 observe("document_ocr_duration", time.perf_counter() - extraction_started, content_type=document.content_type or "unknown", result="failed")
                 raise
             observe("document_ocr_duration", time.perf_counter() - extraction_started, content_type=document.content_type or "unknown", result="success")
             text = extraction.text
-            document.ocr_provenance = extraction.ocr_provenance
             if extraction.ocr_provenance:
                 logger.info(
                     "Document OCR completed",
@@ -260,6 +273,17 @@ def process_document_job(
                 increment("document_jobs_completed_total", result="unchanged")
                 return
             extracted_path = source_path.parent / "extracted.txt"
+            # Serialize the filesystem write with deletion. Otherwise a late
+            # extraction could recreate a directory after the delete succeeded.
+            with db.no_autoflush:
+                if db.scalar(select(ProcessingJob.id).where(
+                    ProcessingJob.id == job_id,
+                    ProcessingJob.status == "running",
+                    ProcessingJob.worker_id == worker_id,
+                ).with_for_update()) is None:
+                    raise DocumentJobOwnershipLost("Document processing was cancelled")
+                db.scalar(select(Document.id).where(Document.id == document.id).with_for_update())
+            document.ocr_provenance = extraction.ocr_provenance
             atomic_write_text(extracted_path, text)
             document.extracted_text_path = document_storage_relative(extracted_path)
             document.content_checksum = None
@@ -315,7 +339,7 @@ def process_document_job(
             increment("document_jobs_completed_total", result="indexed")
         except Exception as exc:
             db.rollback()
-            if isinstance(exc, DocumentJobOwnershipLost):
+            if isinstance(exc, ProcessingCancelled):
                 logger.warning("Stopped document processing after lease ownership changed", extra={"job_id": str(job_id), "worker_id": worker_id})
                 return
             job = db.get(ProcessingJob, job_id)
@@ -357,14 +381,18 @@ def process_document_job(
         # Transaction committed with outbox entry. Best-effort immediate apply.
         if outbox_payload is not None:
             try:
-                qdrant = QdrantClient()
-                qdrant.ensure_collection()
-                qdrant.replace_document_chunks(
-                    outbox_payload["document_id"],
-                    outbox_payload["filename"],
-                    outbox_payload["chunks"],
-                )
                 with SessionLocal() as apply_db:
+                    # Serialize indexing with deletion so a deleted document
+                    # cannot be reintroduced into the vector store.
+                    if apply_db.scalar(select(Document.id).where(Document.id == document.id).with_for_update()) is None:
+                        return
+                    qdrant = QdrantClient()
+                    qdrant.ensure_collection()
+                    qdrant.replace_document_chunks(
+                        outbox_payload["document_id"],
+                        outbox_payload["filename"],
+                        outbox_payload["chunks"],
+                    )
                     apply_db.execute(
                         update(IndexingOutbox)
                         .where(
