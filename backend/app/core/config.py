@@ -103,7 +103,7 @@ def resolve_document_path(stored: str) -> Path:
     except ValueError:
         pass
     return (BASE_DIR / candidate).resolve()
-MAX_UPLOAD_SIZE = 10 * 1024 * 1024
+MAX_UPLOAD_SIZE = 100 * 1024 * 1024
 APP_ENV = os.getenv("APP_ENV", "production").strip().lower()
 MALWARE_SCAN_MODE = os.getenv("MALWARE_SCAN_MODE", "required" if APP_ENV not in _NON_PRODUCTION_ENVIRONMENTS else "disabled").strip().lower()
 if MALWARE_SCAN_MODE not in {"disabled", "required"}:

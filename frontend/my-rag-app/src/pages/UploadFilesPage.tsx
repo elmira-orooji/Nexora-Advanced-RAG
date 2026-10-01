@@ -202,7 +202,7 @@ export default function UploadFilesPage({ initialAction }: UploadFilesPageProps)
   }, [isFa, loadSets, refreshSetData, selectedSetId]);
 
   const { getInputProps, getRootProps, isDragActive, open } = useDropzone({
-    onDrop, noClick: true, disabled: !selectedSetId || uploading, maxSize: 10 * 1024 * 1024,
+    onDrop, noClick: true, disabled: !selectedSetId || uploading, maxSize: 100 * 1024 * 1024,
     accept: {
       "application/pdf": [".pdf"],
       "text/plain": [".txt"],
@@ -211,8 +211,8 @@ export default function UploadFilesPage({ initialAction }: UploadFilesPageProps)
       "image/tiff": [".tif", ".tiff"],
     },
     onDropRejected: () => setUploadError(isFa
-      ? "فایل PDF، TXT یا تصویر JPG، PNG و TIFF با حجم حداکثر ۱۰ مگابایت انتخاب کنید."
-      : "Choose a PDF, TXT, JPG, PNG, or TIFF file up to 10 MB."),
+      ? "فایل PDF، TXT یا تصویر JPG، PNG و TIFF با حجم حداکثر ۱۰۰ مگابایت انتخاب کنید."
+      : "Choose a PDF, TXT, JPG, PNG, or TIFF file up to 100 MB."),
   });
 
   const filtered = useMemo(() => documents.filter((item) =>

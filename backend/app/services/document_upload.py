@@ -64,7 +64,7 @@ def save_upload(file: UploadFile, destination: Path) -> int:
             if total_size > MAX_UPLOAD_SIZE:
                 raise HTTPException(
                     status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-                    detail="File size cannot exceed 10 MB",
+                    detail=f"File size cannot exceed {MAX_UPLOAD_SIZE // (1024 * 1024)} MB",
                 )
             output.write(chunk)
     return total_size

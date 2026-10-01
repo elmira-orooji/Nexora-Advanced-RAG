@@ -11,7 +11,7 @@ export const en = {
   knowledge: {
     eyebrow: "Source management", title: "Knowledge base", subtitle: "Organize documents into focused collections and keep every answer within the right scope.",
     sets: "Knowledge sets", newSet: "New set", allDocs: "All documents", documents: "documents", indexed: "ready",
-    drop: "Drop files into this set", browse: "or click to browse", formats: "PDF, TXT, JPG, PNG, and TIFF up to 10 MB",
+    drop: "Drop files into this set", browse: "or click to browse", formats: "PDF, TXT, JPG, PNG, and TIFF up to 100 MB",
     library: "Set documents", search: "Search documents...", allStatuses: "All statuses", empty: "This set has no documents yet.",
     chatTitle: "Knowledge assistant", chatSub: "Search within the selected set", chatEmpty: "Set-grounded answers",
     chatHint: "Select a knowledge set, then ask questions across its documents.", allSources: "All documents in set",

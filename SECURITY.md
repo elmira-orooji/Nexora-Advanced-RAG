@@ -32,7 +32,7 @@ Login throttling is configurable through the `AUTH_*` environment variables. App
 
 ## File handling and malware scanning
 
-The application accepts PDF, TXT, JPEG, PNG, and TIFF documents subject to file-name normalization, extension/MIME validation, file-signature checks where applicable, UTF-8 validation for text files, and a 10 MB per-file limit. Files are stored under generated identifiers and storage paths are resolved to prevent path traversal.
+The application accepts PDF, TXT, JPEG, PNG, and TIFF documents subject to file-name normalization, extension/MIME validation, file-signature checks where applicable, UTF-8 validation for text files, and a 100 MB per-file limit. The reverse proxy allows 110 MB per request to accommodate multipart overhead. Files are stored under generated identifiers and storage paths are resolved to prevent path traversal.
 
 These controls do not detect malware. Before accepting untrusted files in production, deploy a quarantine-and-scan workflow:
 
