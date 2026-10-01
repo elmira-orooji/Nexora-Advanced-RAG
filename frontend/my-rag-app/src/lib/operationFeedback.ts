@@ -1,11 +1,16 @@
 export type OperationKind = "load" | "members" | "upload" | "processing" | "sync" | "answer";
 
 export function operationError(error: unknown, operation: OperationKind, isFa: boolean): string {
-  const raw = error instanceof Error ? error.message.trim() : "";
+  const raw = error instanceof Error ? error.message.trim() : typeof error === "string" ? error.trim() : "";
   const normalized = raw.toLowerCase();
   const timedOut = error instanceof Error && error.name === "ApiTimeoutError";
   const genericNetworkError = !raw || normalized.includes("failed to fetch") || normalized.includes("network error") || normalized === "request failed";
-  const ocrProviderError = operation === "processing" && /mineru|google vision|azure document intelligence/.test(normalized);
+  const ocrProviderError = operation === "processing" && /jina|mineru|google vision|azure document intelligence/.test(normalized);
+  if (operation === "processing" && normalized.startsWith("document processing was interrupted")) {
+    return isFa
+      ? (normalized.includes("retry limit") ? "پردازش متوقف شد و سقف تلاش‌های مجدد پایان یافت. علت توقف پردازشگر را بررسی کنید." : "پردازش قبلی متوقف شد؛ سند برای پردازش دوباره در صف قرار گرفت.")
+      : raw;
+  }
   const copy = isFa
     ? {
         load: "دریافت اطلاعات انجام نشد. اتصال را بررسی کنید و دوباره تلاش کنید.",
@@ -39,6 +44,9 @@ export function operationError(error: unknown, operation: OperationKind, isFa: b
 export function processingStageLabel(stage: string, isFa: boolean): string {
   const labels: Record<string, [string, string]> = {
     queued: ["در صف پردازش", "Queued for processing"],
+    retry_wait: ["خطای پردازش؛ در انتظار تلاش مجدد", "Processing failed; waiting to retry"],
+    requeued: ["پردازش قبلی متوقف شد؛ دوباره در صف قرار گرفت", "Processing interrupted; queued again"],
+    dead_letter: ["پردازش ناموفق؛ نیاز به بررسی", "Processing failed; review required"],
     extracting: ["در حال خواندن محتوا", "Reading content"],
     chunking: ["در حال آماده‌سازی بخش‌ها", "Preparing passages"],
     embedding: ["در حال ایندکس‌کردن", "Indexing for search"],
