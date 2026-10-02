@@ -106,6 +106,16 @@ class ConversationAssistantTests(unittest.TestCase):
         self.assertEqual(raised.exception.status_code, 409)
         self.client.assert_not_called()
 
+    def test_image_request_persists_preview_intent_without_generation_provider(self):
+        set_id, document_id = uuid4(), uuid4()
+        self.assistant.document_sets = [SimpleNamespace(id=set_id)]
+        self.db.scalars.return_value.all.return_value = [document_id]
+        self.search.return_value = [{"score": 0.9, "payload": {"chunk_id": uuid4(), "document_id": document_id, "filename": "Insurance.pdf", "chunk_index": 0, "content": "Insurance commitments coverage"}}]
+        result = self.service.send_message(self.conversation.id, ChatMessageCreate(content="Show an image of insurance commitments"), self.user)
+        self.assertEqual(result.sources[0]["visual_query"], "Show an image of insurance commitments")
+        self.assertEqual(result.answer_basis, "sources")
+        self.client.assert_not_called()
+
     def test_hybrid_does_not_bypass_member_permissions(self):
         self.user.role = "user"
         with patch("app.services.conversation_service.accessible_set_ids", return_value=set()):

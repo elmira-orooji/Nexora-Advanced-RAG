@@ -286,13 +286,6 @@ def process_document_job(
                 and document.indexed_parent_chunk_size == parent_size
                 and document.indexed_chunking_config == chunking_config
             )
-            if document.content_checksum == text_checksum and document.chunks and chunking_is_unchanged:
-                document.processing_error = None
-                _progress(db, document, job, worker_id, 100, "unchanged", completed=True)
-                create_notification(db, user_id=job.requested_by_id, organization_id=job.organization_id, kind="document_processed", severity="success", title="Document is ready", body=f"{document.filename} is already indexed and ready to use.")
-                db.commit()
-                increment("document_jobs_completed_total", result="unchanged")
-                return
             extracted_path = source_path.parent / "extracted.txt"
             # Serialize the filesystem write with deletion. Otherwise a late
             # extraction could recreate a directory after the delete succeeded.
@@ -306,7 +299,17 @@ def process_document_job(
                 db.scalar(select(Document.id).where(Document.id == document.id).with_for_update())
             document.ocr_provenance = extraction.ocr_provenance
             atomic_write_text(extracted_path, text)
+            if getattr(extraction, "visual_layout", None):
+                import json
+                atomic_write_text(extracted_path.parent / "visual-layout.json", json.dumps(extraction.visual_layout, ensure_ascii=False))
             document.extracted_text_path = document_storage_relative(extracted_path)
+            if document.content_checksum == text_checksum and document.chunks and chunking_is_unchanged:
+                document.processing_error = None
+                _progress(db, document, job, worker_id, 100, "unchanged", completed=True)
+                create_notification(db, user_id=job.requested_by_id, organization_id=job.organization_id, kind="document_processed", severity="success", title="Document is ready", body=f"{document.filename} is already indexed and ready to use.")
+                db.commit()
+                increment("document_jobs_completed_total", result="unchanged")
+                return
             document.content_checksum = None
             _progress(db, document, job, worker_id, 35, "chunking")
             if CHUNKING_STRATEGY == "semantic":

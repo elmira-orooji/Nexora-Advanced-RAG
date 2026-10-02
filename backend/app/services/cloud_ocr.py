@@ -52,6 +52,14 @@ logger = logging.getLogger(__name__)
 class OCRResult:
     text: str
     provenance: dict[str, str]
+    visual_layout: dict | None = None
+
+
+class OCRText(str):
+    def __new__(cls, text: str, visual_layout: dict):
+        result = super().__new__(cls, text)
+        result.visual_layout = visual_layout
+        return result
 
 
 def extract_scanned_document_text(file_path: Path, content_type: str) -> str:
@@ -69,7 +77,8 @@ def extract_scanned_document_text_with_provenance(file_path: Path, content_type:
     for provider in providers:
         check_processing_cancelled()
         try:
-            text = provider(file_path, content_type).strip()
+            raw_text = provider(file_path, content_type)
+            text = raw_text.strip()
             if text:
                 provider_name = _provider_name(provider)
                 model = {
@@ -79,7 +88,7 @@ def extract_scanned_document_text_with_provenance(file_path: Path, content_type:
                 provenance = {"provider": provider_name, "completed_at": datetime.now(timezone.utc).isoformat()}
                 if model:
                     provenance["model"] = model
-                return OCRResult(text=text, provenance=provenance)
+                return OCRResult(text=text, provenance=provenance, visual_layout=raw_text.visual_layout if isinstance(raw_text, OCRText) else None)
             errors.append("provider returned no text")
             if provider is not providers[-1]:
                 logger.warning(
@@ -320,9 +329,11 @@ def _mineru_markdown(result: dict) -> str:
 
 
 def _google_vision(file_path: Path, content_type: str) -> str:
+    from app.services.document_visuals import annotation_words
     pages = _vision_pages(file_path, content_type)
     chunks: list[str] = []
-    for page in pages:
+    layout_pages = []
+    for page_number, page in enumerate(pages, 1):
         check_processing_cancelled()
         payload = {
             "requests": [{
@@ -339,8 +350,17 @@ def _google_vision(file_path: Path, content_type: str) -> str:
         if item.get("error"):
             raise OCRUnavailableError(f"Google Vision: {item['error'].get('message', 'request failed')}")
         text = (item.get("fullTextAnnotation") or {}).get("text", "").strip()
+        annotation = item.get("fullTextAnnotation") or {}
+        dimensions = (annotation.get("pages") or [{}])[0]
+        if dimensions.get("width") and dimensions.get("height"):
+            layout_pages.append({"page": page_number, "width": dimensions["width"], "height": dimensions["height"], "words": annotation_words(annotation)})
         if text:
             chunks.append(text)
+    if layout_pages:
+        check_processing_cancelled()
+        with file_path.open("rb") as source:
+            checksum = hashlib.file_digest(source, "sha256").hexdigest()
+        return OCRText("\n\n".join(chunks), {"checksum": checksum, "pages": layout_pages})
     return "\n\n".join(chunks)
 
 

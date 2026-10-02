@@ -26,6 +26,7 @@ export interface PersistedMessage {
     chunk_index?: number;
     page?: number | null;
     section?: string | null;
+    visual_query?: string | null;
     ocr_provenance?: { provider: string; model?: string; completed_at: string } | null;
   }> | null;
   answer_basis: AnswerBasis | null;

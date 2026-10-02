@@ -18,6 +18,7 @@ class ExtractionError(ValueError):
 class ExtractionResult:
     text: str
     ocr_provenance: dict[str, str] | None = None
+    visual_layout: dict | None = None
 
 
 # Supported MIME types mapped to extraction functions
@@ -79,7 +80,7 @@ def _extract_pdf_with_provenance(file_path: Path) -> ExtractionResult:
         return ExtractionResult(text=text)
     try:
         result = extract_scanned_document_text_with_provenance(file_path, "application/pdf")
-        return ExtractionResult(text=result.text, ocr_provenance=result.provenance)
+        return ExtractionResult(text=result.text, ocr_provenance=result.provenance, visual_layout=result.visual_layout)
     except OCRUnavailableError as exc:
         raise ExtractionError(str(exc)) from exc
 
@@ -95,7 +96,7 @@ def _extract_image_with_provenance(file_path: Path) -> ExtractionResult:
         raise ExtractionError(str(exc)) from exc
     if not result.text.strip():
         raise ExtractionError("No text was found in the image")
-    return ExtractionResult(text=result.text, ocr_provenance=result.provenance)
+    return ExtractionResult(text=result.text, ocr_provenance=result.provenance, visual_layout=result.visual_layout)
 
 
 def _content_type_for_image(file_path: Path) -> str:

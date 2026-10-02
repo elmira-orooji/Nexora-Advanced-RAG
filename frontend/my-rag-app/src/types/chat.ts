@@ -24,6 +24,7 @@ export interface Source {
   page?: number | null;
   section?: string | null;
   ocrProvenance?: OcrProvenance | null;
+  visualQuery?: string | null;
 }
 
 export interface ChatMessage {

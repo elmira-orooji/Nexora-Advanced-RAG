@@ -330,3 +330,8 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 .chat-thread .chat-answer { animation: answer-arrive 220ms ease-out both; }
 @keyframes answer-arrive { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .chat-thread .chat-answer { animation: none; } }
+.source-region-image { margin: 18px 0; padding: 14px; border: 1px solid var(--cv-line, #8883); border-radius: 12px; background: var(--cv-panel, transparent); max-width: 100%; }
+.source-region-image figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-bottom: 12px; font-size: 13px; }
+.source-region-image figcaption strong { overflow-wrap: anywhere; }
+.source-region-image img { display: block; width: auto; max-width: 100%; height: auto; border-radius: 6px; background: white; }
+.source-region-image a { display: inline-block; margin-top: 10px; color: var(--cv-accent, inherit); font-size: 12px; }

@@ -41,6 +41,7 @@ function toChatMessage(message: PersistedMessage): ChatMessage {
       page: source.page,
       section: source.section,
       ocrProvenance: source.ocr_provenance,
+      visualQuery: source.visual_query,
     })),
   };
 }

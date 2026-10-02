@@ -21,6 +21,7 @@ class SearchHit(BaseModel):
     content: str
     score: float
     ocr_provenance: dict[str, str] | None = None
+    visual_query: str | None = Field(default=None, max_length=4000)
 
 
 class SearchResponse(BaseModel):

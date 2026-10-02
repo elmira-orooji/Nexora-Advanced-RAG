@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, status
 from fastapi.responses import FileResponse
 from pypdf import PdfReader
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
@@ -173,6 +174,9 @@ def upload_document(
 
         extraction = extract_text_with_provenance(original_path, content_type)
         atomic_write_text(extracted_path, extraction.text)
+        if extraction.visual_layout:
+            import json
+            atomic_write_text(extracted_path.parent / "visual-layout.json", json.dumps(extraction.visual_layout, ensure_ascii=False))
 
         document = Document(
             id=document_id,
@@ -435,6 +439,30 @@ def get_document_content(document_id: uuid.UUID, db: Session = Depends(get_db), 
     document = require_document_access(db, user, document_id)
     source_path = _document_source_path(document)
     return FileResponse(source_path, media_type=document.content_type or "application/octet-stream", filename=document.filename, content_disposition_type="inline")
+
+
+class SourceRegionRequest(BaseModel):
+    chunk_id: uuid.UUID
+    query: str = Field(min_length=2, max_length=4000)
+
+
+@router.post("/{document_id}/source-region")
+def get_source_region(document_id: uuid.UUID, payload: SourceRegionRequest, response: Response, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from app.services.document_visuals import source_region, VisualUnavailable
+    document = require_document_access(db, user, document_id)
+    chunk = db.scalar(select(Chunk).where(Chunk.id == payload.chunk_id, Chunk.document_id == document_id, Chunk.is_active.is_(True)))
+    if chunk is None:
+        raise HTTPException(404, "Source passage is unavailable")
+    path = _document_source_path(document)
+    try:
+        region = source_region(path, document.content_type or "", payload.query, chunk.content)
+    except VisualUnavailable as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except Exception as exc:
+        logger.warning("Source image rendering failed", extra={"error_type": type(exc).__name__})
+        raise HTTPException(422, "Could not render the original source region") from exc
+    response.headers["Cache-Control"] = "no-store"
+    return {"filename": document.filename, **region}
 
 
 @router.get("/{document_id}", response_model=DocumentDetail)
