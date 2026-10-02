@@ -6,6 +6,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import SidebarV2 from "../components/SidebarV2";
 import NotificationCenter from "../components/NotificationCenter";
 import InlineError from "../components/InlineError";
+import InlineSuccessMessages from "../components/InlineSuccessMessages";
 import RenameConversationDialog from "../components/RenameConversationDialog";
 import { authService } from "../services/authService";
 import { conversationService, type ConversationSummary } from "../services/conversationService";
@@ -137,7 +138,7 @@ export default function AppLayout() {
       await conversationService.remove(item.id);
       if (activeConversationId === item.id) navigate(PAGE_PATHS.chat, { replace: true });
       loadConversations();
-      toast.success("Conversation deleted");
+      toast.success(i18n.language.startsWith("fa") ? "گفتگو حذف شد" : "Conversation deleted");
     } catch (error) { setInlineError((error as Error).message); }
   };
 
@@ -191,6 +192,7 @@ export default function AppLayout() {
           <div className="flex items-center gap-2"><span className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[.06] text-xs font-bold uppercase">{currentUser?.username.slice(0, 2) ?? "U"}</span></div>
         </header>
 
+        <InlineSuccessMessages />
         <main className="nexora-app-content relative z-10 min-h-0 flex-1 overflow-hidden">{inlineError && <div className="relative z-20 px-4 pt-3"><InlineError message={inlineError} onDismiss={() => setInlineError("")} /></div>}<Suspense fallback={<PageFallback />}>
           {!validRoute && <Navigate to="/home" replace />}
           {activePage === "home" && validRoute && (canManageUsers(currentUser) ? <AnalyticsPage notificationCenter={<NotificationCenter onNavigate={navigate} />} /> : <WorkspacePage currentUser={currentUser} conversations={conversations} onNewConversation={newConversation} onOpenConversation={selectConversation} onOpenKnowledge={() => selectPage("upload")} />)}

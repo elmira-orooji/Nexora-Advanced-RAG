@@ -23,7 +23,7 @@ export default function AppToaster() {
   useEffect(() => { if (confirmation) action.current?.focus(); }, [confirmation]);
 
   const ConfirmationIcon = TriangleAlert;
-  const notifications = toasts.filter((item) => item.visible);
+  const notifications = toasts.filter((item) => item.visible && item.type !== "success");
   const labels = fa
     ? { success: "موفق", error: "خطا", warning: "هشدار", loading: "در حال انجام", blank: "اطلاع", custom: "اطلاع" }
     : { success: "Success", error: "Error", warning: "Warning", loading: "In progress", blank: "Notice", custom: "Notice" };
