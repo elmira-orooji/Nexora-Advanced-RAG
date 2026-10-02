@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowUp, Square } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -15,11 +15,21 @@ export default function ChatInput({ disabled, onSend, isSending = false, onCance
   const { i18n } = useTranslation();
   const isFa = i18n.language.startsWith("fa");
   const [value, setValue] = useState(initialValue);
+  const sendPending = useRef(false);
 
   const handleSend = async () => {
     const message = value.trim();
-    if (!message || disabled) return;
-    if (await onSend(message)) setValue("");
+    if (!message || disabled || isSending || sendPending.current) return;
+    const draft = value;
+    sendPending.current = true;
+    setValue("");
+    try {
+      if (!await onSend(message)) setValue((current) => current || draft);
+    } catch {
+      setValue((current) => current || draft);
+    } finally {
+      sendPending.current = false;
+    }
   };
 
   return (

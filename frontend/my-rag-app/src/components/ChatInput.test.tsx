@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
 
@@ -9,6 +9,17 @@ vi.mock("react-i18next", () => ({
 }));
 
 describe("ChatInput", () => {
+  it("clears immediately while the response is pending and restores on failure", async () => {
+    let finish!: (success: boolean) => void;
+    const onSend = vi.fn(() => new Promise<boolean>((resolve) => { finish = resolve; }));
+    render(<ChatInput disabled={false} initialValue="Pending question" onSend={onSend} />);
+    const input = screen.getByRole("textbox");
+    fireEvent.click(screen.getByRole("button", { name: /send message/i }));
+    expect(input).toHaveValue("");
+    await act(async () => { finish(false); });
+    expect(input).toHaveValue("Pending question");
+  });
+
   it("pastes Persian multiline clipboard text and keeps it after a failed send", async () => {
     const user = userEvent.setup();
     const onSend = vi.fn().mockResolvedValue(false);
