@@ -112,6 +112,10 @@ html:not(.dark) .conversation-page {
 .conversation-page { font-family: Inter, Vazirmatn, sans-serif; }
 .conversation-page[dir="rtl"] { font-family: Vazirmatn, Inter, sans-serif; }
 .conversation-page .conversation-dock { border-top: 0; }
+.conversation-page .conversation-dock > .nexora-inline-error {
+  width: 100%; max-width: var(--conversation-content-max); margin-inline: auto;
+  box-sizing: border-box; padding: 10px 14px; font-size: 13px; line-height: 1.6;
+}
 .app-shell .conversation-page .app-composer { max-width: var(--conversation-content-max); border-radius: 18px; padding: 14px; box-shadow: 0 8px 30px #10192c08; }
 .conversation-page .conversation-save-status { color: var(--cv-muted); }
 .conversation-page .conversation-save-status > span { background: var(--cv-success); }
