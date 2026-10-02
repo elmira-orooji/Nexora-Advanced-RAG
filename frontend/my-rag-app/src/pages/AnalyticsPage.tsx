@@ -1,3 +1,4 @@
+import LoadingSkeleton from "../components/LoadingSkeleton";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Activity, ArrowDownToLine, Bot, ChevronDown, CircleAlert, Database, FileSpreadsheet, FileText, FileCheck2, MessageSquareText, Printer, UsersRound, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -126,7 +127,7 @@ export default function AnalyticsPage({ notificationCenter }: { notificationCent
     report.document.close();
   };
 
-  if (loading && !data) return <div className="analytics-dashboard grid h-full place-items-center an-surface"><span role="status" aria-label={fa ? "در حال بارگذاری" : "Loading"} className="analytics-spinner" /></div>;
+  if (loading && !data) return <div className="analytics-dashboard an-surface"><LoadingSkeleton variant="page" /></div>;
 
   return <div dir={fa ? "rtl" : "ltr"} className="analytics-dashboard analytics-viewport">
     <div className="analytics-content">

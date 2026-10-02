@@ -7,6 +7,7 @@ import SidebarV2 from "../components/SidebarV2";
 import NotificationCenter from "../components/NotificationCenter";
 import InlineError from "../components/InlineError";
 import InlineSuccessMessages from "../components/InlineSuccessMessages";
+import LoadingSkeleton from "../components/LoadingSkeleton";
 import RenameConversationDialog from "../components/RenameConversationDialog";
 import { authService } from "../services/authService";
 import { conversationService, type ConversationSummary } from "../services/conversationService";
@@ -25,9 +26,7 @@ const UsersPage = lazy(() => import("../pages/UsersPage"));
 const WorkspacePage = lazy(() => import("../pages/WorkspacePage"));
 
 function PageFallback() {
-  return <div className="grid h-full place-items-center" role="status" aria-label="Loading dashboard page">
-    <span className="nexora-loader" />
-  </div>;
+  return <LoadingSkeleton variant="page" />;
 }
 
 export type AppPage = "home" | "chat" | "upload" | "assistants" | "users" | "settings";

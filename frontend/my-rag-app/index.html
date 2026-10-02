@@ -6,9 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#10192C" />
     <title>Nexora</title>
+    <style>
+      .boot-loader { min-height: 100dvh; display: grid; place-items: center; background: #0b1120; color: #dde3ef; font: 14px sans-serif; }
+      .boot-card { width: min(280px, 75vw); padding: 20px; border: 1px solid #253045; border-radius: 16px; background: #10192c; }
+      .boot-card img { width: 30px; height: 30px; display: block; margin: 0 auto 24px; }
+      .boot-bar { height: 12px; border-radius: 6px; background: #263248; margin-top: 12px; animation: boot-pulse 1.8s ease-in-out infinite; }
+      .boot-bar:last-child { width: 65%; }
+      @media (prefers-color-scheme: light) { .boot-loader { background: #f7f8fc; } .boot-card { background: white; border-color: #e2e5ec; } .boot-bar { background: #eceef2; } }
+      @keyframes boot-pulse { 50% { opacity: .4; } }
+      @media (prefers-reduced-motion: reduce) { .boot-bar { animation: none; } }
+      body { margin: 0; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot-loader" role="status" aria-label="Loading Nexora"><div class="boot-card" aria-hidden="true"><img src="/brand/nexora-symbol.svg" alt="" /><div class="boot-bar"></div><div class="boot-bar"></div></div></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

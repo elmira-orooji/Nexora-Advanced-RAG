@@ -1,0 +1,16 @@
+.loading-skeleton { display: grid; gap: 14px; width: 100%; padding: 4px; }
+.loading-skeleton--cards, .loading-skeleton--page { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.loading-skeleton--page { padding: 28px; align-content: start; }
+.skeleton-card { min-width: 0; padding: 16px; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); }
+.skeleton-block { background: color-mix(in srgb, var(--text-muted) 13%, var(--surface-panel)); border-radius: 6px; animation: skeleton-pulse 1.8s ease-in-out infinite; }
+.skeleton-cover { height: 88px; margin-bottom: 16px; }
+.skeleton-body { display: flex; align-items: center; gap: 12px; }
+.skeleton-avatar { width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; }
+.skeleton-lines { flex: 1; min-width: 0; }
+.skeleton-line { width: 80%; height: 10px; }
+.skeleton-line--short { width: 52%; margin-top: 9px; }
+.loading-skeleton--rows { padding: 16px; }
+.loading-skeleton--rows .skeleton-cover { display: none; }
+.loading-skeleton--rows .skeleton-card { padding: 18px 14px; }
+@keyframes skeleton-pulse { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .skeleton-block { animation: none; } }

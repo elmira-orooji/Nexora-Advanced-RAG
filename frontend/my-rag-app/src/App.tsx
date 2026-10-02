@@ -5,6 +5,7 @@ import {
 } from "react-router-dom";
 
 import LoginPage from "./pages/LoginPage";
+import LoadingSkeleton from "./components/LoadingSkeleton";
 import GuestRoute from "./components/GuestRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -18,8 +19,8 @@ const SharedChatPage = lazy(() => import("./pages/SharedChatPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 function RouteFallback() {
-  return <div className="nexora-page grid min-h-[100dvh] place-items-center" role="status" aria-label="Loading page">
-    <span className="nexora-loader" />
+  return <div className="nexora-page min-h-[100dvh]">
+    <LoadingSkeleton variant="page" />
   </div>;
 }
 
