@@ -1,4 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { CircleAlert, RefreshCw, RotateCcw } from "lucide-react";
+import "../styles/application-error.css";
 
 interface Props {
   children: ReactNode;
@@ -27,29 +30,27 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
-      return (
-        <section className="nexora-page grid min-h-[50vh] place-items-center p-8" aria-labelledby="application-error-title">
-          <div className="nexora-surface nexora-empty-state">
-            <div className="grid size-12 place-items-center rounded-full bg-[var(--state-danger-soft)] text-[var(--status-danger)]">
-              <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span className="nexora-status nexora-status--danger">Application error</span>
-            <h2 id="application-error-title" className="nexora-empty-state__title">Something went wrong</h2>
-            <p className="nexora-empty-state__description">
-              {this.state.error?.message || "An unexpected error occurred."}
-            </p>
-            <button
-              onClick={() => this.setState({ hasError: false, error: null })}
-              className="nexora-action nexora-action--primary"
-            >
-              Try again
-            </button>
-          </div>
-        </section>
-      );
+      return <ApplicationError error={this.state.error} onRetry={() => this.setState({ hasError: false, error: null })} />;
     }
     return this.props.children;
   }
+}
+
+function ApplicationError({ error, onRetry }: { error: Error | null; onRetry: () => void }) {
+  const { i18n } = useTranslation();
+  const fa = i18n.language.startsWith("fa");
+  return <section className="application-error" dir={fa ? "rtl" : "ltr"} aria-labelledby="application-error-title">
+    <div className="application-error-card">
+      <div className="application-error-brand"><img src="/brand/nexora-symbol.svg" alt="" /><span>Nexora</span></div>
+      <div className="application-error-icon"><CircleAlert size={28} aria-hidden="true" /></div>
+      <p className="application-error-label">{fa ? "خطا در نمایش صفحه" : "Page could not be displayed"}</p>
+      <h1 id="application-error-title">{fa ? "این صفحه درست بارگذاری نشد" : "Let’s get you back on track"}</h1>
+      <p className="application-error-description">{fa ? "دوباره تلاش کنید. اگر خطا ادامه داشت، صفحه را مجدداً بارگذاری کنید." : "Try again to restore this page. If the issue continues, reload the application."}</p>
+      <div className="application-error-actions">
+        <button type="button" className="nexora-action nexora-action--primary" onClick={onRetry}><RotateCcw size={16} />{fa ? "تلاش دوباره" : "Try again"}</button>
+        <button type="button" className="nexora-action nexora-action--secondary" onClick={() => window.location.reload()}><RefreshCw size={16} />{fa ? "بارگذاری مجدد" : "Reload page"}</button>
+      </div>
+      {error?.message && <details className="application-error-details"><summary>{fa ? "جزئیات فنی خطا" : "Technical details"}</summary><pre dir="ltr">{error.message}</pre></details>}
+    </div>
+  </section>;
 }
