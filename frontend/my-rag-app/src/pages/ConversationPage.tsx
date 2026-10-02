@@ -211,10 +211,6 @@ export default function ConversationPage({ conversationId, onConversationChange,
           <span className="conversation-header-icon"><MessageSquareText size={13} /></span>
           <span>{isFa ? "گفتگوی جدید" : "New conversation"}</span>
         </div>
-        <span className="conversation-private hidden items-center gap-2 sm:flex">
-          <span className="conversation-status-dot" />
-          {isFa ? "فضای کاری خصوصی" : "Private workspace"}
-        </span>
       </header>
 
       <main className="conversation-welcome">

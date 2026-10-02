@@ -28,8 +28,6 @@ html:not(.dark) .conversation-page {
 .conversation-page .conversation-accent { color: var(--cv-accent); }
 .conversation-header { min-height: 68px; gap: 16px; border-bottom: 1px solid var(--cv-line); }
 .conversation-header-icon { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--cv-line); border-radius: 8px; color: var(--cv-accent); }
-.conversation-private { color: var(--cv-muted); font-size: var(--font-size-helper); }
-.conversation-status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--cv-success); }
 .conversation-welcome { display: flex; flex: 1 0 auto; flex-direction: column; align-items: center; justify-content: center; padding-block: 48px 64px; }
 .conversation-intro { width: 100%; max-width: 600px; margin-bottom: 32px; text-align: center; }
 .conversation-emblem { display: grid; place-items: center; width: 46px; height: 46px; margin-inline: auto; border: 1px solid var(--cv-line); border-radius: 13px; background: var(--cv-tint); color: var(--cv-accent); }
