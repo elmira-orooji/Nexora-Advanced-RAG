@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   get: vi.fn(),
   listSets: vi.fn(),
   listAssistants: vi.fn(),
+  getUser: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
@@ -18,7 +19,7 @@ vi.mock("react-i18next", () => ({
 }));
 vi.mock("react-hot-toast", () => ({ default: { error: vi.fn() } }));
 vi.mock("../services/assistantService", () => ({ assistantService: { list: mocks.listAssistants } }));
-vi.mock("../services/authService", () => ({ authService: { getUser: () => ({ role: "admin" }) } }));
+vi.mock("../services/authService", () => ({ authService: { getUser: mocks.getUser } }));
 vi.mock("../services/conversationService", () => ({
   conversationService: {
     createForSet: mocks.createForSet,
@@ -38,6 +39,7 @@ vi.mock("../components/OnyxChatWindow", () => ({
 describe("ConversationPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getUser.mockReturnValue({ role: "admin" });
     mocks.listSets.mockResolvedValue([{ id: "set-1", name: "Knowledge", indexed_document_count: 1 }]);
     mocks.createForSet.mockResolvedValue({ id: "conversation-1" });
     mocks.createForSets.mockResolvedValue({ id: "conversation-1" });
@@ -107,7 +109,7 @@ describe("ConversationPage", () => {
     render(<ConversationPage conversationId={null} onConversationChange={vi.fn()} onConversationsUpdated={vi.fn()} onOpenKnowledge={vi.fn()} />);
 
     expect(await screen.findByText("This knowledge base is not ready for answers yet")).toBeInTheDocument();
-    expect(screen.queryByRole("textbox", { name: "Message" })).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Message" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Upload first document" })).toBeInTheDocument();
   });
 
@@ -120,5 +122,30 @@ describe("ConversationPage", () => {
     expect(await screen.findByText("Assistant: Policy assistant")).toBeInTheDocument();
     expect(screen.getByText("1 connected knowledge base")).toBeInTheDocument();
     expect(screen.getByText(/Answers and sources are saved in Recent chats/)).toBeInTheDocument();
+  });
+
+  it("keeps the chat composer and suggestions for users without knowledge access", async () => {
+    mocks.getUser.mockReturnValue({ role: "user" });
+    mocks.listSets.mockResolvedValueOnce([]);
+    const openKnowledge = vi.fn();
+    render(<ConversationPage conversationId={null} onConversationChange={vi.fn()} onConversationsUpdated={vi.fn()} onOpenKnowledge={openKnowledge} />);
+    expect(await screen.findByRole("textbox", { name: "Message" })).toBeDisabled();
+    expect(screen.getByText("No accessible knowledge base")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Upload first document" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create knowledge base" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Summarize knowledge/i })).toBeEnabled();
+    expect(screen.getByText("No accessible knowledge base").closest(".conversation-context")).not.toBeNull();
+    expect(document.querySelector(".conversation-knowledge-notice")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Summarize knowledge/i }));
+    expect(mocks.send).not.toHaveBeenCalled();
+    expect(openKnowledge).not.toHaveBeenCalled();
+  });
+
+  it("lets users with indexed knowledge use the same chat composer as admins", async () => {
+    mocks.getUser.mockReturnValue({ role: "user" });
+    render(<ConversationPage conversationId={null} onConversationChange={vi.fn()} onConversationsUpdated={vi.fn()} onOpenKnowledge={vi.fn()} />);
+    expect(await screen.findByRole("textbox", { name: "Message" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Summarize knowledge/i })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Select knowledge bases" })).toBeEnabled();
   });
 });

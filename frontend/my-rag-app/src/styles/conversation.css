@@ -37,6 +37,14 @@ html:not(.dark) .conversation-page {
 .conversation-page[dir="rtl"] .conversation-title { font-size: clamp(21px, 2vw, 27px); letter-spacing: 0; }
 .conversation-description { max-width: 500px; margin: 10px auto 0; font-size: 12px; line-height: 1.9; color: var(--cv-muted); text-wrap: pretty; }
 .conversation-compose-area { width: 100%; max-width: 800px; }
+.conversation-compose-area .chat-composer-textarea:disabled { opacity: 1; }
+.conversation-knowledge-notice { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--cv-line); border-radius: 12px; background: var(--cv-panel); }
+.conversation-knowledge-notice h2 { margin: 0; color: var(--cv-text); font-size: 13px; font-weight: 600; line-height: 1.6; }
+.conversation-knowledge-notice p { margin: 4px 0 0; color: var(--cv-muted); font-size: 12px; line-height: 1.7; }
+.conversation-knowledge-start.conversation-knowledge-start--compact { padding: 14px; border-radius: 12px; text-align: start; box-shadow: none; }
+.conversation-knowledge-start--compact > .conversation-knowledge-start__icon, .conversation-knowledge-start--compact > .nexora-status { display: none; }
+.conversation-knowledge-start.conversation-knowledge-start--compact > h2 { margin: 0; font-size: 13px; }
+.conversation-knowledge-start.conversation-knowledge-start--compact > p { max-width: none; margin: 4px 0 10px; font-size: 12px; }
 .conversation-knowledge-start { padding: 28px; border: 1px solid var(--cv-line); border-radius: var(--radius-dialog); background: var(--cv-panel); box-shadow: var(--shadow-soft); text-align: center; }
 .conversation-knowledge-start__icon { display: grid; width: 44px; height: 44px; place-items: center; margin: 0 auto 12px; border-radius: 12px; color: var(--cv-accent); background: var(--cv-tint); }
 .conversation-knowledge-start h2 { margin: 10px 0 0; color: var(--cv-text); font-size: 17px; font-weight: 650; line-height: 1.5; }
