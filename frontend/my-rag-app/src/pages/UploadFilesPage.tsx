@@ -435,7 +435,7 @@ function DocumentRow({ document, isAdmin, isFa, canDelete, onRetry, onPause, onR
       <div className="min-w-0 flex-1">
         <p className="nexora-file-name text-sm font-semibold kb-text">{document.filename}</p>
         <div className="mt-2 max-w-sm">
-          <div className="mb-1 flex justify-between text-xs kb-muted"><span>{processingStageLabel(document.processing_stage, isFa)}</span>{!waiting && <span>{document.processing_progress}%</span>}</div>
+          <div className="mb-1 flex justify-between gap-3 text-xs kb-muted"><span>{processingStageLabel(document.processing_stage, isFa)}</span><span className="shrink-0" dir="ltr">{document.processing_progress.toLocaleString(isFa ? "fa-IR" : "en-US")}{isFa ? "٪" : "%"}</span></div>
           {!waiting && <div className="h-1 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full rounded-full bg-gradient-to-r from-[#7c27ff] to-[#c43cff] transition-all duration-500" style={{ width: `${document.processing_progress}%` }} /></div>}
           <p className="nexora-text-wrap mt-1 text-xs kb-muted">{paused ? (isFa ? "با ادامه، استخراج سند از ابتدا شروع می‌شود." : "Resuming restarts document extraction from the beginning.") : (isFa ? "پس از ایندکس‌شدن، پاسخ‌ها می‌توانند از این سند استفاده کنند." : "This document will become available to answers after indexing.")}</p>
         </div>
