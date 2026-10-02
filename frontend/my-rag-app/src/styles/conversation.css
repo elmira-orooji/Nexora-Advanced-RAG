@@ -49,6 +49,16 @@ html:not(.dark) .conversation-page {
 .conversation-knowledge-start__access { font-size: var(--font-size-helper) !important; }
 .conversation-context { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 10px; padding-inline: 2px; }
 .conversation-selector { position: relative; display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; color: var(--cv-muted); font-size: var(--font-size-helper); }
+.conversation-knowledge-picker { position: relative; min-width: 0; max-width: 100%; }
+.conversation-knowledge-picker__trigger { display: flex; align-items: center; gap: 12px; max-width: 260px; min-height: 32px; padding: 5px 10px; border: 1px solid var(--cv-line); border-radius: 7px; background: var(--cv-panel); color: var(--cv-text); font-size: var(--font-size-control); cursor: pointer; }
+.conversation-knowledge-picker__trigger > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conversation-knowledge-picker__trigger > svg { flex-shrink: 0; }
+.conversation-knowledge-picker__trigger:disabled { opacity: .6; cursor: default; }
+.conversation-knowledge-picker__panel { position: absolute; z-index: 60; inset-inline-start: 0; top: calc(100% + 6px); width: max-content; min-width: 225px; max-width: min(320px, calc(100vw - 48px)); max-height: min(320px, 50vh); overflow-y: auto; padding: 6px; border: 1px solid var(--cv-line); border-radius: 10px; background: var(--cv-panel); box-shadow: var(--shadow-soft); }
+.conversation-knowledge-picker__panel label { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 8px 10px; border-radius: 7px; cursor: pointer; color: var(--cv-text); }
+.conversation-knowledge-picker__panel label:hover, .conversation-knowledge-picker__panel .is-selected { background: var(--cv-tint); }
+.conversation-knowledge-picker__panel input { flex-shrink: 0; width: 14px; height: 14px; accent-color: var(--cv-accent); }
+.conversation-knowledge-picker__panel span { overflow-wrap: anywhere; }
 .app-shell .conversation-page select.conversation-select {
   display: block; width: 100%; max-width: 224px; min-height: 32px; padding: 5px 10px; padding-inline-end: 24px;
   appearance: none; overflow: hidden; text-overflow: ellipsis; border: 1px solid var(--cv-line); border-radius: 7px;

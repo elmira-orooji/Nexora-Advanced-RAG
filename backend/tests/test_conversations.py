@@ -6,8 +6,43 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
-from app.schemas.conversation import ChatMessageCreate
+from app.schemas.conversation import ChatMessageCreate, ConversationCreate
 from app.services.conversation_service import ConversationService
+
+
+class ConversationMultiSetTests(unittest.TestCase):
+    def setUp(self):
+        self.user = SimpleNamespace(id=uuid4(), organization_id=uuid4())
+        self.repository = MagicMock()
+        self.service = ConversationService(MagicMock(), MagicMock(), self.repository)
+        self.ids = [uuid4(), uuid4()]
+
+    def test_create_deduplicates_and_checks_every_selected_set(self):
+        with patch("app.services.conversation_service.require_set_access") as access:
+            result = self.service.create(ConversationCreate(document_set_ids=self.ids + self.ids), self.user)
+        self.assertEqual(result.document_set_ids, [str(value) for value in self.ids])
+        self.assertEqual(access.call_count, 2)
+        self.repository.save.assert_called_once_with(result)
+
+    def test_scope_retrieves_only_selected_sets(self):
+        self.repository.indexed_document_ids_for_sets.return_value = ["document"]
+        with patch("app.services.conversation_service.require_set_access") as access:
+            result = self.service._resolve_scope(SimpleNamespace(document_set_ids=[str(value) for value in self.ids]), self.user)
+        self.assertEqual(result, (None, ["document"], None, None, False))
+        self.assertEqual(access.call_count, 2)
+        self.repository.indexed_document_ids_for_sets.assert_called_once_with(self.ids)
+
+    def test_revoked_access_prevents_retrieval(self):
+        with patch("app.services.conversation_service.require_set_access", side_effect=HTTPException(403, "Forbidden")):
+            with self.assertRaises(HTTPException):
+                self.service._resolve_scope(SimpleNamespace(document_set_ids=[str(self.ids[0])]), self.user)
+        self.repository.indexed_document_ids_for_sets.assert_not_called()
+
+    def test_mixed_workspace_and_selected_scope_is_rejected(self):
+        with self.assertRaises(HTTPException) as error:
+            self.service.create(ConversationCreate(document_set_ids=self.ids, workspace_scope=True), self.user)
+        self.assertEqual(error.exception.status_code, 422)
+        self.repository.save.assert_not_called()
 
 
 class ConversationAssistantTests(unittest.TestCase):

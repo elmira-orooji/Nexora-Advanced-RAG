@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Check, ChevronDown, FileSearch, FileText, FileUp, Loader2, MessageSquareText, RefreshCw, ShieldCheck } from "lucide-react";
+import { BookOpen, Check, FileSearch, FileText, FileUp, Loader2, MessageSquareText, RefreshCw, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import "../styles/conversation.css";
 import NexoraAvatar from "../components/NexoraAvatar";
 import InlineError from "../components/InlineError";
+import KnowledgeSetPicker, { ALL_KNOWLEDGE_SETS } from "../components/KnowledgeSetPicker";
 import { assistantService, type CustomAssistant } from "../services/assistantService";
 import ChatInput from "../components/ChatInput";
 import OnyxChatWindow from "../components/OnyxChatWindow";
@@ -45,11 +46,12 @@ function toChatMessage(message: PersistedMessage): ChatMessage {
 }
 
 export default function ConversationPage({ conversationId, onConversationChange, onConversationsUpdated, onOpenKnowledge }: ConversationPageProps) {
-  const allKnowledgeSetsId = "__all_knowledge_sets__";
+  const allKnowledgeSetsId = ALL_KNOWLEDGE_SETS;
   const [assistant, setAssistant] = useState<Pick<CustomAssistant, "id" | "name" | "document_set_names"> | null>(null);
   const [detail, setDetail] = useState<ConversationDetail | null>(null);
   const [sets, setSets] = useState<DocumentSet[]>([]);
-  const [selectedSetId, setSelectedSetId] = useState("");
+  const [selectedSetIds, setSelectedSetIds] = useState<string[]>([]);
+  const selectedSetId = selectedSetIds[0] ?? "";
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sendError, setSendError] = useState("");
@@ -74,7 +76,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
       : knowledgeService.listSets().then((value) => {
           if (!active) return;
           setSets(value);
-          setSelectedSetId((current) => current || (value.length ? allKnowledgeSetsId : ""));
+          setSelectedSetIds((current) => current.length ? current.filter((id) => id === allKnowledgeSetsId || value.some((set) => set.id === id)) : (value.length ? [allKnowledgeSetsId] : []));
           setDetail(null);
         });
     task
@@ -111,7 +113,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
   const isAllKnowledgeSets = selectedSetId === allKnowledgeSetsId;
   const indexedDocumentCount = isAllKnowledgeSets
     ? sets.reduce((total, item) => total + item.indexed_document_count, 0)
-    : (selectedSet?.indexed_document_count ?? 0);
+    : sets.filter((set) => selectedSetIds.includes(set.id)).reduce((total, item) => total + item.indexed_document_count, 0);
   const knowledgeReady = indexedDocumentCount > 0;
   const canCreateKnowledge = authService.getUser()?.role === "admin";
   const detailMatchesConversation = conversationId
@@ -147,7 +149,9 @@ export default function ConversationPage({ conversationId, onConversationChange,
         if (!selectedSetId || !knowledgeReady) throw new Error(isFa ? "ابتدا یک سند را بارگذاری و آماده‌سازی کنید." : "Upload and finish indexing a document before starting a conversation.");
         const created = isAllKnowledgeSets
           ? await conversationService.createForWorkspace(undefined, controller.signal)
-          : await conversationService.createForSet(selectedSetId, undefined, controller.signal);
+          : selectedSetIds.length > 1
+            ? await conversationService.createForSets(selectedSetIds, undefined, controller.signal)
+            : await conversationService.createForSet(selectedSetId, undefined, controller.signal);
         id = created.id;
         createdConversationId.current = id;
       }
@@ -227,21 +231,16 @@ export default function ConversationPage({ conversationId, onConversationChange,
 
         <div className="conversation-compose-area">
           <div className="conversation-context">
-            <label className="conversation-selector">
+            <div className="conversation-selector">
               <BookOpen size={12} className="shrink-0 conversation-accent" />
               <span className="hidden sm:inline">{isFa ? "پایگاه دانش" : "Knowledge base"}</span>
-              <span className="relative min-w-0">
-                <select value={selectedSetId} onChange={(event) => setSelectedSetId(event.target.value)} aria-label={isFa ? "انتخاب پایگاه دانش" : "Select knowledge base"} className="conversation-select">
-                  {sets.length ? <><option value={allKnowledgeSetsId}>{isFa ? "همهٔ پایگاه‌های دانش" : "All knowledge bases"}</option>{sets.map((set) => <option key={set.id} value={set.id}>{set.name}</option>)}</> : <option value="">{isFa ? "پایگاه دانشی موجود نیست" : "No knowledge base available"}</option>}
-                </select>
-                <ChevronDown size={11} className="pointer-events-none absolute end-0 top-1/2 -translate-y-1/2 conversation-muted" />
-              </span>
-            </label>
-            {selectedSetId && <span className="shrink-0 text-xs conversation-muted">{indexedDocumentCount} {isFa ? "سند آماده" : "indexed documents"}</span>}
+              <KnowledgeSetPicker sets={sets} value={selectedSetIds} onChange={setSelectedSetIds} isFa={isFa} disabled={sending} />
+            </div>
+            {selectedSetId && <span className="shrink-0 text-xs conversation-muted">{isAllKnowledgeSets || selectedSetIds.length > 1 ? (knowledgeReady ? (isFa ? "آمادهٔ پاسخ‌گویی" : "Ready for answers") : (isFa ? "بدون سند آماده" : "No indexed documents")) : `${indexedDocumentCount} ${isFa ? "سند آماده" : "indexed documents"}`}</span>}
           </div>
 
           {knowledgeReady && sendError && <InlineError className="mb-3" message={sendError} onDismiss={() => setSendError("")} />}
-          {knowledgeReady ? <ChatInput key={suggestedPrompt.revision} initialValue={suggestedPrompt.value} prominent disabled={false} isSending={sending} onSend={send} onCancel={cancelSend} /> : <KnowledgeStartPanel isFa={isFa} hasSet={Boolean(selectedSet) || (isAllKnowledgeSets && sets.length > 0)} canCreate={canCreateKnowledge} onOpenKnowledge={onOpenKnowledge} />}
+          {knowledgeReady ? <ChatInput key={suggestedPrompt.revision} initialValue={suggestedPrompt.value} prominent disabled={false} isSending={sending} onSend={send} onCancel={cancelSend} /> : sets.length && !selectedSetIds.length ? <p className="conversation-muted text-sm">{isFa ? "حداقل یک پایگاه دانش انتخاب کنید." : "Select at least one knowledge base."}</p> : <KnowledgeStartPanel isFa={isFa} hasSet={Boolean(selectedSet) || (isAllKnowledgeSets && sets.length > 0)} canCreate={canCreateKnowledge} onOpenKnowledge={onOpenKnowledge} />}
 
           {knowledgeReady && <div className="mt-3 grid gap-2 sm:grid-cols-3">
             {suggestions.map(([label, prompt], index) => <button key={label} type="button" onClick={() => setSuggestedPrompt((current) => ({ value: prompt, revision: current.revision + 1 }))} className="conversation-suggestion">
@@ -272,12 +271,10 @@ export default function ConversationPage({ conversationId, onConversationChange,
         <span className="grid size-14 place-items-center rounded-2xl border border-[#18c7f4]/25 bg-[#7c27ff]/25 text-[#d9a6ff]"><MessageSquareText size={23} /></span>
         <h2 className="mt-5 text-xl font-semibold">{assistantName ? (isFa ? `گفتگو با ${assistantName} را آغاز کنید` : `Start a conversation with ${assistantName}`) : (isFa ? "گفتگوی مستند را آغاز کنید" : "Start a source-grounded conversation")}</h2>
         <p className="mt-2 max-w-md text-sm leading-6 conversation-muted">{assistantName ? (assistantSources.length ? (isFa ? `این دستیار از ${assistantSources.join("، ")} استفاده می‌کند. پاسخ‌ها و منابع در گفت‌وگوهای اخیر ذخیره می‌شوند.` : `This assistant uses ${assistantSources.join(", ")}. Answers and sources are saved in Recent chats.`) : (isFa ? "این دستیار منبع اختصاصی ندارد. پاسخ‌ها و منابع در گفت‌وگوهای اخیر ذخیره می‌شوند." : "This assistant has no dedicated knowledge base. Answers and sources are saved in Recent chats.")) : (isFa ? "پایگاه دانشی را انتخاب کنید. پیام‌ها، پاسخ‌ها و منابع شما در گفت‌وگوهای اخیر باقی می‌مانند." : "Choose the knowledge base this conversation should use. Your messages, answers, and sources remain available in Recent chats.")}</p>
-        {!conversationId && <label className="mt-6 w-full max-w-sm text-left text-xs conversation-muted">
+        {!conversationId && <div className="mt-6 w-full max-w-sm text-left text-xs conversation-muted">
           <span className="mb-2 flex items-center gap-2"><BookOpen size={13} />Knowledge base</span>
-          <select value={selectedSetId} onChange={(event) => setSelectedSetId(event.target.value)} className="h-12 w-full rounded-xl border border-white/10 bg-[#12101a] px-3 text-sm text-white outline-none focus:border-[#18c7f4]/45">
-            {sets.length ? sets.map((set) => <option key={set.id} value={set.id}>{set.name} ({set.indexed_document_count} indexed)</option>) : <option value="">No knowledge base available</option>}
-          </select>
-        </label>}
+          <KnowledgeSetPicker sets={sets} value={selectedSetIds} onChange={setSelectedSetIds} isFa={isFa} disabled={sending} />
+        </div>}
       </div>}
     </section>
     <div className="conversation-dock relative z-20 shrink-0 px-0 pb-4 pt-3 sm:px-3 sm:pb-5">{sendError && <InlineError className="mb-3" message={sendError} onDismiss={() => setSendError("")} />}<ChatInput prominent disabled={!conversationId && !selectedSetId} isSending={sending} onSend={send} onCancel={cancelSend} /><div className="mt-2 flex items-center justify-center gap-1.5 text-xs conversation-muted"><FileText size={10} />{isFa ? "پاسخ‌ها ممکن است خطا داشته باشند؛ منابع را بررسی کنید." : "AI can make mistakes. Verify important details in the cited sources."}</div></div>

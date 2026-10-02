@@ -8,6 +8,7 @@ export interface ConversationSummary {
   document_set_id: string | null;
   assistant_id: string | null;
   workspace_scope?: boolean;
+  document_set_ids?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -50,6 +51,9 @@ export const conversationService = {
   }),
   createForWorkspace: (title?: string, signal?: AbortSignal) => request<ConversationSummary>("/conversations", {
     method: "POST", headers: headers(), body: JSON.stringify({ workspace_scope: true, title: title || undefined }), signal,
+  }),
+  createForSets: (documentSetIds: string[], title?: string, signal?: AbortSignal) => request<ConversationSummary>("/conversations", {
+    method: "POST", headers: headers(), body: JSON.stringify({ document_set_ids: documentSetIds, title: title || undefined }), signal,
   }),
   createForAssistant: (assistantId: string, title?: string) => request<ConversationSummary>("/conversations", {
     method: "POST", headers: headers(), body: JSON.stringify({ assistant_id: assistantId, title: title || undefined }),

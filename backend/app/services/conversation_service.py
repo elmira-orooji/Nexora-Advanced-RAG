@@ -31,7 +31,7 @@ class ConversationService:
         self.repository = repository or ConversationRepository(db)
 
     def create(self, payload: ConversationCreate, user: User) -> Conversation:
-        scopes = sum(value is not None for value in (payload.document_id, payload.document_set_id, payload.assistant_id)) + int(payload.workspace_scope)
+        scopes = sum(value is not None for value in (payload.document_id, payload.document_set_id, payload.assistant_id)) + int(payload.workspace_scope) + int(bool(payload.document_set_ids))
         if scopes != 1:
             raise HTTPException(status_code=422, detail="Choose exactly one document, knowledge set, assistant, or workspace scope")
         if payload.document_id:
@@ -45,7 +45,12 @@ class ConversationService:
             if assistant is None:
                 raise HTTPException(status_code=404, detail="Assistant not found")
             self._assistant_set_ids(assistant, user)
-        conversation = Conversation(user_id=user.id, title=payload.title or "New conversation", document_id=payload.document_id, document_set_id=payload.document_set_id, assistant_id=payload.assistant_id, workspace_scope=payload.workspace_scope)
+        selected_ids = list(dict.fromkeys(payload.document_set_ids))
+        for set_id in selected_ids:
+            if not self.repository.document_set_exists(set_id, user.organization_id):
+                raise HTTPException(status_code=404, detail="Document set not found")
+            require_set_access(self.db, user, set_id)
+        conversation = Conversation(user_id=user.id, title=payload.title or "New conversation", document_id=payload.document_id, document_set_id=payload.document_set_id, assistant_id=payload.assistant_id, workspace_scope=payload.workspace_scope, document_set_ids=[str(value) for value in selected_ids])
         self.repository.save(conversation)
         return conversation
 
@@ -111,6 +116,11 @@ class ConversationService:
         return assistant_message
 
     def _resolve_scope(self, conversation: Conversation, user: User) -> tuple[str | None, list[str] | None, str | None, str | None, bool]:
+        if getattr(conversation, "document_set_ids", None):
+            selected_ids = [uuid.UUID(value) for value in conversation.document_set_ids]
+            for set_id in selected_ids:
+                require_set_access(self.db, user, set_id)
+            return None, self.repository.indexed_document_ids_for_sets(selected_ids), None, None, False
         if conversation.document_id:
             require_document_access(self.db, user, conversation.document_id)
             return str(conversation.document_id), None, None, None, False

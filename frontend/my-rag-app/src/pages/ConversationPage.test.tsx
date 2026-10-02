@@ -5,6 +5,7 @@ import ConversationPage from "./ConversationPage";
 
 const mocks = vi.hoisted(() => ({
   createForSet: vi.fn(),
+  createForSets: vi.fn(),
   createForWorkspace: vi.fn(),
   send: vi.fn(),
   get: vi.fn(),
@@ -21,6 +22,7 @@ vi.mock("../services/authService", () => ({ authService: { getUser: () => ({ rol
 vi.mock("../services/conversationService", () => ({
   conversationService: {
     createForSet: mocks.createForSet,
+    createForSets: mocks.createForSets,
     createForWorkspace: mocks.createForWorkspace,
     send: mocks.send,
     get: mocks.get,
@@ -38,6 +40,7 @@ describe("ConversationPage", () => {
     vi.clearAllMocks();
     mocks.listSets.mockResolvedValue([{ id: "set-1", name: "Knowledge", indexed_document_count: 1 }]);
     mocks.createForSet.mockResolvedValue({ id: "conversation-1" });
+    mocks.createForSets.mockResolvedValue({ id: "conversation-1" });
     mocks.createForWorkspace.mockResolvedValue({ id: "conversation-1" });
     mocks.get.mockResolvedValue({ id: "conversation-1", title: "First chat", messages: [] });
     mocks.listAssistants.mockResolvedValue([]);
@@ -67,6 +70,23 @@ describe("ConversationPage", () => {
 
     finishSend?.();
     await waitFor(() => expect(onConversationChange).toHaveBeenCalledWith("conversation-1"));
+  });
+
+  it("sends a new conversation with only the selected knowledge bases", async () => {
+    mocks.listSets.mockResolvedValueOnce([
+      { id: "set-1", name: "Insurance", indexed_document_count: 1 },
+      { id: "set-2", name: "Company", indexed_document_count: 1 },
+    ]);
+    mocks.send.mockResolvedValueOnce(undefined);
+    render(<ConversationPage conversationId={null} onConversationChange={vi.fn()} onConversationsUpdated={vi.fn()} onOpenKnowledge={vi.fn()} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Select knowledge bases" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Insurance" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Company" }));
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Question" } });
+    fireEvent.click(screen.getByRole("button", { name: /send message/i }));
+    await waitFor(() => expect(mocks.createForSets).toHaveBeenCalledWith(["set-1", "set-2"], undefined, expect.any(AbortSignal)));
+    expect(mocks.createForWorkspace).not.toHaveBeenCalled();
+    expect(mocks.createForSet).not.toHaveBeenCalled();
   });
 
   it("offers a direct knowledge-base CTA when none exists", async () => {

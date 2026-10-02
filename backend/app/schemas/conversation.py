@@ -13,6 +13,7 @@ class ConversationCreate(BaseModel):
     document_set_id: uuid.UUID | None = None
     assistant_id: uuid.UUID | None = None
     workspace_scope: bool = False
+    document_set_ids: list[uuid.UUID] = Field(default_factory=list, max_length=100)
 
 
 class ConversationUpdate(BaseModel):
@@ -28,6 +29,7 @@ class ConversationResponse(BaseModel):
     document_set_id: uuid.UUID | None
     assistant_id: uuid.UUID | None
     workspace_scope: bool = False
+    document_set_ids: list[uuid.UUID] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 
