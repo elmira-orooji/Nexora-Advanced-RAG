@@ -130,7 +130,9 @@
 .nexora-login__field .nexora-login__control > input:-webkit-autofill:active,
 .nexora-login__field .nexora-login__control > input:autofill {
   -webkit-text-fill-color: var(--login-text) !important; caret-color: var(--login-text); background-color: transparent !important;
-  -webkit-box-shadow: inset 0 0 0 1000px var(--login-panel) !important; box-shadow: inset 0 0 0 1000px var(--login-panel) !important;
+  /* Keep the browser's autofill background off the transparent field surface. */
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-box-shadow: none !important; box-shadow: none !important;
   transition: background-color 9999s ease-out 0s;
 }
 
