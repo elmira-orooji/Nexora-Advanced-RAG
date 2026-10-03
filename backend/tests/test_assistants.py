@@ -1,3 +1,4 @@
+from app.core.application_errors import ApplicationError
 import unittest
 from datetime import datetime, timezone
 from types import SimpleNamespace
@@ -19,7 +20,7 @@ class AssistantListingTests(unittest.TestCase):
         )
         db = MagicMock()
         db.scalars.return_value.all.return_value = [item]
-        with patch("app.api.routes.assistants.accessible_set_ids", return_value=set()):
+        with patch("app.services.assistant_service.accessible_set_ids", return_value=set()):
             result = list_assistants(db=db, user=SimpleNamespace(role="admin", organization_id=uuid4()))
         self.assertEqual([assistant.id for assistant in result], [item.id])
 
@@ -27,7 +28,7 @@ class AssistantListingTests(unittest.TestCase):
         item = SimpleNamespace(document_sets=[])
         db = MagicMock()
         db.scalars.return_value.all.return_value = [item]
-        with patch("app.api.routes.assistants.accessible_set_ids", return_value=set()):
+        with patch("app.services.assistant_service.accessible_set_ids", return_value=set()):
             result = list_assistants(db=db, user=SimpleNamespace(role="user", organization_id=uuid4()))
         self.assertEqual(result, [])
 
@@ -41,7 +42,7 @@ class AssistantAnswerTests(unittest.TestCase):
         self.db.refresh.side_effect = lambda record: setattr(record, "id", uuid4())
 
     def test_hybrid_without_documents_uses_selected_model_without_searching_other_sets(self):
-        with patch("app.api.routes.assistants._get", return_value=self.item), patch("app.api.routes.assistants.accessible_set_ids", return_value=set()), patch("app.api.routes.assistants.hybrid_search") as search, patch("app.api.routes.assistants.get_language_model") as client:
+        with patch("app.services.assistant_service._get", return_value=self.item), patch("app.services.assistant_service.accessible_set_ids", return_value=set()), patch("app.services.assistant_service.hybrid_search") as search, patch("app.services.assistant_service.get_language_model") as client:
             client.return_value.answer.return_value = "General knowledge [Source 1]"
             result = answer_with_assistant(self.item.id, AssistantAnswerRequest(question="Hello"), self.db, self.user)
             client.assert_called_once_with(model="openrouter/free")
@@ -54,7 +55,7 @@ class AssistantAnswerTests(unittest.TestCase):
 
     def test_sources_only_without_documents_does_not_call_model(self):
         self.item.answer_mode = "sources"
-        with patch("app.api.routes.assistants._get", return_value=self.item), patch("app.api.routes.assistants.accessible_set_ids", return_value=set()), patch("app.api.routes.assistants.get_language_model") as client:
+        with patch("app.services.assistant_service._get", return_value=self.item), patch("app.services.assistant_service.accessible_set_ids", return_value=set()), patch("app.services.assistant_service.get_language_model") as client:
             result = answer_with_assistant(self.item.id, AssistantAnswerRequest(question="Hello"), self.db, self.user)
             client.assert_not_called()
         self.assertEqual(result.answer_basis, "sources")
@@ -67,7 +68,7 @@ class AssistantAnswerTests(unittest.TestCase):
             "chunk_id": chunk_id, "document_id": document_id, "filename": "Guide.txt",
             "chunk_index": 0, "content": "Supported fact",
         }}
-        with patch("app.api.routes.assistants._get", return_value=self.item), patch("app.api.routes.assistants.accessible_set_ids", return_value={set_id}), patch("app.api.routes.assistants.get_vector_store"), patch("app.api.routes.assistants.hybrid_search", return_value=[point]) as search, patch("app.api.routes.assistants.get_language_model") as client:
+        with patch("app.services.assistant_service._get", return_value=self.item), patch("app.services.assistant_service.accessible_set_ids", return_value={set_id}), patch("app.services.assistant_service.get_vector_store"), patch("app.services.assistant_service.hybrid_search", return_value=[point]) as search, patch("app.services.assistant_service.get_language_model") as client:
             client.return_value.answer.return_value = "Supported fact [Source 1]. General knowledge: example."
             result = answer_with_assistant(self.item.id, AssistantAnswerRequest(question="Explain"), self.db, self.user)
         self.assertEqual(search.call_args.kwargs["document_ids"], [str(document_id)])
@@ -77,8 +78,8 @@ class AssistantAnswerTests(unittest.TestCase):
 
     def test_hybrid_does_not_bypass_member_permissions(self):
         self.user.role = "user"
-        with patch("app.api.routes.assistants._get", return_value=self.item), patch("app.api.routes.assistants.accessible_set_ids", return_value=set()), patch("app.api.routes.assistants.get_language_model") as client:
-            with self.assertRaises(HTTPException) as raised:
+        with patch("app.services.assistant_service._get", return_value=self.item), patch("app.services.assistant_service.accessible_set_ids", return_value=set()), patch("app.services.assistant_service.get_language_model") as client:
+            with self.assertRaises(ApplicationError) as raised:
                 answer_with_assistant(self.item.id, AssistantAnswerRequest(question="Hello"), self.db, self.user)
-            self.assertEqual(raised.exception.status_code, 403)
+            self.assertEqual(raised.exception.kind, "forbidden")
             client.assert_not_called()

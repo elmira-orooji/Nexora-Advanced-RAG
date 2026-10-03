@@ -31,8 +31,8 @@ class DocumentMembershipTests(unittest.TestCase):
 
     def call_route(self):
         # Keep the real permission helpers; only omit response serialization.
-        with patch("app.api.routes.document_sets._response") as response, patch(
-            "app.api.routes.document_sets.DocumentSetDetail", side_effect=lambda **values: values
+        with patch("app.services.document_set_service._response") as response, patch(
+            "app.services.document_set_service.DocumentSetDetail", side_effect=lambda **values: values
         ):
             response.return_value.model_dump.return_value = {}
             return add_document_to_set(
@@ -110,10 +110,10 @@ class DocumentSetDetailAccessTests(unittest.TestCase):
         db = MagicMock()
         db.execute.return_value.all.return_value = [(set_id, "view")]
 
-        with patch("app.api.routes.document_sets._get_set", return_value=item), patch(
-            "app.api.routes.document_sets._response"
+        with patch("app.services.document_set_service._get_set", return_value=item), patch(
+            "app.services.document_set_service._response"
         ) as response, patch(
-            "app.api.routes.document_sets.DocumentSetDetail", side_effect=lambda **values: values
+            "app.services.document_set_service.DocumentSetDetail", side_effect=lambda **values: values
         ):
             response.return_value.model_dump.return_value = {"access_level": "view"}
             result = get_document_set(set_id, db, user)

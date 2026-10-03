@@ -101,8 +101,8 @@ def test_search_trace_records_usage_and_returns_the_answer(client):
     )
 
     with (
-        patch("app.api.routes.search.require_set_access"),
-        patch("app.api.routes.search.hybrid_search", return_value=[point]),
+        patch("app.services.search_service.require_set_access"),
+        patch("app.services.search_service.hybrid_search", return_value=[point]),
         patch("app.services.openrouter.OpenRouterClient.answer_with_usage", return_value=llm_result),
     ):
         response = client.post(

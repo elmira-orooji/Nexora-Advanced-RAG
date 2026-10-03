@@ -12,7 +12,7 @@ from app.services.connector_management_service import ConnectorManagementService
 from app.services.document_management_service import DocumentManagementService
 
 
-@pytest.mark.parametrize("name", ["users", "connectors", "documents"])
+@pytest.mark.parametrize("name", ["users", "connectors", "documents", "assistants", "document_sets", "chat_shares", "search"])
 def test_administrative_routes_do_not_execute_database_operations(name):
     path = Path(__file__).parents[1] / "app" / "api" / "routes" / f"{name}.py"
     tree = ast.parse(path.read_text(encoding="utf-8-sig"))
@@ -23,12 +23,23 @@ def test_administrative_routes_do_not_execute_database_operations(name):
                 and node.func.value.id == "db" and node.func.attr in forbidden]
 
 
-@pytest.mark.parametrize("name", ["user", "connector", "document"])
+@pytest.mark.parametrize("name", ["user", "connector", "document", "assistant", "document_set", "chat_share"])
 def test_repositories_never_own_transaction_boundaries(name):
     path = Path(__file__).parents[1] / "app" / "repositories" / f"{name}_repository.py"
     tree = ast.parse(path.read_text(encoding="utf-8-sig"))
     assert not [node for node in ast.walk(tree) if isinstance(node, ast.Call)
                 and isinstance(node.func, ast.Attribute) and node.func.attr in {"commit", "rollback"}]
+
+
+@pytest.mark.parametrize("name", ["assistant", "document_set", "chat_share", "search"])
+def test_services_have_no_duplicate_definitions_or_direct_sql(name):
+    path = Path(__file__).parents[1] / "app" / "services" / f"{name}_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+    names = [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+    assert len(names) == len(set(names))
+    assert not [node for node in ast.walk(tree) if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "db" and node.func.attr in {"scalar", "scalars", "execute", "commit", "add", "delete"}]
 
 
 def test_document_creation_rolls_back_even_if_repository_add_fails():
