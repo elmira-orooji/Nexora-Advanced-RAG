@@ -4,14 +4,14 @@ import uuid
 import shutil
 from pathlib import Path
 
-from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 from app.core.config import UPLOAD_DIR, resolve_document_path
 from app.models.document import Document
 from app.models.chunk import Chunk
 from app.models.user import User
-from app.models.processing_job import ProcessingJob
+from app.repositories.document_repository import DocumentRepository
+from app.services.transactions import transaction
 from app.schemas.document import ChunkingRequest, DeleteDocumentResponse
 from app.services.provider_errors import VectorStoreError
 from app.services.text_chunker import hierarchical_chunks
@@ -23,14 +23,12 @@ class DocumentProcessingService:
 
     def __init__(self, db: Session):
         self.db = db
+        self.repository = DocumentRepository(db)
 
     def create_chunks(self, document_id: uuid.UUID, payload: ChunkingRequest, user: User | None) -> Document:
         if user is not None and user.role != "admin":
             raise ApplicationError(kind="forbidden", detail="Admin access is required")
-        statement = select(Document).options(selectinload(Document.chunks)).where(Document.id == document_id)
-        if user is not None:
-            statement = statement.where(Document.organization_id == user.organization_id)
-        document = self.db.scalar(statement)
+        document = self.repository.get_document(document_id, user.organization_id if user else None, with_chunks=True)
 
         if document is None:
             raise ApplicationError(kind="not_found", detail="Document not found")
@@ -48,30 +46,26 @@ class DocumentProcessingService:
             raise ApplicationError(kind="validation_error", detail="Document contains no text to chunk")
 
         try:
-            for existing_chunk in list(document.chunks):
-                self.db.delete(existing_chunk)
-            self.db.flush()
-            document.chunks.clear()
-            document.chunks.extend(
-                Chunk(chunk_index=index, content=child, parent_index=parent_index, parent_content=parent, keywords=enrich_chunk(child)[0], suggested_questions=enrich_chunk(child)[1])
-                for index, (child, parent_index, parent) in enumerate(contents)
-            )
-            document.status = "chunked"
-            document.processing_error = None
-            self.db.commit()
-            self.db.refresh(document)
+            with transaction(self.db):
+                for existing_chunk in list(document.chunks):
+                    self.repository.delete(existing_chunk)
+                self.repository.flush()
+                document.chunks.clear()
+                document.chunks.extend(
+                    Chunk(chunk_index=index, content=child, parent_index=parent_index, parent_content=parent, keywords=enrich_chunk(child)[0], suggested_questions=enrich_chunk(child)[1])
+                    for index, (child, parent_index, parent) in enumerate(contents)
+                )
+                document.status = "chunked"
+                document.processing_error = None
+            self.repository.refresh(document)
             return document
         except SQLAlchemyError as exc:
-            self.db.rollback()
             raise ApplicationError(kind="internal_error", detail="Could not save document chunks") from exc
 
     def index(self, document_id: uuid.UUID, user: User | None) -> Document:
         if user is not None and user.role != "admin":
             raise ApplicationError(kind="forbidden", detail="Admin access is required")
-        statement = select(Document).options(selectinload(Document.chunks)).where(Document.id == document_id)
-        if user is not None:
-            statement = statement.where(Document.organization_id == user.organization_id)
-        document = self.db.scalar(statement)
+        document = self.repository.get_document(document_id, user.organization_id if user else None, with_chunks=True)
 
         if document is None:
             raise ApplicationError(kind="not_found", detail="Document not found")
@@ -95,23 +89,22 @@ class DocumentProcessingService:
                 detail=str(exc),
             ) from exc
 
-        document.status = "indexed"
-        document.processing_error = None
-        self.db.commit()
-        self.db.refresh(document)
+        with transaction(self.db):
+            document.status = "indexed"
+            document.processing_error = None
+        self.repository.refresh(document)
         return document
 
     def delete(self, document_id: uuid.UUID, user: User) -> DeleteDocumentResponse:
         if user.role != "admin":
             raise ApplicationError(kind="forbidden", detail="Admin access is required")
-        document = self.db.scalar(select(Document).where(Document.id == document_id, Document.organization_id == user.organization_id))
+        document = self.repository.get_document(document_id, user.organization_id)
         if document is None:
             raise ApplicationError(kind="not_found", detail="Document not found")
 
         document_dir = _get_document_directory(document)
         # Match the worker's lock order (job, then document).
-        self.db.scalar(select(ProcessingJob.id).where(ProcessingJob.document_id == document_id).with_for_update())
-        self.db.scalar(select(Document.id).where(Document.id == document_id).with_for_update())
+        self.repository.lock_job_then_document(document_id)
         try:
             qdrant = get_vector_store()
             qdrant.ensure_collection()
@@ -122,13 +115,12 @@ class DocumentProcessingService:
             ) from exc
 
         try:
-            # Delete queued/running jobs explicitly: workers detect the missing claim
-            # at the next extraction checkpoint instead of continuing OCR/fallback.
-            self.db.execute(delete(ProcessingJob).where(ProcessingJob.document_id == document_id))
-            self.db.delete(document)
-            self.db.commit()
+            with transaction(self.db):
+                # Delete queued/running jobs explicitly: workers detect the missing claim
+                # at the next extraction checkpoint instead of continuing OCR/fallback.
+                self.repository.delete_jobs(document_id)
+                self.repository.delete(document)
         except SQLAlchemyError as exc:
-            self.db.rollback()
             raise ApplicationError(kind="internal_error", detail="Could not delete document") from exc
 
         storage_removed = True

@@ -1,3 +1,4 @@
+from app.core.application_errors import ApplicationError
 import inspect
 import unittest
 from io import BytesIO
@@ -6,7 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-from app.api.routes import documents
+from app.services import document_management_service as documents
 from app.api.routes.documents import ALLOWED_FILE_TYPES, _save_upload, ingest_document, upload_document
 from app.services.document_extractor import ExtractionResult
 

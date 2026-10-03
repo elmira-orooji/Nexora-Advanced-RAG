@@ -1,3 +1,4 @@
+from app.core.application_errors import ApplicationError
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -6,6 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.routes import documents
+from app.services import document_management_service as management
 from app.services.document_jobs import check_document_job_ownership, DocumentJobOwnershipLost
 from app.services import document_jobs
 from app.models.processing_job import ProcessingJob
@@ -20,7 +22,7 @@ def test_pause_releases_claim_and_preserves_document(status):
     db = MagicMock()
     db.scalar.return_value = job
     user = SimpleNamespace(id=uuid4())
-    with patch.object(documents, "require_document_access", return_value=document):
+    with patch.object(management, "require_document_access", return_value=document):
         assert documents.pause_document(document.id, db, user) is document
     assert (job.status, job.stage, job.worker_id, job.locked_at, job.next_attempt_at) == ("paused", "paused", None, None, None)
     assert document.status == "paused"
@@ -33,9 +35,9 @@ def test_pause_releases_claim_and_preserves_document(status):
 def test_completed_job_cannot_be_paused():
     db = MagicMock()
     db.scalar.return_value = SimpleNamespace(status="completed")
-    with patch.object(documents, "require_document_access", return_value=SimpleNamespace(id=uuid4())), pytest.raises(HTTPException) as error:
+    with patch.object(management, "require_document_access", return_value=SimpleNamespace(id=uuid4())), pytest.raises(ApplicationError) as error:
         documents.pause_document(uuid4(), db, SimpleNamespace())
-    assert error.value.status_code == 409
+    assert error.value.kind == "conflict"
     db.commit.assert_not_called()
 
 
