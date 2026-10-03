@@ -5,8 +5,8 @@ import logging
 
 
 
-from app.services.openrouter import OpenRouterError
-from app.services.qdrant import QdrantError
+from app.services.provider_errors import LanguageModelError
+from app.services.provider_errors import VectorStoreError
 from app.services.http_resilience import CircuitOpenError, HttpStatusError
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,9 @@ def _log_provider_failure(exc: Exception, provider: str) -> None:
     current = exc
     seen: set[int] = set()
     reason = "invalid_response_or_provider_failure"
-    status_code = None
+    status_code = exc.status_code if isinstance(exc, (LanguageModelError, VectorStoreError)) else None
+    if status_code is not None:
+        reason = "http_error"
     while id(current) not in seen:
         seen.add(id(current))
         if isinstance(current, HttpStatusError):
@@ -37,8 +39,8 @@ def _log_provider_failure(exc: Exception, provider: str) -> None:
         if current.__cause__ is None:
             break
         current = current.__cause__
-    if isinstance(exc, OpenRouterError) and str(exc) == "OpenRouter configuration is missing":
-        reason = "missing_configuration"
+    if isinstance(exc, (LanguageModelError, VectorStoreError)) and exc.reason is not None:
+        reason = exc.reason
     logger.warning("Provider request failed", extra={
         "provider": provider,
         "error_type": type(current).__name__,
@@ -48,13 +50,13 @@ def _log_provider_failure(exc: Exception, provider: str) -> None:
 
 
 def provider_error(exc: Exception) -> ApplicationError:
-    if isinstance(exc, QdrantError):
-        _log_provider_failure(exc, "qdrant")
+    if isinstance(exc, VectorStoreError):
+        _log_provider_failure(exc, exc.provider)
         return ApplicationError(kind="service_unavailable",
             detail="Knowledge search is temporarily unavailable. Please retry shortly.",
         )
-    if isinstance(exc, OpenRouterError):
-        _log_provider_failure(exc, "openrouter")
+    if isinstance(exc, LanguageModelError):
+        _log_provider_failure(exc, exc.provider)
         return ApplicationError(kind="service_unavailable",
             detail="The AI response service is temporarily unavailable. Please retry shortly.",
         )

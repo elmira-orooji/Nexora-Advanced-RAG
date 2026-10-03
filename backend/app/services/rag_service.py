@@ -14,11 +14,11 @@ from app.models.document_set import DocumentSet
 from app.models.user import User
 from app.schemas.rag import Citation, RagRequest, RagResponse
 from app.schemas.search import SearchHit
-from app.services.openrouter import OpenRouterError
+from app.services.provider_errors import LanguageModelError
 from app.services.operational_alerts import send_operational_alert
 from app.services.operational_metrics import increment
 from app.services.ports import ProviderFactoryPort
-from app.services.qdrant import QdrantError
+from app.services.provider_errors import VectorStoreError
 from app.services.provider_failures import provider_error
 from app.services.retrieval import hybrid_search
 from app.services.usage_tracking import record_usage
@@ -61,7 +61,7 @@ class RagService:
             vector_store = self.providers.vector_store()
             vector_store.ensure_collection()
             points = hybrid_search(self.db, query=payload.question, limit=payload.limit, document_id=str(payload.document_id) if payload.document_id else None, document_ids=document_ids, vector_store=vector_store)
-        except QdrantError as exc:
+        except VectorStoreError as exc:
             increment("rag_failures_total", dependency="qdrant")
             send_operational_alert("qdrant-failure", "Vector store is unavailable", "A RAG request could not reach Qdrant. Check the Qdrant service and its network connection.")
             raise provider_error(exc) from exc
@@ -74,7 +74,7 @@ class RagService:
             llm_result = self.providers.language_model().answer_with_usage(payload.question, contexts)
             answer = llm_result.content
             record_usage(self.db, user.id, payload.document_set_id, "rag_answer", llm_result)
-        except OpenRouterError as exc:
+        except LanguageModelError as exc:
             increment("model_failures_total", provider="openrouter")
             send_operational_alert("model-failure", "Model request failed", "A RAG request could not be completed by the configured model provider. Check provider status, credentials, quota, and request logs.")
             raise provider_error(exc) from exc

@@ -18,8 +18,8 @@ from app.models.user import User
 from app.schemas.assistant import AssistantAnswerRequest, AssistantCreate, AssistantResponse, AssistantUpdate
 from app.schemas.rag import Citation, RagResponse
 from app.schemas.search import SearchHit
-from app.services.openrouter import OpenRouterError
-from app.services.qdrant import QdrantError
+from app.services.provider_errors import LanguageModelError
+from app.services.provider_errors import VectorStoreError
 from app.services.retrieval import hybrid_search
 
 router = APIRouter(prefix="/assistants", tags=["assistants"])
@@ -63,7 +63,7 @@ def _response(item: Assistant, allowed_set_ids: set[uuid.UUID] | None = None) ->
 def available_models(user: User = Depends(_admin)):
     try:
         return get_language_model().list_models()
-    except OpenRouterError as exc:
+    except LanguageModelError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
@@ -137,7 +137,7 @@ def answer_with_assistant(assistant_id: uuid.UUID, payload: AssistantAnswerReque
         if document_ids:
             qdrant = get_vector_store(); qdrant.ensure_collection()
             points = hybrid_search(db, payload.question, payload.limit, document_ids=document_ids)
-    except QdrantError as exc:
+    except VectorStoreError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     sources = [SearchHit(score=point["score"], **point["payload"]) for point in points]
     if not sources and item.answer_mode != "hybrid":
@@ -147,7 +147,7 @@ def answer_with_assistant(assistant_id: uuid.UUID, payload: AssistantAnswerReque
         return RagResponse(response_id=record.id, question=payload.question, answer=message, grounded=False, citations=[], sources=[])
     try:
         answer = get_language_model(model=item.model_id).answer(payload.question, [source.model_dump(mode="json", exclude={"ocr_provenance"}) for source in sources], instructions=item.instructions, hybrid=item.answer_mode == "hybrid")
-    except OpenRouterError as exc:
+    except LanguageModelError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     used = set()
     def replace(match: re.Match[str]) -> str:

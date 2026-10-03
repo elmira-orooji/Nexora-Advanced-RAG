@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.models.document_set import DocumentSet
 from app.models.evaluation_case import EvaluationCase
-from app.services.openrouter import OpenRouterError
+from app.services.provider_errors import LanguageModelError
 from app.services.ports import LanguageModelPort
 from app.services.retrieval import hybrid_search
 
@@ -108,7 +108,7 @@ def _llm_judge(client: LanguageModelPort, prompt: str) -> tuple[float, str]:
     try:
         raw = client.complete(prompt, system_prompt=_JUDGE_SYSTEM, temperature=0.0, max_tokens=300)
         return _parse_judge_response(raw)
-    except (OpenRouterError, KeyError, IndexError, TypeError) as exc:
+    except (LanguageModelError, KeyError, IndexError, TypeError) as exc:
         return 0.0, f"Judge call failed: {exc}"
 
 

@@ -11,16 +11,15 @@ from app.core.config import (
 )
 from app.services.http_resilience import HttpStatusError, ResilientHttpClient, ResilientHttpError
 from app.services.performance_measurement import observe_provider_latency
+from app.services.provider_errors import VectorStoreError
 
 VECTOR_NAME = "dense"
 VECTOR_SIZE = 384
 _HTTP = ResilientHttpClient()
 
 
-class QdrantError(RuntimeError):
-    def __init__(self, message: str, status_code: int | None = None) -> None:
-        super().__init__(message)
-        self.status_code = status_code
+class QdrantError(VectorStoreError):
+    provider = "qdrant"
 
 
 class QdrantClient:

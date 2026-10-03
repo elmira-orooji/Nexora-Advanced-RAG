@@ -14,8 +14,8 @@ from app.models.document import Document
 from app.models.document_set import DocumentSet
 from app.models.user import User
 from app.schemas.search import PipelineTraceResponse, PlaygroundHit, PlaygroundResponse, RetrievalDiagnostics, RetrieverComparisonRequest, RetrieverComparisonResponse, RetrieverVariantResult, SearchHit, SearchRequest, SearchResponse, TraceCitation, TraceStage, UsageMetrics
-from app.services.openrouter import OpenRouterError
-from app.services.qdrant import QdrantError
+from app.services.provider_errors import LanguageModelError
+from app.services.provider_errors import VectorStoreError
 from app.services.retrieval import hybrid_search
 from app.services.usage_tracking import record_usage
 
@@ -66,7 +66,7 @@ def semantic_search(payload: SearchRequest, db: Session = Depends(get_db), user:
     try:
         # Removed: client = get_vector_store(); client.ensure_collection()
         points = hybrid_search(db, query=payload.query, limit=payload.limit, document_id=document_id, document_ids=document_ids)
-    except QdrantError as exc:
+    except VectorStoreError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
     return SearchResponse(query=payload.query, results=[SearchHit(score=point["score"], **point["payload"]) for point in points])
 
@@ -77,7 +77,7 @@ def retrieval_playground(payload: SearchRequest, db: Session = Depends(get_db), 
     # Removed: get_vector_store().ensure_collection()
     try:
         points = hybrid_search(db, payload.query, payload.limit, document_id=document_id, document_ids=document_ids)
-    except QdrantError as exc: raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except VectorStoreError as exc: raise HTTPException(status_code=502, detail=str(exc)) from exc
     results = [_playground_hit(point) for point in points]
     return PlaygroundResponse(query=payload.query, scoped_document_count=scoped_count, result_count=len(results), results=results)
 
@@ -91,7 +91,7 @@ def pipeline_trace(payload: SearchRequest, db: Session = Depends(get_db), user: 
     # Removed: get_vector_store().ensure_collection()
     try:
         points = hybrid_search(db, payload.query, payload.limit, document_id=document_id, document_ids=document_ids, trace=metrics)
-    except QdrantError as exc:
+    except VectorStoreError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     results = [_playground_hit(point) for point in points]
     answer_started = perf_counter()
@@ -100,7 +100,7 @@ def pipeline_trace(payload: SearchRequest, db: Session = Depends(get_db), user: 
             llm_result = get_language_model().answer_with_usage(payload.query, [result.model_dump(mode="json") for result in results])
             answer = llm_result.content
             record_usage(db, user.id, payload.document_set_id, "pipeline_trace", llm_result)
-        except OpenRouterError as exc:
+        except LanguageModelError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
     else:
         answer = "No relevant information was found in the indexed documents."; llm_result = None
@@ -143,7 +143,7 @@ def compare_retrievers(payload: RetrieverComparisonRequest, db: Session = Depend
     try:
         variant_a = _run_variant(db, payload, document_id, document_ids, payload.config_a, user)
         variant_b = _run_variant(db, payload, document_id, document_ids, payload.config_b, user)
-    except (QdrantError, OpenRouterError) as exc:
+    except (VectorStoreError, LanguageModelError) as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     ranks_a = {str(item.chunk_id): index for index, item in enumerate(variant_a.results, 1)}
     ranks_b = {str(item.chunk_id): index for index, item in enumerate(variant_b.results, 1)}

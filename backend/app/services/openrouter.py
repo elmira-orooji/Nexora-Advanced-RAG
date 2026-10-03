@@ -6,13 +6,19 @@ from typing import Any
 from app.core.config import OPENROUTER_API_KEY, OPENROUTER_INPUT_COST_PER_MILLION, OPENROUTER_MODEL, OPENROUTER_OUTPUT_COST_PER_MILLION
 from app.services.http_resilience import HttpStatusError, ResilientHttpClient, ResilientHttpError
 from app.services.performance_measurement import observe_provider_latency
+from app.services.provider_errors import LanguageModelError
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 _HTTP = ResilientHttpClient()
 
 
-class OpenRouterError(RuntimeError):
-    pass
+class OpenRouterError(LanguageModelError):
+    provider = "openrouter"
+
+    def __init__(self, message: str, status_code: int | None = None, *, reason: str | None = None):
+        if reason is None and message == "OpenRouter configuration is missing":
+            reason = "missing_configuration"
+        super().__init__(message, status_code, reason=reason)
 
 
 @dataclass

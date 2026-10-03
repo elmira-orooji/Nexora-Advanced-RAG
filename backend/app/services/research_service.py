@@ -14,8 +14,8 @@ from app.models.user import User
 from app.schemas.rag import Citation
 from app.schemas.research import ResearchRequest, ResearchResponse, ResearchStep
 from app.schemas.search import SearchHit
-from app.services.openrouter import OpenRouterError
-from app.services.qdrant import QdrantError
+from app.services.provider_errors import LanguageModelError
+from app.services.provider_errors import VectorStoreError
 from app.services.retrieval import hybrid_search
 
 class ResearchService:
@@ -38,7 +38,7 @@ class ResearchService:
         if not document_ids: raise ApplicationError(kind="conflict", detail="This knowledge set has no indexed documents")
         client = get_language_model()
         try: queries = client.research_plan(payload.question, payload.max_steps)
-        except OpenRouterError: queries = [payload.question, f"Evidence and details about: {payload.question}"]
+        except LanguageModelError: queries = [payload.question, f"Evidence and details about: {payload.question}"]
         try:
             qdrant = get_vector_store(); qdrant.ensure_collection(); unique: dict[str, SearchHit] = {}; steps = []
             for query in queries:
@@ -47,7 +47,7 @@ class ResearchService:
                 for point in points:
                     hit = SearchHit(score=point["score"], **point["payload"]); key = str(hit.chunk_id)
                     if key not in unique or hit.score > unique[key].score: unique[key] = hit
-        except QdrantError as exc: raise ApplicationError(kind="upstream_unavailable", detail=str(exc)) from exc
+        except VectorStoreError as exc: raise ApplicationError(kind="upstream_unavailable", detail=str(exc)) from exc
         sources = sorted(unique.values(), key=lambda value: value.score, reverse=True)[:12]
         if not sources:
             message = "No sufficient evidence was found for this research question."
@@ -56,7 +56,7 @@ class ResearchService:
             return ResearchResponse(response_id=record.id, question=payload.question, answer=message, grounded=False, citations=[], steps=steps, evidence_reviewed=0)
         instructions = "Write a structured research report with a short executive summary, findings, limitations, and conclusion. Synthesize across sources instead of listing them. Every factual claim must retain inline [Source N] citations. Explicitly state uncertainty or conflicting evidence."
         try: answer = client.answer(payload.question, [source.model_dump(mode="json", exclude={"ocr_provenance"}) for source in sources], instructions=instructions)
-        except OpenRouterError as exc: raise ApplicationError(kind="upstream_unavailable", detail=str(exc)) from exc
+        except LanguageModelError as exc: raise ApplicationError(kind="upstream_unavailable", detail=str(exc)) from exc
         used: set[int] = set()
         def normalize(match: re.Match[str]) -> str:
             number = int(match.group(1))

@@ -13,7 +13,7 @@ from app.models.chunk import Chunk
 from app.models.user import User
 from app.models.processing_job import ProcessingJob
 from app.schemas.document import ChunkingRequest, DeleteDocumentResponse
-from app.services.qdrant import QdrantError
+from app.services.provider_errors import VectorStoreError
 from app.services.text_chunker import hierarchical_chunks
 from app.services.chunk_enrichment import enrich_chunk
 
@@ -90,7 +90,7 @@ class DocumentProcessingService:
             client = get_vector_store()
             client.ensure_collection()
             client.replace_document_chunks(str(document.id), document.filename, chunks)
-        except QdrantError as exc:
+        except VectorStoreError as exc:
             raise ApplicationError(kind="upstream_unavailable",
                 detail=str(exc),
             ) from exc
@@ -116,7 +116,7 @@ class DocumentProcessingService:
             qdrant = get_vector_store()
             qdrant.ensure_collection()
             qdrant.delete_document(str(document.id))
-        except QdrantError as exc:
+        except VectorStoreError as exc:
             raise ApplicationError(kind="upstream_unavailable",
                 detail=str(exc),
             ) from exc

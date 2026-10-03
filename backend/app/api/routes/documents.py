@@ -35,7 +35,7 @@ from app.schemas.document import (
     IngestResponse,
 )
 from app.services.document_extractor import ExtractionError, extract_text_with_provenance
-from app.services.qdrant import QdrantError
+from app.services.provider_errors import VectorStoreError
 from app.services.chunk_enrichment import enrich_chunk
 from app.services.upload_security import stage_and_scan_upload
 from app.services.file_storage import atomic_write_text
@@ -80,7 +80,7 @@ def update_chunk(document_id: uuid.UUID, chunk_id: uuid.UUID, payload: ChunkUpda
         _sync_active_chunks(document)
         db.commit()
         db.refresh(chunk)
-    except QdrantError as exc:
+    except VectorStoreError as exc:
         db.rollback()
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except SQLAlchemyError as exc:

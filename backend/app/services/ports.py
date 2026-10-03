@@ -8,6 +8,7 @@ from typing import Any, Protocol
 
 
 class VectorSearchPort(Protocol):
+    """Adapter failures must implement provider_errors.VectorStoreError."""
     def ensure_collection(self) -> None: ...
 
     def check_ready(self, timeout_seconds: float) -> None: ...
@@ -30,6 +31,7 @@ class VectorSearchPort(Protocol):
 
 
 class LanguageModelPort(Protocol):
+    """Adapter failures must implement provider_errors.LanguageModelError."""
     def complete(self, prompt: str, *, system_prompt: str, temperature: float, max_tokens: int) -> str: ...
 
     def list_models(self) -> list[dict[str, Any]]: ...

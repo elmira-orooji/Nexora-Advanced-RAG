@@ -16,7 +16,7 @@ from app.models.user import User
 from app.schemas.connector import ConnectorCreate, ConnectorResponse, ConnectorScheduleUpdate, SyncResponse, WebhookConnectorCreate, WebhookConnectorCreated, WebhookEvent, WebhookEventResponse
 from app.services.connector_sync import ConnectorSyncError, ingest_webhook_event
 from app.services.connector_lock import connector_sync_lock
-from app.services.qdrant import QdrantError
+from app.services.provider_errors import VectorStoreError
 from app.core.rate_limit import rate_limit, webhook_limiter
 from app.services.security_audit import audit_security_event
 
@@ -61,7 +61,7 @@ def receive_webhook_event(set_id: uuid.UUID, connector_id: uuid.UUID, payload: W
         audit_security_event("webhook_authentication", "denied", reason="invalid_secret")
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
     try: result = ingest_webhook_event(db, item, payload.action, payload.external_id, payload.title, payload.content, payload.source_url)
-    except (ConnectorSyncError, QdrantError) as exc:
+    except (ConnectorSyncError, VectorStoreError) as exc:
         db.rollback(); item = db.get(Connector, connector_id); item.status = "failed"; item.last_error = str(exc)[:500]; db.commit()
         raise HTTPException(status_code=422 if isinstance(exc, ConnectorSyncError) else 502, detail=str(exc)) from exc
     return WebhookEventResponse(connector_id=connector_id, action=payload.action, result=result)

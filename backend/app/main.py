@@ -29,7 +29,7 @@ from app.services.performance_measurement import (
     process_memory_bytes,
     register_sqlalchemy_query_metrics,
 )
-from app.services.qdrant import QdrantError
+from app.services.provider_errors import VectorStoreError
 from app.services.worker_heartbeat import get_available_worker_types
 from app.core.rate_limit import RateLimitMiddleware
 from app.core.logging import configure_logging
@@ -227,7 +227,7 @@ def readiness(response: Response, db: Session = Depends(get_db)):
         client = get_vector_store()
         client.check_ready(timeout_seconds=READINESS_PROBE_TIMEOUT_SECONDS)
         checks["qdrant"] = "connected"
-    except QdrantError as exc:
+    except VectorStoreError as exc:
         logger.warning("Health check qdrant probe failed: %s", exc)
         checks["qdrant"] = "unavailable"
         failures.append("qdrant")

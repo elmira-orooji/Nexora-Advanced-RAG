@@ -14,7 +14,7 @@ from app.models.connector import Connector
 from app.models.user import User
 from app.services.connector_sync import ConnectorSyncError, sync_connector
 from app.services.connector_lock import connector_sync_lock
-from app.services.qdrant import QdrantError
+from app.services.provider_errors import VectorStoreError
 from app.services.operational_alerts import send_operational_alert
 from app.services.operational_metrics import increment
 from app.services.notifications import create_notification
@@ -28,7 +28,7 @@ def _delay(interval: str) -> timedelta:
 
 def _retryable_connector_error(exc: Exception) -> bool:
     """Classify transient connector errors that are worth retrying with backoff."""
-    if isinstance(exc, QdrantError):
+    if isinstance(exc, VectorStoreError):
         return exc.status_code is None or exc.status_code in {408, 429} or exc.status_code >= 500
     if isinstance(exc, HTTPError):
         return exc.code in {408, 429} or exc.code >= 500
