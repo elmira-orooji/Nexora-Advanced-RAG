@@ -14,7 +14,7 @@ def test_delete_document_removes_processing_job_in_same_transaction():
     db = MagicMock()
     db.scalar.return_value = document
     user = SimpleNamespace(role="admin", organization_id=uuid4())
-    with patch("app.services.document_processing_service._get_document_directory", return_value=None), patch("app.services.document_processing_service.QdrantClient"):
+    with patch("app.services.document_processing_service._get_document_directory", return_value=None), patch("app.services.document_processing_service.get_vector_store"):
         result = delete_document(document_id, db, user)
     statement = db.execute.call_args.args[0]
     assert isinstance(statement, Delete)

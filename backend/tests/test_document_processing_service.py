@@ -28,7 +28,7 @@ def test_index_saves_status_after_vector_write():
     db = MagicMock()
     db.scalar.return_value = document
     user = SimpleNamespace(role="admin", organization_id=uuid4())
-    with patch("app.services.document_processing_service.QdrantClient") as factory:
+    with patch("app.services.document_processing_service.get_vector_store") as factory:
         result = DocumentProcessingService(db).index(document.id, user)
         factory.return_value.replace_document_chunks.assert_called_once_with(str(document.id), "policy.pdf", [{"id": str(chunk.id), "chunk_index": 0, "content": "Policy text"}])
     assert result.status == "indexed"
@@ -40,7 +40,7 @@ def test_index_does_not_commit_when_provider_fails():
     document = SimpleNamespace(id=uuid4(), filename="policy.pdf", chunks=[SimpleNamespace(id=uuid4(), chunk_index=0, content="Text")], status="chunked")
     db = MagicMock()
     db.scalar.return_value = document
-    with patch("app.services.document_processing_service.QdrantClient") as factory:
+    with patch("app.services.document_processing_service.get_vector_store") as factory:
         factory.return_value.ensure_collection.side_effect = QdrantError("Unavailable")
         with pytest.raises(HTTPException) as exc:
             DocumentProcessingService(db).index(document.id, SimpleNamespace(role="admin", organization_id=uuid4()))

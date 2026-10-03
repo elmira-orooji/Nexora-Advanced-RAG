@@ -5,6 +5,7 @@ This guarantees eventual consistency when the primary document worker crashes
 after committing SQL but before (or during) the external Qdrant mutation.
 """
 import logging
+from app.services.provider_factory import get_vector_store
 from datetime import datetime, timezone
 
 from sqlalchemy import select, update
@@ -12,7 +13,6 @@ from sqlalchemy import select, update
 from app.db.database import SessionLocal
 from app.models.indexing_outbox import IndexingOutbox
 from app.models.document import Document
-from app.services.qdrant import QdrantClient
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ def reconcile_indexing_outbox() -> int:
         if not entries:
             return 0
 
-        qdrant = QdrantClient()
+        qdrant = get_vector_store()
         qdrant.ensure_collection()
 
         for entry in entries:

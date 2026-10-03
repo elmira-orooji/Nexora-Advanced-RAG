@@ -220,7 +220,7 @@ class DocumentIndexRetryTests(unittest.TestCase):
             db.commit()
         generated = [("first chunk", 0, "parent"), ("second chunk", 0, "parent")]
         provenance = {"provider": "mineru", "model": "vlm", "completed_at": "2026-09-24T00:00:00+00:00"}
-        with patch.object(document_jobs, "BASE_DIR", Path.cwd()), patch.object(document_jobs, "SessionLocal", sessions), patch.object(document_jobs, "extract_text_with_provenance", return_value=ExtractionResult("source text", provenance)), patch.object(document_jobs, "hierarchical_chunks", return_value=generated), patch("app.services.incremental_index.hierarchical_chunks", return_value=generated), patch("app.services.incremental_index.enrich_chunk", return_value=([], [])), patch("pathlib.Path.write_text"), patch.object(document_jobs, "QdrantClient") as factory:
+        with patch.object(document_jobs, "BASE_DIR", Path.cwd()), patch.object(document_jobs, "SessionLocal", sessions), patch.object(document_jobs, "extract_text_with_provenance", return_value=ExtractionResult("source text", provenance)), patch.object(document_jobs, "hierarchical_chunks", return_value=generated), patch("app.services.incremental_index.hierarchical_chunks", return_value=generated), patch("app.services.incremental_index.enrich_chunk", return_value=([], [])), patch("pathlib.Path.write_text"), patch.object(document_jobs, "get_vector_store") as factory:
             client = factory.return_value
             # Simulate Qdrant failure during immediate post-commit apply
             client.replace_document_chunks.side_effect = QdrantError("Connection lost")

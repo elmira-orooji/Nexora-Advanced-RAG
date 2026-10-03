@@ -1,3 +1,5 @@
+from app.services.provider_factory import get_vector_store
+from app.services.ports import VectorSearchPort
 from app.services.connector_sources.contracts import ConnectorSyncError, SourceSnapshot, CLOUD_CONNECTORS
 from app.services.connector_sources.website import _website
 from app.services.connector_sources.github import _github
@@ -23,7 +25,6 @@ from app.models.chunk import Chunk
 from app.models.connector import Connector, ConnectorItem
 from app.models.document import Document
 from app.models.document_set import DocumentSet
-from app.services.qdrant import QdrantClient
 from app.services.text_chunker import hierarchical_chunks
 from app.services.chunk_enrichment import enrich_chunk
 from app.services.incremental_index import checksum, incremental_chunks
@@ -94,12 +95,12 @@ def _capture_external_state(document: Document, existed: bool) -> ExternalDocume
     )
 
 
-def _replace_document_vectors(qdrant: QdrantClient, document: Document) -> None:
+def _replace_document_vectors(qdrant: VectorSearchPort, document: Document) -> None:
     qdrant.replace_document_chunks(str(document.id), document.filename, _chunk_payload(document))
 
 
 def _restore_external_states(
-    qdrant: QdrantClient,
+    qdrant: VectorSearchPort,
     states: list[ExternalDocumentState],
     original_error: Exception,
 ) -> None:
@@ -210,7 +211,7 @@ def sync_connector(connector_id: UUID) -> dict[str, int]:
             existing = {item.external_id: item for item in db.scalars(existing_query).all()}
 
             journal: dict[str, ExternalDocumentState] = {}
-            qdrant = QdrantClient(); qdrant.ensure_collection()
+            qdrant = get_vector_store(); qdrant.ensure_collection()
             document_set = db.get(DocumentSet, document_set_id)
             if document_set is None:
                 raise ConnectorSyncError("Connector knowledge set no longer exists")
@@ -293,7 +294,7 @@ def sync_connector(connector_id: UUID) -> dict[str, int]:
                 if not page_items:
                     break
                 journal: dict[str, ExternalDocumentState] = {}
-                qdrant = QdrantClient(); qdrant.ensure_collection()
+                qdrant = get_vector_store(); qdrant.ensure_collection()
                 try:
                     for item in page_items:
                         if item.external_id in snapshot.observed_ids:
@@ -336,7 +337,7 @@ def ingest_webhook_event(db: Session, connector: Connector, action: str, externa
     """Apply one webhook event without treating omitted remote items as deleted."""
     if connector.connector_type != "webhook": raise ConnectorSyncError("Connector does not accept webhook events")
     item = db.scalar(select(ConnectorItem).where(ConnectorItem.connector_id == connector.id, ConnectorItem.external_id == external_id))
-    qdrant = QdrantClient(); qdrant.ensure_collection()
+    qdrant = get_vector_store(); qdrant.ensure_collection()
     if action == "delete":
         if item is None: return "not_found"
         journal: list[ExternalDocumentState] = []

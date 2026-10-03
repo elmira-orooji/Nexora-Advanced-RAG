@@ -10,7 +10,7 @@ from app.services.qdrant import QdrantError
 
 class HealthCheckTests(unittest.TestCase):
     def test_startup_does_not_connect_to_qdrant(self):
-        with patch("app.main.QdrantClient") as qdrant:
+        with patch("app.main.get_vector_store") as qdrant:
             import asyncio
             asyncio.run(startup_collection_setup())
 
@@ -18,7 +18,7 @@ class HealthCheckTests(unittest.TestCase):
 
     def test_liveness_is_lightweight(self):
         with (
-            patch("app.main.QdrantClient") as qdrant,
+            patch("app.main.get_vector_store") as qdrant,
             patch("app.main.get_available_worker_types") as workers,
         ):
             payload = health()
@@ -33,7 +33,7 @@ class HealthCheckTests(unittest.TestCase):
         response = Response()
 
         with (
-            patch("app.main.QdrantClient", side_effect=QdrantError("qdrant unavailable")),
+            patch("app.main.get_vector_store", side_effect=QdrantError("qdrant unavailable")),
             patch("app.main.UPLOAD_DIR", ""),
             patch("app.main.get_available_worker_types", return_value=set()),
         ):
@@ -53,7 +53,7 @@ class HealthCheckTests(unittest.TestCase):
         upload_root.is_dir.return_value = True
 
         with (
-            patch("app.main.QdrantClient"),
+            patch("app.main.get_vector_store"),
             patch("app.main.Path", return_value=upload_root),
             patch("app.main.os.access", return_value=True),
             patch("app.main.UPLOAD_DIR", "uploads"),
@@ -72,7 +72,7 @@ class HealthCheckTests(unittest.TestCase):
         upload_root.is_dir.return_value = True
 
         with (
-            patch("app.main.QdrantClient"),
+            patch("app.main.get_vector_store"),
             patch("app.main.Path", return_value=upload_root),
             patch("app.main.os.access", return_value=True),
             patch("app.main.UPLOAD_DIR", "uploads"),
@@ -94,7 +94,7 @@ class HealthCheckTests(unittest.TestCase):
         upload_root.is_dir.return_value = True
 
         with (
-            patch("app.main.QdrantClient"),
+            patch("app.main.get_vector_store"),
             patch("app.main.Path", return_value=upload_root),
             patch("app.main.os.access", return_value=True),
             patch("app.main.UPLOAD_DIR", "uploads"),

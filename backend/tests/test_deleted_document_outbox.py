@@ -10,7 +10,7 @@ def test_stale_outbox_does_not_reindex_deleted_document():
     db = MagicMock()
     db.scalars.return_value = [entry]
     db.scalar.return_value = None
-    with patch.object(indexing_reconciler, "SessionLocal") as sessions, patch.object(indexing_reconciler, "QdrantClient") as client:
+    with patch.object(indexing_reconciler, "SessionLocal") as sessions, patch.object(indexing_reconciler, "get_vector_store") as client:
         sessions.return_value.__enter__.return_value = db
         assert indexing_reconciler.reconcile_indexing_outbox() == 0
         client.return_value.replace_document_chunks.assert_not_called()

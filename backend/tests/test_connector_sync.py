@@ -68,7 +68,7 @@ class ConnectorDeletionTests(unittest.TestCase):
         session_factory = MagicMock(return_value=db)
         db.__enter__ = MagicMock(return_value=db)
         db.__exit__ = MagicMock(return_value=False)
-        with patch.object(sync, "SessionLocal", session_factory), patch.object(transport, "_validate_public_url"), patch.object(transport, "_fetch", side_effect=lambda url, *args: (metadata if "api.github.com" in url else body, "text/plain", url)), patch.object(sync, "QdrantClient") as qdrant, patch.object(sync.shutil, "rmtree") as remove:
+        with patch.object(sync, "SessionLocal", session_factory), patch.object(transport, "_validate_public_url"), patch.object(transport, "_fetch", side_effect=lambda url, *args: (metadata if "api.github.com" in url else body, "text/plain", url)), patch.object(sync, "get_vector_store") as qdrant, patch.object(sync.shutil, "rmtree") as remove:
             result = sync.sync_connector(connector_id)
         return result, db, qdrant.return_value, remove
 
@@ -173,7 +173,7 @@ class ConnectorDeletionTests(unittest.TestCase):
         session_factory = MagicMock(return_value=db)
         db.__enter__ = MagicMock(return_value=db)
         db.__exit__ = MagicMock(return_value=False)
-        with patch.object(sync, "SessionLocal", session_factory), patch.object(transport, "_validate_public_url"), patch.object(transport, "_fetch", side_effect=fetch), patch.object(sync, "QdrantClient") as qdrant:
+        with patch.object(sync, "SessionLocal", session_factory), patch.object(transport, "_validate_public_url"), patch.object(transport, "_fetch", side_effect=fetch), patch.object(sync, "get_vector_store") as qdrant:
             result = sync.sync_connector(connector_id)
         self.assertEqual(result["deletion_skipped"], 0)
         self.assertEqual(result["deleted"], 0)
@@ -188,7 +188,7 @@ class ConnectorDeletionTests(unittest.TestCase):
         session_factory = MagicMock(return_value=db)
         db.__enter__ = MagicMock(return_value=db)
         db.__exit__ = MagicMock(return_value=False)
-        with patch.object(sync, "SessionLocal", session_factory), patch.object(sync, "_github", side_effect=sync.ConnectorSyncError("Download failed")), patch.object(sync, "QdrantClient") as qdrant:
+        with patch.object(sync, "SessionLocal", session_factory), patch.object(sync, "_github", side_effect=sync.ConnectorSyncError("Download failed")), patch.object(sync, "get_vector_store") as qdrant:
             with self.assertRaises(sync.ConnectorSyncError):
                 sync.sync_connector(connector_id)
         db.delete.assert_not_called()
@@ -239,7 +239,7 @@ class ConnectorCredentialIsolationTests(unittest.TestCase):
 
         with patch.object(sync, "SessionLocal", session_factory), patch.object(sync, "get_connector_credentials", return_value=credentials), patch.object(
             sync, "_google_drive", return_value=sync.SourceSnapshot(source_iterator=iter([]), observed_ids=set(), complete=False)
-        ) as fetch, patch.object(sync, "QdrantClient"):
+        ) as fetch, patch.object(sync, "get_vector_store"):
             sync.sync_connector(connector_id)
 
         fetch.assert_called_once_with(connector.source_url, credentials)
@@ -269,7 +269,7 @@ class ConnectorConsistencyTests(unittest.TestCase):
         base = Path.cwd() / "storage" / f"connector-source-{uuid4()}"
         try:
             upload_dir = base / "uploads"
-            with patch.object(sync, "SessionLocal", session_factory), patch.object(sync, "BASE_DIR", base), patch.object(sync, "UPLOAD_DIR", upload_dir), patch.object(sync, "document_storage_relative", side_effect=lambda path: path.relative_to(upload_dir).as_posix()), patch.object(sync, "_website", return_value=snapshot), patch.object(sync, "incremental_chunks", return_value=([], [], [])), patch.object(sync, "QdrantClient"):
+            with patch.object(sync, "SessionLocal", session_factory), patch.object(sync, "BASE_DIR", base), patch.object(sync, "UPLOAD_DIR", upload_dir), patch.object(sync, "document_storage_relative", side_effect=lambda path: path.relative_to(upload_dir).as_posix()), patch.object(sync, "_website", return_value=snapshot), patch.object(sync, "incremental_chunks", return_value=([], [], [])), patch.object(sync, "get_vector_store"):
                 sync.sync_connector(connector_id)
             self.assertEqual(document.storage_path, document.extracted_text_path)
             apply_query = db.scalars.call_args_list[0].args[0]
@@ -349,7 +349,7 @@ class ConnectorConsistencyTests(unittest.TestCase):
                 patch.object(sync, "UPLOAD_DIR", upload),
                 patch.object(sync, "_website", return_value=snapshot),
                 patch.object(sync, "incremental_chunks", return_value=([new_chunk], [str(new_chunk.id)], [str(old_chunk.id)])),
-                patch.object(sync, "QdrantClient") as factory,
+                patch.object(sync, "get_vector_store") as factory,
             ):
                 client = factory.return_value
                 if qdrant_failure is not None:

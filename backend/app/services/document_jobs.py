@@ -1,3 +1,4 @@
+from app.services.provider_factory import get_vector_store
 import uuid
 import logging
 import re
@@ -15,7 +16,7 @@ from app.models.document import Document
 from app.models.indexing_outbox import IndexingOutbox
 from app.models.processing_job import ProcessingJob
 from app.services.document_extractor import ExtractionError, extract_text_with_provenance
-from app.services.qdrant import QdrantClient, QdrantError
+from app.services.qdrant import QdrantError
 from app.services.text_chunker import hierarchical_chunks
 from app.services.semantic_chunker import semantic_chunks
 from app.services.operational_alerts import send_operational_alert
@@ -410,7 +411,7 @@ def process_document_job(
                     # cannot be reintroduced into the vector store.
                     if apply_db.scalar(select(Document.id).where(Document.id == document.id).with_for_update()) is None:
                         return
-                    qdrant = QdrantClient()
+                    qdrant = get_vector_store()
                     qdrant.ensure_collection()
                     qdrant.replace_document_chunks(
                         outbox_payload["document_id"],

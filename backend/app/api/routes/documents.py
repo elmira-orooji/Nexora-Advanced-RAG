@@ -1,3 +1,4 @@
+from app.services.provider_factory import get_vector_store
 import shutil
 import logging
 import uuid
@@ -33,7 +34,7 @@ from app.schemas.document import (
     IngestResponse,
 )
 from app.services.document_extractor import ExtractionError, extract_text_with_provenance
-from app.services.qdrant import QdrantClient, QdrantError
+from app.services.qdrant import QdrantError
 from app.services.chunk_enrichment import enrich_chunk
 from app.services.upload_security import stage_and_scan_upload
 from app.services.file_storage import atomic_write_text
@@ -51,7 +52,7 @@ from app.api.contracts import set_offset_pagination_headers
 router = APIRouter(prefix="/documents", tags=["documents"])
 logger = logging.getLogger(__name__)
 def _sync_active_chunks(document: Document) -> None:
-    client = QdrantClient()
+    client = get_vector_store()
     client.ensure_collection()
     client.replace_document_chunks(str(document.id), document.filename, [{"id": str(chunk.id), "chunk_index": chunk.chunk_index, "content": chunk.content} for chunk in document.chunks if chunk.is_active])
 

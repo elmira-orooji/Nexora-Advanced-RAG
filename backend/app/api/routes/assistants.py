@@ -1,3 +1,4 @@
+from app.services.provider_factory import get_vector_store, get_language_model
 import re
 import uuid
 
@@ -17,8 +18,8 @@ from app.models.user import User
 from app.schemas.assistant import AssistantAnswerRequest, AssistantCreate, AssistantResponse, AssistantUpdate
 from app.schemas.rag import Citation, RagResponse
 from app.schemas.search import SearchHit
-from app.services.openrouter import OpenRouterClient, OpenRouterError
-from app.services.qdrant import QdrantClient, QdrantError
+from app.services.openrouter import OpenRouterError
+from app.services.qdrant import QdrantError
 from app.services.retrieval import hybrid_search
 
 router = APIRouter(prefix="/assistants", tags=["assistants"])
@@ -61,7 +62,7 @@ def _response(item: Assistant, allowed_set_ids: set[uuid.UUID] | None = None) ->
 @router.get("/models")
 def available_models(user: User = Depends(_admin)):
     try:
-        return OpenRouterClient().list_models()
+        return get_language_model().list_models()
     except OpenRouterError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
@@ -134,7 +135,7 @@ def answer_with_assistant(assistant_id: uuid.UUID, payload: AssistantAnswerReque
     try:
         points = []
         if document_ids:
-            qdrant = QdrantClient(); qdrant.ensure_collection()
+            qdrant = get_vector_store(); qdrant.ensure_collection()
             points = hybrid_search(db, payload.question, payload.limit, document_ids=document_ids)
     except QdrantError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
@@ -145,7 +146,7 @@ def answer_with_assistant(assistant_id: uuid.UUID, payload: AssistantAnswerReque
         db.add(record); db.commit(); db.refresh(record)
         return RagResponse(response_id=record.id, question=payload.question, answer=message, grounded=False, citations=[], sources=[])
     try:
-        answer = OpenRouterClient(model=item.model_id).answer(payload.question, [source.model_dump(mode="json", exclude={"ocr_provenance"}) for source in sources], instructions=item.instructions, hybrid=item.answer_mode == "hybrid")
+        answer = get_language_model(model=item.model_id).answer(payload.question, [source.model_dump(mode="json", exclude={"ocr_provenance"}) for source in sources], instructions=item.instructions, hybrid=item.answer_mode == "hybrid")
     except OpenRouterError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     used = set()

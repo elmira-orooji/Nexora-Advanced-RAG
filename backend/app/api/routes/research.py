@@ -1,3 +1,4 @@
+from app.services.provider_factory import get_vector_store, get_language_model
 import re
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -14,8 +15,8 @@ from app.models.user import User
 from app.schemas.rag import Citation
 from app.schemas.research import ResearchRequest, ResearchResponse, ResearchStep
 from app.schemas.search import SearchHit
-from app.services.openrouter import OpenRouterClient, OpenRouterError
-from app.services.qdrant import QdrantClient, QdrantError
+from app.services.openrouter import OpenRouterError
+from app.services.qdrant import QdrantError
 from app.services.retrieval import hybrid_search
 
 router = APIRouter(prefix="/research", tags=["deep-research"])
@@ -33,11 +34,11 @@ def run_research(payload: ResearchRequest, db: Session = Depends(get_db), user: 
         document_ids = [str(value) for value in payload.document_ids]
     else: document_ids = [str(value) for value in available]
     if not document_ids: raise HTTPException(status_code=409, detail="This knowledge set has no indexed documents")
-    client = OpenRouterClient()
+    client = get_language_model()
     try: queries = client.research_plan(payload.question, payload.max_steps)
     except OpenRouterError: queries = [payload.question, f"Evidence and details about: {payload.question}"]
     try:
-        qdrant = QdrantClient(); qdrant.ensure_collection(); unique: dict[str, SearchHit] = {}; steps = []
+        qdrant = get_vector_store(); qdrant.ensure_collection(); unique: dict[str, SearchHit] = {}; steps = []
         for query in queries:
             points = hybrid_search(db, query=query, limit=5, document_ids=document_ids)
             steps.append(ResearchStep(query=query, evidence_count=len(points)))

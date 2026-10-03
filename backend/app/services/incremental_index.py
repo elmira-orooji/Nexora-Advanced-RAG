@@ -4,7 +4,7 @@ import uuid
 from app.models.chunk import Chunk
 from app.models.document import Document
 from app.services.chunk_enrichment import enrich_chunk
-from app.services.qdrant import QdrantClient
+from app.services.ports import VectorSearchPort
 from app.services.text_chunker import hierarchical_chunks
 
 GeneratedChunk = tuple[str, int, str]
@@ -47,7 +47,7 @@ def incremental_chunks(
     return output, [str(chunk.id) for chunk in changed], removed
 
 
-def sync_incremental(client: QdrantClient, document: Document, changed_ids: list[str], removed_ids: list[str]) -> None:
+def sync_incremental(client: VectorSearchPort, document: Document, changed_ids: list[str], removed_ids: list[str]) -> None:
     changed = [chunk for chunk in document.chunks if str(chunk.id) in set(changed_ids)]
     client.delete_points(removed_ids)
     client.upsert_chunks(str(document.id), document.filename, [{"id": str(chunk.id), "chunk_index": chunk.chunk_index, "content": chunk.content} for chunk in changed])

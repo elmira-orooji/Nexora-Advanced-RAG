@@ -39,7 +39,7 @@ class PlaygroundHitTests(unittest.TestCase):
         self.assertEqual(result.diagnostics.method, "hybrid")
 
     def test_playground_route_accepts_parent_expanded_result(self):
-        with patch("app.api.routes.search._scope", return_value=(None, [], 1)), patch("app.api.routes.search.QdrantClient"), patch("app.api.routes.search.hybrid_search", return_value=[self.point]):
+        with patch("app.api.routes.search._scope", return_value=(None, [], 1)), patch("app.api.routes.search.hybrid_search", return_value=[self.point]):
             result = retrieval_playground(SearchRequest(query="test query"), MagicMock(), MagicMock())
         self.assertEqual(result.result_count, 1)
         self.assertEqual(result.results[0].parent_index, 1)

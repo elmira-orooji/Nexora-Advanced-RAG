@@ -1,3 +1,4 @@
+from app.services.provider_factory import get_language_model
 import re
 from time import perf_counter
 
@@ -13,8 +14,8 @@ from app.models.document import Document
 from app.models.document_set import DocumentSet
 from app.models.user import User
 from app.schemas.search import PipelineTraceResponse, PlaygroundHit, PlaygroundResponse, RetrievalDiagnostics, RetrieverComparisonRequest, RetrieverComparisonResponse, RetrieverVariantResult, SearchHit, SearchRequest, SearchResponse, TraceCitation, TraceStage, UsageMetrics
-from app.services.openrouter import OpenRouterClient, OpenRouterError
-from app.services.qdrant import QdrantClient, QdrantError
+from app.services.openrouter import OpenRouterError
+from app.services.qdrant import QdrantError
 from app.services.retrieval import hybrid_search
 from app.services.usage_tracking import record_usage
 
@@ -63,7 +64,7 @@ def _scope(payload: SearchRequest, db: Session, user: User) -> tuple[str | None,
 def semantic_search(payload: SearchRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     document_id, document_ids, _ = _scope(payload, db, user)
     try:
-        # Removed: client = QdrantClient(); client.ensure_collection()
+        # Removed: client = get_vector_store(); client.ensure_collection()
         points = hybrid_search(db, query=payload.query, limit=payload.limit, document_id=document_id, document_ids=document_ids)
     except QdrantError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
@@ -73,7 +74,7 @@ def semantic_search(payload: SearchRequest, db: Session = Depends(get_db), user:
 @router.post("/playground", response_model=PlaygroundResponse)
 def retrieval_playground(payload: SearchRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     document_id, document_ids, scoped_count = _scope(payload, db, user)
-    # Removed: QdrantClient().ensure_collection()
+    # Removed: get_vector_store().ensure_collection()
     try:
         points = hybrid_search(db, payload.query, payload.limit, document_id=document_id, document_ids=document_ids)
     except QdrantError as exc: raise HTTPException(status_code=502, detail=str(exc)) from exc
@@ -87,7 +88,7 @@ def pipeline_trace(payload: SearchRequest, db: Session = Depends(get_db), user: 
     document_id, document_ids, scoped_count = _scope(payload, db, user)
     scope_ms = round((perf_counter() - scope_started) * 1000, 2)
     metrics: dict = {}
-    # Removed: QdrantClient().ensure_collection()
+    # Removed: get_vector_store().ensure_collection()
     try:
         points = hybrid_search(db, payload.query, payload.limit, document_id=document_id, document_ids=document_ids, trace=metrics)
     except QdrantError as exc:
@@ -96,7 +97,7 @@ def pipeline_trace(payload: SearchRequest, db: Session = Depends(get_db), user: 
     answer_started = perf_counter()
     if results:
         try:
-            llm_result = OpenRouterClient().answer_with_usage(payload.query, [result.model_dump(mode="json") for result in results])
+            llm_result = get_language_model().answer_with_usage(payload.query, [result.model_dump(mode="json") for result in results])
             answer = llm_result.content
             record_usage(db, user.id, payload.document_set_id, "pipeline_trace", llm_result)
         except OpenRouterError as exc:
@@ -122,7 +123,7 @@ def _run_variant(db: Session, payload: RetrieverComparisonRequest, document_id: 
     points = hybrid_search(db, payload.query, config.top_k, document_id=document_id, document_ids=document_ids, vector_weight=config.vector_weight, bm25_weight=config.bm25_weight, use_reranker=config.use_reranker)
     results = [_playground_hit(point) for point in points]
     if results:
-        llm_result = OpenRouterClient().answer_with_usage(payload.query, [result.model_dump(mode="json") for result in results])
+        llm_result = get_language_model().answer_with_usage(payload.query, [result.model_dump(mode="json") for result in results])
         answer = llm_result.content
         record_usage(db, user.id, payload.document_set_id, "retriever_compare", llm_result)
     else:
@@ -138,7 +139,7 @@ def compare_retrievers(payload: RetrieverComparisonRequest, db: Session = Depend
     if payload.config_a.vector_weight + payload.config_a.bm25_weight <= 0 or payload.config_b.vector_weight + payload.config_b.bm25_weight <= 0:
         raise HTTPException(status_code=422, detail="At least one retrieval weight must be greater than zero")
     document_id, document_ids, _ = _scope(payload, db, user)
-    # Removed: QdrantClient().ensure_collection()
+    # Removed: get_vector_store().ensure_collection()
     try:
         variant_a = _run_variant(db, payload, document_id, document_ids, payload.config_a, user)
         variant_b = _run_variant(db, payload, document_id, document_ids, payload.config_b, user)

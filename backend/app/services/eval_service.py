@@ -1,6 +1,7 @@
 """Lightweight RAG evaluation pipeline using LLM-as-Judge via OpenRouter."""
 
 from __future__ import annotations
+from app.services.provider_factory import get_language_model
 
 import json
 import re
@@ -14,7 +15,8 @@ from sqlalchemy.orm import Session
 
 from app.models.document_set import DocumentSet
 from app.models.evaluation_case import EvaluationCase
-from app.services.openrouter import OpenRouterClient, OpenRouterError
+from app.services.openrouter import OpenRouterError
+from app.services.ports import LanguageModelPort
 from app.services.retrieval import hybrid_search
 
 
@@ -102,18 +104,9 @@ def _parse_judge_response(raw: str) -> tuple[float, str]:
         return 0.0, f"Failed to parse judge response: {raw[:200]}"
 
 
-def _llm_judge(client: OpenRouterClient, prompt: str) -> tuple[float, str]:
+def _llm_judge(client: LanguageModelPort, prompt: str) -> tuple[float, str]:
     try:
-        response = client._request({
-            "model": client.model,
-            "messages": [
-                {"role": "system", "content": _JUDGE_SYSTEM},
-                {"role": "user", "content": prompt},
-            ],
-            "temperature": 0.0,
-            "max_tokens": 300,
-        })
-        raw = response["choices"][0]["message"]["content"]
+        raw = client.complete(prompt, system_prompt=_JUDGE_SYSTEM, temperature=0.0, max_tokens=300)
         return _parse_judge_response(raw)
     except (OpenRouterError, KeyError, IndexError, TypeError) as exc:
         return 0.0, f"Judge call failed: {exc}"
@@ -139,7 +132,7 @@ def run_evaluation(
                                contexts=[], error="Document set not found") for c in cases]
 
     document_ids = [str(d.id) for d in doc_set.documents] if doc_set.documents else []
-    client = OpenRouterClient(model=model)
+    client = get_language_model(model=model)
     results: list[EvalCaseResult] = []
 
     for case in cases:

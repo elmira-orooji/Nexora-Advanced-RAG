@@ -27,6 +27,18 @@ class LLMResult:
 
 
 class OpenRouterClient:
+    def complete(self, prompt: str, *, system_prompt: str, temperature: float, max_tokens: int) -> str:
+        response = self._request({
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        })
+        return response["choices"][0]["message"]["content"]
+
     def list_models(self) -> list[dict[str, Any]]:
         started = perf_counter()
         result = "success"

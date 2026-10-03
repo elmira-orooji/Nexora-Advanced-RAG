@@ -1,3 +1,4 @@
+from app.services.provider_factory import get_vector_store
 import uuid
 import shutil
 from pathlib import Path
@@ -11,7 +12,7 @@ from app.models.chunk import Chunk
 from app.models.user import User
 from app.models.processing_job import ProcessingJob
 from app.schemas.document import ChunkingRequest, DeleteDocumentResponse
-from app.services.qdrant import QdrantClient, QdrantError
+from app.services.qdrant import QdrantError
 from app.services.text_chunker import hierarchical_chunks
 from app.services.chunk_enrichment import enrich_chunk
 
@@ -85,7 +86,7 @@ class DocumentProcessingService:
             for chunk in document.chunks
         ]
         try:
-            client = QdrantClient()
+            client = get_vector_store()
             client.ensure_collection()
             client.replace_document_chunks(str(document.id), document.filename, chunks)
         except QdrantError as exc:
@@ -112,7 +113,7 @@ class DocumentProcessingService:
         self.db.scalar(select(ProcessingJob.id).where(ProcessingJob.document_id == document_id).with_for_update())
         self.db.scalar(select(Document.id).where(Document.id == document_id).with_for_update())
         try:
-            qdrant = QdrantClient()
+            qdrant = get_vector_store()
             qdrant.ensure_collection()
             qdrant.delete_document(str(document.id))
         except QdrantError as exc:
