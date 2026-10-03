@@ -1,8 +1,9 @@
+from app.core.application_errors import ApplicationError
 import shutil
 import uuid
 from pathlib import Path
 
-from fastapi import HTTPException, Request, UploadFile
+from fastapi import Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -67,25 +68,25 @@ class DocumentIngestionService:
             self.db.rollback()
             self._discard_stage(document_dir)
             return self._idempotent_result(user, idempotency_key(request), fingerprint)
-        except HTTPException:
+        except ApplicationError:
             self.db.rollback()
             self._discard_stage(document_dir)
             raise
         except (OSError, SQLAlchemyError) as exc:
             self.db.rollback()
             self._discard_stage(document_dir)
-            raise HTTPException(status_code=500, detail="Could not queue document processing") from exc
+            raise ApplicationError(kind="internal_error", detail="Could not queue document processing") from exc
         finally:
             file.file.close()
 
     def _target_set(self, user: User, document_set_id: uuid.UUID | None) -> DocumentSet | None:
         if document_set_id is None:
             if user.role != "admin":
-                raise HTTPException(status_code=403, detail="A permitted knowledge set is required")
+                raise ApplicationError(kind="forbidden", detail="A permitted knowledge set is required")
             return None
         target_set = self.db.scalar(select(DocumentSet).where(DocumentSet.id == document_set_id, DocumentSet.organization_id == user.organization_id))
         if target_set is None:
-            raise HTTPException(status_code=404, detail="Document set not found")
+            raise ApplicationError(kind="not_found", detail="Document set not found")
         require_set_access(self.db, user, document_set_id, "edit")
         return target_set
 
@@ -94,15 +95,15 @@ class DocumentIngestionService:
         try:
             return ChunkingRequest(chunk_size=chunk_size, overlap=overlap)
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+            raise ApplicationError(kind="validation_error", detail=str(exc)) from exc
 
     def _idempotent_result(self, user: User, key: str | None, fingerprint: str) -> IngestResponse:
         existing = self.db.scalar(select(Document).where(Document.organization_id == user.organization_id, Document.idempotency_key == key))
         if existing is None or existing.idempotency_fingerprint != fingerprint:
-            raise HTTPException(status_code=409, detail="Idempotency-Key was already used for a different upload")
+            raise ApplicationError(kind="conflict", detail="Idempotency-Key was already used for a different upload")
         job = self.db.scalar(select(ProcessingJob).where(ProcessingJob.document_id == existing.id))
         if job is None:
-            raise HTTPException(status_code=409, detail="The original upload is still being finalized; retry shortly")
+            raise ApplicationError(kind="conflict", detail="The original upload is still being finalized; retry shortly")
         return IngestResponse(**DocumentResponse.model_validate(existing).model_dump(), job_id=job.id)
 
     @staticmethod

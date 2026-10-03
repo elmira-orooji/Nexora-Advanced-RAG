@@ -1,3 +1,11 @@
+from app.core.application_errors import ApplicationError
+from app.api.application_errors import to_http_exception
+
+
+def http_status(error):
+    return to_http_exception(error).status_code if isinstance(error, ApplicationError) else error.status_code
+
+
 import base64
 import io
 import hashlib
@@ -121,9 +129,9 @@ def test_google_vision_returns_layout_without_writing_files_during_extraction(tm
 def test_preview_checks_access_before_reading_file():
     db = MagicMock()
     with patch("app.api.routes.documents.require_document_access", side_effect=HTTPException(403, "Forbidden")), patch("app.api.routes.documents._document_source_path") as path:
-        with pytest.raises(HTTPException) as error:
+        with pytest.raises((HTTPException, ApplicationError)) as error:
             get_source_region(uuid4(), SourceRegionRequest(chunk_id=uuid4(), query="show image"), Response(), db, SimpleNamespace())
-    assert error.value.status_code == 403
+    assert http_status(error.value) == 403
     path.assert_not_called()
 
 
@@ -131,7 +139,7 @@ def test_missing_or_cross_document_chunk_does_not_read_source():
     db = MagicMock()
     db.scalar.return_value = None
     with patch("app.api.routes.documents.require_document_access", return_value=SimpleNamespace()), patch("app.api.routes.documents._document_source_path") as path:
-        with pytest.raises(HTTPException) as error:
+        with pytest.raises((HTTPException, ApplicationError)) as error:
             get_source_region(uuid4(), SourceRegionRequest(chunk_id=uuid4(), query="show image"), Response(), db, SimpleNamespace())
-    assert error.value.status_code == 404
+    assert http_status(error.value) == 404
     path.assert_not_called()

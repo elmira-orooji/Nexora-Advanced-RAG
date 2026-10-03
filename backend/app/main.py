@@ -36,6 +36,8 @@ from app.core.logging import configure_logging
 from app.core.request_context import reset_request_id, set_request_id
 from app.core.request_context import get_request_id
 from app.api.contracts import API_MAJOR_VERSION, API_PREFIX, error_body
+from app.core.application_errors import ApplicationError
+from app.api.application_errors import to_http_exception
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +114,11 @@ async def api_http_exception_handler(request: Request, exc: HTTPException) -> JS
         content=error_body(status_code=exc.status_code, detail=exc.detail, request_id=get_request_id()),
         headers=exc.headers,
     )
+
+
+@app.exception_handler(ApplicationError)
+async def api_application_exception_handler(request: Request, exc: ApplicationError) -> JSONResponse:
+    return await api_http_exception_handler(request, to_http_exception(exc))
 
 
 @app.exception_handler(RequestValidationError)

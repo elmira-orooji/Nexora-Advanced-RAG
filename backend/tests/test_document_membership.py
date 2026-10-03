@@ -1,3 +1,11 @@
+from app.core.application_errors import ApplicationError
+from app.api.application_errors import to_http_exception
+
+
+def http_status(error):
+    return to_http_exception(error).status_code if isinstance(error, ApplicationError) else error.status_code
+
+
 import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -34,9 +42,9 @@ class DocumentMembershipTests(unittest.TestCase):
 
     def test_target_editor_cannot_attach_restricted_document(self):
         self.db.execute.return_value.all.return_value = [(self.target.id, "edit")]
-        with self.assertRaises(HTTPException) as raised:
+        with self.assertRaises((HTTPException, ApplicationError)) as raised:
             self.call_route()
-        self.assertEqual(raised.exception.status_code, 403)
+        self.assertEqual(http_status(raised.exception), 403)
         self.assertEqual(self.target.documents, [])
         self.db.commit.assert_not_called()
 
@@ -47,9 +55,9 @@ class DocumentMembershipTests(unittest.TestCase):
                 self.db.execute.return_value.all.return_value = [
                     (self.target.id, "edit"), (self.source_id, level),
                 ]
-                with self.assertRaises(HTTPException) as raised:
+                with self.assertRaises((HTTPException, ApplicationError)) as raised:
                     self.call_route()
-                self.assertEqual(raised.exception.status_code, 403)
+                self.assertEqual(http_status(raised.exception), 403)
                 self.assertEqual(self.target.documents, [])
                 self.db.commit.assert_not_called()
 
@@ -65,9 +73,9 @@ class DocumentMembershipTests(unittest.TestCase):
         self.db.execute.return_value.all.return_value = [
             (self.target.id, "view"), (self.source_id, "manage"),
         ]
-        with self.assertRaises(HTTPException) as raised:
+        with self.assertRaises((HTTPException, ApplicationError)) as raised:
             self.call_route()
-        self.assertEqual(raised.exception.status_code, 403)
+        self.assertEqual(http_status(raised.exception), 403)
         self.db.scalar.assert_not_called()
         self.db.commit.assert_not_called()
 
@@ -83,9 +91,9 @@ class DocumentMembershipTests(unittest.TestCase):
         self.user.role = "admin"
         self.db.scalars.return_value.all.return_value = [self.target.id]
         self.db.scalar.side_effect = [self.target, None]
-        with self.assertRaises(HTTPException) as raised:
+        with self.assertRaises((HTTPException, ApplicationError)) as raised:
             self.call_route()
-        self.assertEqual(raised.exception.status_code, 404)
+        self.assertEqual(http_status(raised.exception), 404)
         query = self.db.scalar.call_args.args[0]
         params = query.compile().params
         self.assertIn(self.user.organization_id, params.values())

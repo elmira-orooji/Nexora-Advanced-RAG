@@ -1,3 +1,11 @@
+from app.core.application_errors import ApplicationError
+from app.api.application_errors import to_http_exception
+
+
+def http_status(error):
+    return to_http_exception(error).status_code if isinstance(error, ApplicationError) else error.status_code
+
+
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
@@ -36,8 +44,8 @@ class UploadSecurityTests(TestCase):
                 return destination.stat().st_size
 
             with patch.object(upload_security, "UPLOAD_DIR", uploads), patch.object(upload_security, "MALWARE_QUARANTINE_DIR", quarantine), patch.object(upload_security, "scan_for_malware", side_effect=MalwareDetectedError("Test-Signature")):
-                with self.assertRaises(HTTPException) as raised:
+                with self.assertRaises(ApplicationError) as raised:
                     stage_and_scan_upload(object(), content_type="application/pdf", suffix=".pdf", filename="blocked.pdf", user_id=uuid4(), organization_id=uuid4(), save_upload=save_upload)
 
-            self.assertEqual(raised.exception.status_code, 422)
+            self.assertEqual(http_status(raised.exception), 422)
             self.assertFalse(any(uploads.glob("*/original.pdf")))

@@ -1,3 +1,4 @@
+from app.core.application_errors import ApplicationError
 """Upload-specific validation and persistence helpers.
 
 The API route owns HTTP orchestration; this module owns the reusable details of
@@ -8,7 +9,7 @@ import hashlib
 import uuid
 from pathlib import Path
 
-from fastapi import HTTPException, Request, UploadFile, status
+from fastapi import Request, UploadFile
 
 from app.core.config import MAX_UPLOAD_SIZE
 
@@ -28,12 +29,11 @@ def upload_metadata(file: UploadFile) -> tuple[str, str, str]:
     suffix = Path(filename).suffix.lower()
     expected_suffixes = ALLOWED_FILE_TYPES.get(content_type)
     if expected_suffixes is None or suffix not in expected_suffixes:
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        raise ApplicationError(kind="unsupported_media_type",
             detail="Only PDF, UTF-8 TXT, JPEG, PNG, and TIFF files are supported",
         )
     if not filename:
-        raise HTTPException(status_code=400, detail="A filename is required")
+        raise ApplicationError(kind="bad_request", detail="A filename is required")
     return content_type, filename, suffix
 
 
@@ -42,7 +42,7 @@ def idempotency_key(request: Request) -> str | None:
     if not value:
         return None
     if len(value) > 128:
-        raise HTTPException(status_code=422, detail="Idempotency-Key must be at most 128 characters")
+        raise ApplicationError(kind="validation_error", detail="Idempotency-Key must be at most 128 characters")
     return value
 
 
@@ -62,8 +62,7 @@ def save_upload(file: UploadFile, destination: Path) -> int:
         while chunk := file.file.read(1024 * 1024):
             total_size += len(chunk)
             if total_size > MAX_UPLOAD_SIZE:
-                raise HTTPException(
-                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                raise ApplicationError(kind="payload_too_large",
                     detail=f"File size cannot exceed {MAX_UPLOAD_SIZE // (1024 * 1024)} MB",
                 )
             output.write(chunk)

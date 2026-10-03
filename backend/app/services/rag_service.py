@@ -1,6 +1,7 @@
+from app.core.application_errors import ApplicationError
 import re
 
-from fastapi import HTTPException, status
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -18,7 +19,7 @@ from app.services.operational_alerts import send_operational_alert
 from app.services.operational_metrics import increment
 from app.services.ports import ProviderFactoryPort
 from app.services.qdrant import QdrantError
-from app.services.provider_failures import provider_http_error
+from app.services.provider_failures import provider_error
 from app.services.retrieval import hybrid_search
 from app.services.usage_tracking import record_usage
 from app.services.transactions import commit_or_rollback
@@ -33,11 +34,11 @@ class RagService:
 
     def answer(self, payload: RagRequest, user: User) -> RagResponse:
         if payload.document_id and (payload.document_set_id or payload.document_ids):
-            raise HTTPException(status_code=422, detail="Choose either a document or a document set scope")
+            raise ApplicationError(kind="validation_error", detail="Choose either a document or a document set scope")
         if payload.document_ids and not payload.document_set_id:
-            raise HTTPException(status_code=422, detail="Selected documents require a document set")
+            raise ApplicationError(kind="validation_error", detail="Selected documents require a document set")
         if not payload.document_id and not payload.document_set_id:
-            raise HTTPException(status_code=422, detail="A permitted document or knowledge set is required")
+            raise ApplicationError(kind="validation_error", detail="A permitted document or knowledge set is required")
 
         document_ids: list[str] | None = None
         if payload.document_id:
@@ -46,13 +47,13 @@ class RagService:
             require_set_access(self.db, user, payload.document_set_id)
             document_set = self.db.scalar(select(DocumentSet).where(DocumentSet.id == payload.document_set_id, DocumentSet.organization_id == user.organization_id))
             if document_set is None:
-                raise HTTPException(status_code=404, detail="Document set not found")
+                raise ApplicationError(kind="not_found", detail="Document set not found")
             available_ids = set(self.db.scalars(select(Document.id).join(Document.document_sets).where(DocumentSet.id == payload.document_set_id, Document.status == "indexed")).all())
             available_ids = filter_document_ids(self.db, available_ids, payload.filters)
             if payload.document_ids:
                 requested_ids = set(payload.document_ids)
                 if requested_ids - available_ids:
-                    raise HTTPException(status_code=422, detail="One or more selected documents are unavailable or outside this set")
+                    raise ApplicationError(kind="validation_error", detail="One or more selected documents are unavailable or outside this set")
                 document_ids = [str(item) for item in payload.document_ids]
             else:
                 document_ids = [str(item) for item in available_ids]
@@ -63,7 +64,7 @@ class RagService:
         except QdrantError as exc:
             increment("rag_failures_total", dependency="qdrant")
             send_operational_alert("qdrant-failure", "Vector store is unavailable", "A RAG request could not reach Qdrant. Check the Qdrant service and its network connection.")
-            raise provider_http_error(exc) from exc
+            raise provider_error(exc) from exc
 
         sources = [SearchHit(score=point["score"], **point["payload"]) for point in points]
         if not sources:
@@ -76,7 +77,7 @@ class RagService:
         except OpenRouterError as exc:
             increment("model_failures_total", provider="openrouter")
             send_operational_alert("model-failure", "Model request failed", "A RAG request could not be completed by the configured model provider. Check provider status, credentials, quota, and request logs.")
-            raise provider_http_error(exc) from exc
+            raise provider_error(exc) from exc
 
         answer, citation_ids = self._normalize_citations(answer, len(sources))
         citations = [Citation(id=index, chunk_id=source.chunk_id, document_id=source.document_id, filename=source.filename, chunk_index=source.chunk_index, excerpt=source.content, score=source.score, ocr_provenance=source.ocr_provenance) for index, source in enumerate(sources, start=1) if index in citation_ids]
@@ -85,7 +86,7 @@ class RagService:
             self.db.add(record)
             commit_or_rollback(self.db)
         except SQLAlchemyError as exc:
-            raise HTTPException(status_code=500, detail="Could not save the answer") from exc
+            raise ApplicationError(kind="internal_error", detail="Could not save the answer") from exc
         self.db.refresh(record)
         return RagResponse(response_id=record.id, question=payload.question, answer=answer, grounded=bool(citations), citations=citations, sources=sources)
 
@@ -96,7 +97,7 @@ class RagService:
             self.db.add(record)
             commit_or_rollback(self.db)
         except SQLAlchemyError as exc:
-            raise HTTPException(status_code=500, detail="Could not save the answer") from exc
+            raise ApplicationError(kind="internal_error", detail="Could not save the answer") from exc
         self.db.refresh(record)
         return RagResponse(response_id=record.id, question=payload.question, answer=message, grounded=False, citations=[], sources=[])
 

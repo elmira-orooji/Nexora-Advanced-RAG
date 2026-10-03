@@ -1,3 +1,11 @@
+from app.core.application_errors import ApplicationError
+from app.api.application_errors import to_http_exception
+
+
+def http_status(error):
+    return to_http_exception(error).status_code if isinstance(error, ApplicationError) else error.status_code
+
+
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -47,16 +55,16 @@ def test_route_delegates_to_service():
 def test_invalid_scope_never_calls_provider(context, condition, code):
     c = context
     if condition == "denied":
-        c.access.side_effect = HTTPException(status_code=403, detail="Access denied")
+        c.access.side_effect = ApplicationError(kind="forbidden", detail="Access denied")
     elif condition == "missing":
         c.db.scalar.return_value = None
     elif condition == "outside":
         c.payload.document_ids = [uuid4()]
     else:
         c.db.scalars.return_value.all.return_value = []
-    with pytest.raises(HTTPException) as error:
+    with pytest.raises(ApplicationError) as error:
         module.ResearchService(c.db).run(c.payload, c.user)
-    assert error.value.status_code == code
+    assert http_status(error.value) == code
     c.model.research_plan.assert_not_called()
     c.db.commit.assert_not_called()
 
@@ -118,8 +126,8 @@ def test_provider_failure_preserves_502_without_writes(context, provider):
     else:
         c.search.return_value = [point(c.document_id, uuid4(), 0.8)]
         c.model.answer.side_effect = OpenRouterError("model unavailable")
-    with pytest.raises(HTTPException) as error:
+    with pytest.raises(ApplicationError) as error:
         module.ResearchService(c.db).run(c.payload, c.user)
-    assert error.value.status_code == 502
+    assert http_status(error.value) == 502
     c.db.add.assert_not_called()
     c.db.commit.assert_not_called()

@@ -1,3 +1,11 @@
+from app.core.application_errors import ApplicationError
+from app.api.application_errors import to_http_exception
+
+
+def http_status(error):
+    return to_http_exception(error).status_code if isinstance(error, ApplicationError) else error.status_code
+
+
 import unittest
 from contextlib import ExitStack
 from types import SimpleNamespace
@@ -34,14 +42,14 @@ class ConversationMultiSetTests(unittest.TestCase):
 
     def test_revoked_access_prevents_retrieval(self):
         with patch("app.services.conversation_service.require_set_access", side_effect=HTTPException(403, "Forbidden")):
-            with self.assertRaises(HTTPException):
+            with self.assertRaises((HTTPException, ApplicationError)):
                 self.service._resolve_scope(SimpleNamespace(document_set_ids=[str(self.ids[0])]), self.user)
         self.repository.indexed_document_ids_for_sets.assert_not_called()
 
     def test_mixed_workspace_and_selected_scope_is_rejected(self):
-        with self.assertRaises(HTTPException) as error:
+        with self.assertRaises((HTTPException, ApplicationError)) as error:
             self.service.create(ConversationCreate(document_set_ids=self.ids, workspace_scope=True), self.user)
-        self.assertEqual(error.exception.status_code, 422)
+        self.assertEqual(http_status(error.exception), 422)
         self.repository.save.assert_not_called()
 
 
@@ -101,9 +109,9 @@ class ConversationAssistantTests(unittest.TestCase):
     def test_inactive_assistant_cannot_trigger_rewrite(self):
         self.assistant.is_active = False
         self.rewrite.return_value = True
-        with self.assertRaises(HTTPException) as raised:
+        with self.assertRaises((HTTPException, ApplicationError)) as raised:
             self.send()
-        self.assertEqual(raised.exception.status_code, 409)
+        self.assertEqual(http_status(raised.exception), 409)
         self.client.assert_not_called()
 
     def test_image_request_persists_preview_intent_without_generation_provider(self):
@@ -119,7 +127,7 @@ class ConversationAssistantTests(unittest.TestCase):
     def test_hybrid_does_not_bypass_member_permissions(self):
         self.user.role = "user"
         with patch("app.services.conversation_service.accessible_set_ids", return_value=set()):
-            with self.assertRaises(HTTPException) as raised:
+            with self.assertRaises((HTTPException, ApplicationError)) as raised:
                 self.send()
-        self.assertEqual(raised.exception.status_code, 403)
+        self.assertEqual(http_status(raised.exception), 403)
         self.client.assert_not_called()

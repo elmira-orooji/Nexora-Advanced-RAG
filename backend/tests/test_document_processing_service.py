@@ -1,3 +1,11 @@
+from app.core.application_errors import ApplicationError
+from app.api.application_errors import to_http_exception
+
+
+def http_status(error):
+    return to_http_exception(error).status_code if isinstance(error, ApplicationError) else error.status_code
+
+
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -16,9 +24,9 @@ def test_operations_reject_non_admin_before_database_access(operation):
     service = DocumentProcessingService(db)
     user = SimpleNamespace(role="user", organization_id=uuid4())
     args = (uuid4(), ChunkingRequest(), user) if operation == "create_chunks" else (uuid4(), user)
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(ApplicationError) as exc:
         getattr(service, operation)(*args)
-    assert exc.value.status_code == 403
+    assert http_status(exc.value) == 403
     db.scalar.assert_not_called()
 
 
@@ -42,9 +50,9 @@ def test_index_does_not_commit_when_provider_fails():
     db.scalar.return_value = document
     with patch("app.services.document_processing_service.get_vector_store") as factory:
         factory.return_value.ensure_collection.side_effect = QdrantError("Unavailable")
-        with pytest.raises(HTTPException) as exc:
+        with pytest.raises(ApplicationError) as exc:
             DocumentProcessingService(db).index(document.id, SimpleNamespace(role="admin", organization_id=uuid4()))
-    assert exc.value.status_code == 502
+    assert http_status(exc.value) == 502
     assert document.status == "chunked"
     db.commit.assert_not_called()
 

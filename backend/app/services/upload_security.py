@@ -1,6 +1,7 @@
 """Security gates for files before they enter document storage or processing."""
 
 from __future__ import annotations
+from app.core.application_errors import ApplicationError
 
 import hashlib
 import logging
@@ -10,7 +11,7 @@ import struct
 import uuid
 from pathlib import Path
 
-from fastapi import HTTPException, status
+
 
 from app.core.config import (
     CLAMD_HOST,
@@ -99,7 +100,7 @@ def stage_and_scan_upload(file, *, content_type: str, suffix: str, filename: str
         quarantine_dir.mkdir(parents=True, exist_ok=False)
         size = save_upload(file, staged_path)
         if size == 0:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The uploaded file is empty")
+            raise ApplicationError(kind="bad_request", detail="The uploaded file is empty")
         validate_upload_content(staged_path, content_type)
         scan_for_malware(staged_path)
         document_dir = UPLOAD_DIR / str(document_id)
@@ -116,15 +117,15 @@ def stage_and_scan_upload(file, *, content_type: str, suffix: str, filename: str
             if quarantine_dir.exists(): shutil.move(str(quarantine_dir), retained)
         else:
             shutil.rmtree(quarantine_dir, ignore_errors=True)
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="The uploaded file was blocked by malware scanning") from exc
+        raise ApplicationError(kind="validation_error", detail="The uploaded file was blocked by malware scanning") from exc
     except MalwareScannerUnavailable as exc:
         _log_rejection(filename, content_type, size, staged_path, user_id, organization_id, "scanner_unavailable")
         shutil.rmtree(quarantine_dir, ignore_errors=True)
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Upload scanning is temporarily unavailable. The file was not accepted.") from exc
+        raise ApplicationError(kind="service_unavailable", detail="Upload scanning is temporarily unavailable. The file was not accepted.") from exc
     except UploadContentError as exc:
         _log_rejection(filename, content_type, size, staged_path, user_id, organization_id, "content_type_mismatch")
         shutil.rmtree(quarantine_dir, ignore_errors=True)
-        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(exc)) from exc
+        raise ApplicationError(kind="unsupported_media_type", detail=str(exc)) from exc
     except Exception:
         shutil.rmtree(quarantine_dir, ignore_errors=True)
         raise

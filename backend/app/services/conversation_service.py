@@ -1,7 +1,8 @@
+from app.core.application_errors import ApplicationError
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import HTTPException
+
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -16,7 +17,7 @@ from app.schemas.search import SearchHit
 from app.services.openrouter import OpenRouterError
 from app.services.ports import ProviderFactoryPort
 from app.services.qdrant import QdrantError
-from app.services.provider_failures import provider_http_error
+from app.services.provider_failures import provider_error
 from app.services.query_rewriting import should_rewrite
 from app.services.retrieval import hybrid_search
 from app.services.transactions import commit_or_rollback
@@ -34,22 +35,22 @@ class ConversationService:
     def create(self, payload: ConversationCreate, user: User) -> Conversation:
         scopes = sum(value is not None for value in (payload.document_id, payload.document_set_id, payload.assistant_id)) + int(payload.workspace_scope) + int(bool(payload.document_set_ids))
         if scopes != 1:
-            raise HTTPException(status_code=422, detail="Choose exactly one document, knowledge set, assistant, or workspace scope")
+            raise ApplicationError(kind="validation_error", detail="Choose exactly one document, knowledge set, assistant, or workspace scope")
         if payload.document_id:
             require_document_access(self.db, user, payload.document_id)
         if payload.document_set_id:
             if not self.repository.document_set_exists(payload.document_set_id, user.organization_id):
-                raise HTTPException(status_code=404, detail="Document set not found")
+                raise ApplicationError(kind="not_found", detail="Document set not found")
             require_set_access(self.db, user, payload.document_set_id)
         if payload.assistant_id:
             assistant = self.repository.get_assistant(payload.assistant_id, user.organization_id)
             if assistant is None:
-                raise HTTPException(status_code=404, detail="Assistant not found")
+                raise ApplicationError(kind="not_found", detail="Assistant not found")
             self._assistant_set_ids(assistant, user)
         selected_ids = list(dict.fromkeys(payload.document_set_ids))
         for set_id in selected_ids:
             if not self.repository.document_set_exists(set_id, user.organization_id):
-                raise HTTPException(status_code=404, detail="Document set not found")
+                raise ApplicationError(kind="not_found", detail="Document set not found")
             require_set_access(self.db, user, set_id)
         conversation = Conversation(user_id=user.id, title=payload.title or "New conversation", document_id=payload.document_id, document_set_id=payload.document_set_id, assistant_id=payload.assistant_id, workspace_scope=payload.workspace_scope, document_set_ids=[str(value) for value in selected_ids])
         self.repository.save(conversation)
@@ -61,7 +62,7 @@ class ConversationService:
     def get(self, conversation_id: uuid.UUID, user: User, *, with_messages: bool = False) -> Conversation:
         conversation = self.repository.get_owned(conversation_id, user.id, with_messages=with_messages)
         if conversation is None:
-            raise HTTPException(status_code=404, detail="Conversation not found")
+            raise ApplicationError(kind="not_found", detail="Conversation not found")
         return conversation
 
     def update(self, conversation_id: uuid.UUID, payload: ConversationUpdate, user: User) -> Conversation:
@@ -91,7 +92,7 @@ class ConversationService:
                 vector_store.ensure_collection()
                 points = hybrid_search(self.db, query=retrieval_query, limit=payload.limit, document_id=document_id, document_ids=document_ids, vector_store=vector_store)
         except QdrantError as exc:
-            raise provider_http_error(exc) from exc
+            raise provider_error(exc) from exc
         sources = [SearchHit(score=point["score"], **point["payload"]) for point in points]
         answer_basis = ("hybrid" if sources else "general") if hybrid else "sources"
         if sources and wants_document_image(payload.content):
@@ -103,7 +104,7 @@ class ConversationService:
             try:
                 answer = self.providers.language_model(model=model_id).answer(payload.content, [source.model_dump(mode="json", exclude={"ocr_provenance"}) for source in sources], history=history, instructions=instructions, hybrid=hybrid)
             except OpenRouterError as exc:
-                raise provider_http_error(exc) from exc
+                raise provider_error(exc) from exc
         else:
             answer = self._no_results_message(payload.content)
         record = AnswerRecord(user_id=user.id, assistant_id=conversation.assistant_id, document_set_id=conversation.document_set_id, question=payload.content, answer=answer, grounded=bool(sources), citation_count=len(sources))
@@ -117,7 +118,7 @@ class ConversationService:
             conversation.updated_at = datetime.now(timezone.utc)
             commit_or_rollback(self.db)
         except SQLAlchemyError as exc:
-            raise HTTPException(status_code=500, detail="Could not save the conversation message") from exc
+            raise ApplicationError(kind="internal_error", detail="Could not save the conversation message") from exc
         self.db.refresh(assistant_message)
         return assistant_message
 
@@ -136,7 +137,7 @@ class ConversationService:
         if conversation.assistant_id:
             assistant = self.repository.get_assistant(conversation.assistant_id, user.organization_id)
             if assistant is None:
-                raise HTTPException(status_code=409, detail="Conversation assistant is unavailable")
+                raise ApplicationError(kind="conflict", detail="Conversation assistant is unavailable")
             set_ids = self._assistant_set_ids(assistant, user)
             return None, self.repository.indexed_document_ids_for_sets(set_ids) if set_ids else [], assistant.model_id, assistant.instructions, assistant.answer_mode == "hybrid"
         if conversation.workspace_scope:
@@ -144,17 +145,17 @@ class ConversationService:
             if not set_ids and user.role != "admin":
                 return None, [], None, None, False
             return None, self.repository.indexed_workspace_document_ids(user.organization_id, set_ids), None, None, False
-        raise HTTPException(status_code=409, detail="Conversation has no valid knowledge scope")
+        raise ApplicationError(kind="conflict", detail="Conversation has no valid knowledge scope")
 
     def _assistant_set_ids(self, assistant, user: User) -> list[uuid.UUID]:
         if not assistant.is_active:
-            raise HTTPException(status_code=409, detail="Assistant is inactive")
+            raise ApplicationError(kind="conflict", detail="Assistant is inactive")
         set_ids = [item.id for item in assistant.document_sets]
         allowed = accessible_set_ids(self.db, user)
         if allowed is not None:
             set_ids = [value for value in set_ids if value in allowed]
         if not set_ids and user.role != "admin":
-            raise HTTPException(status_code=403, detail="You do not have access to this assistant's knowledge")
+            raise ApplicationError(kind="forbidden", detail="You do not have access to this assistant's knowledge")
         return set_ids
 
     @staticmethod

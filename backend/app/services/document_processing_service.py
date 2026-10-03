@@ -1,8 +1,9 @@
+from app.core.application_errors import ApplicationError
 from app.services.provider_factory import get_vector_store
 import uuid
 import shutil
 from pathlib import Path
-from fastapi import HTTPException, status
+
 from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
@@ -25,26 +26,26 @@ class DocumentProcessingService:
 
     def create_chunks(self, document_id: uuid.UUID, payload: ChunkingRequest, user: User | None) -> Document:
         if user is not None and user.role != "admin":
-            raise HTTPException(status_code=403, detail="Admin access is required")
+            raise ApplicationError(kind="forbidden", detail="Admin access is required")
         statement = select(Document).options(selectinload(Document.chunks)).where(Document.id == document_id)
         if user is not None:
             statement = statement.where(Document.organization_id == user.organization_id)
         document = self.db.scalar(statement)
 
         if document is None:
-            raise HTTPException(status_code=404, detail="Document not found")
+            raise ApplicationError(kind="not_found", detail="Document not found")
         if not document.extracted_text_path:
-            raise HTTPException(status_code=409, detail="Document text has not been extracted")
+            raise ApplicationError(kind="conflict", detail="Document text has not been extracted")
 
         extracted_path = resolve_document_path(document.extracted_text_path)
         storage_root = UPLOAD_DIR.resolve()
         if storage_root not in extracted_path.parents or not extracted_path.is_file():
-            raise HTTPException(status_code=409, detail="Extracted text file is unavailable")
+            raise ApplicationError(kind="conflict", detail="Extracted text file is unavailable")
 
         text = extracted_path.read_text(encoding="utf-8")
         contents = hierarchical_chunks(text, payload.chunk_size, payload.overlap)
         if not contents:
-            raise HTTPException(status_code=422, detail="Document contains no text to chunk")
+            raise ApplicationError(kind="validation_error", detail="Document contains no text to chunk")
 
         try:
             for existing_chunk in list(document.chunks):
@@ -62,20 +63,20 @@ class DocumentProcessingService:
             return document
         except SQLAlchemyError as exc:
             self.db.rollback()
-            raise HTTPException(status_code=500, detail="Could not save document chunks") from exc
+            raise ApplicationError(kind="internal_error", detail="Could not save document chunks") from exc
 
     def index(self, document_id: uuid.UUID, user: User | None) -> Document:
         if user is not None and user.role != "admin":
-            raise HTTPException(status_code=403, detail="Admin access is required")
+            raise ApplicationError(kind="forbidden", detail="Admin access is required")
         statement = select(Document).options(selectinload(Document.chunks)).where(Document.id == document_id)
         if user is not None:
             statement = statement.where(Document.organization_id == user.organization_id)
         document = self.db.scalar(statement)
 
         if document is None:
-            raise HTTPException(status_code=404, detail="Document not found")
+            raise ApplicationError(kind="not_found", detail="Document not found")
         if not document.chunks:
-            raise HTTPException(status_code=409, detail="Document has no chunks to index")
+            raise ApplicationError(kind="conflict", detail="Document has no chunks to index")
 
         chunks = [
             {
@@ -90,8 +91,7 @@ class DocumentProcessingService:
             client.ensure_collection()
             client.replace_document_chunks(str(document.id), document.filename, chunks)
         except QdrantError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
+            raise ApplicationError(kind="upstream_unavailable",
                 detail=str(exc),
             ) from exc
 
@@ -103,10 +103,10 @@ class DocumentProcessingService:
 
     def delete(self, document_id: uuid.UUID, user: User) -> DeleteDocumentResponse:
         if user.role != "admin":
-            raise HTTPException(status_code=403, detail="Admin access is required")
+            raise ApplicationError(kind="forbidden", detail="Admin access is required")
         document = self.db.scalar(select(Document).where(Document.id == document_id, Document.organization_id == user.organization_id))
         if document is None:
-            raise HTTPException(status_code=404, detail="Document not found")
+            raise ApplicationError(kind="not_found", detail="Document not found")
 
         document_dir = _get_document_directory(document)
         # Match the worker's lock order (job, then document).
@@ -117,8 +117,7 @@ class DocumentProcessingService:
             qdrant.ensure_collection()
             qdrant.delete_document(str(document.id))
         except QdrantError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
+            raise ApplicationError(kind="upstream_unavailable",
                 detail=str(exc),
             ) from exc
 
@@ -130,7 +129,7 @@ class DocumentProcessingService:
             self.db.commit()
         except SQLAlchemyError as exc:
             self.db.rollback()
-            raise HTTPException(status_code=500, detail="Could not delete document") from exc
+            raise ApplicationError(kind="internal_error", detail="Could not delete document") from exc
 
         storage_removed = True
         if document_dir is not None and document_dir.exists():
@@ -155,8 +154,7 @@ def _get_document_directory(document: Document) -> Path | None:
     document_dir = resolve_document_path(stored_source).parent
     expected_dir = storage_root / str(document.id)
     if document_dir != expected_dir:
-        raise HTTPException(
-            status_code=409,
+        raise ApplicationError(kind="conflict",
             detail="Document storage path failed safety validation",
         )
     return document_dir

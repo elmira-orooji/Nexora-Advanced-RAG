@@ -1,6 +1,7 @@
+from app.core.application_errors import ApplicationError
 import uuid
 
-from fastapi import HTTPException
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -24,7 +25,7 @@ def require_set_access(db: Session, user: User, set_id: uuid.UUID, minimum: str 
     if user.role == "admin":
         allowed = accessible_set_ids(db, user, minimum)
         if set_id not in allowed:
-            raise HTTPException(status_code=403, detail=f"{minimum.capitalize()} access to this knowledge set is required")
+            raise ApplicationError(kind="forbidden", detail=f"{minimum.capitalize()} access to this knowledge set is required")
         return "manage"
 
     rows = db.execute(
@@ -33,16 +34,16 @@ def require_set_access(db: Session, user: User, set_id: uuid.UUID, minimum: str 
     ).all()
     access_level = next((level for item_id, level in rows if item_id == set_id), None)
     if access_level is None or LEVELS[access_level] < LEVELS[minimum]:
-        raise HTTPException(status_code=403, detail=f"{minimum.capitalize()} access to this knowledge set is required")
+        raise ApplicationError(kind="forbidden", detail=f"{minimum.capitalize()} access to this knowledge set is required")
     return access_level
 
 
 def require_document_access(db: Session, user: User, document_id: uuid.UUID, minimum: str = "view") -> Document:
     document = db.scalar(select(Document).where(Document.id == document_id, Document.organization_id == user.organization_id))
     if document is None:
-        raise HTTPException(status_code=404, detail="Document not found")
+        raise ApplicationError(kind="not_found", detail="Document not found")
     allowed = accessible_set_ids(db, user, minimum) or set()
     memberships = {item.id for item in document.document_sets}
     if not memberships.intersection(allowed):
-        raise HTTPException(status_code=403, detail="You do not have access to this document")
+        raise ApplicationError(kind="forbidden", detail="You do not have access to this document")
     return document

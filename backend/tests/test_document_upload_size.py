@@ -1,3 +1,11 @@
+from app.core.application_errors import ApplicationError
+from app.api.application_errors import to_http_exception
+
+
+def http_status(error):
+    return to_http_exception(error).status_code if isinstance(error, ApplicationError) else error.status_code
+
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -22,8 +30,8 @@ def test_rejects_upload_above_100_mb():
     block = b"x" * (1024 * 1024)
     upload.file.read.side_effect = [block] * 100 + [b"x", b""]
     destination = MagicMock()
-    with pytest.raises(HTTPException) as error:
+    with pytest.raises((HTTPException, ApplicationError)) as error:
         save_upload(upload, destination)
-    assert error.value.status_code == 413
+    assert http_status(error.value) == 413
     assert error.value.detail == "File size cannot exceed 100 MB"
     assert destination.open.return_value.__enter__.return_value.write.call_count == 100

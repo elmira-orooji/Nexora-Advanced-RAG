@@ -1,4 +1,5 @@
 from app.services.provider_factory import get_vector_store
+from app.core.application_errors import ApplicationError
 import shutil
 import logging
 import uuid
@@ -202,7 +203,7 @@ def upload_document(
         db.rollback()
         if document_dir is not None: shutil.rmtree(document_dir, ignore_errors=True)
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except HTTPException:
+    except (HTTPException, ApplicationError):
         db.rollback()
         if document_dir is not None: shutil.rmtree(document_dir, ignore_errors=True)
         raise
@@ -361,7 +362,7 @@ def get_document(document_id: uuid.UUID, db: Session = Depends(get_db), user: Us
                 require_set_access(db, user, document_set.id)
                 allowed = True
                 break
-            except HTTPException:
+            except (HTTPException, ApplicationError):
                 continue
         if not allowed:
             raise HTTPException(status_code=403, detail="You do not have access to this document")

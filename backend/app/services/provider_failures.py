@@ -1,8 +1,9 @@
+from app.core.application_errors import ApplicationError
 """Translate infrastructure failures into stable, safe API responses."""
 
 import logging
 
-from fastapi import HTTPException, status
+
 
 from app.services.openrouter import OpenRouterError
 from app.services.qdrant import QdrantError
@@ -46,17 +47,15 @@ def _log_provider_failure(exc: Exception, provider: str) -> None:
     })
 
 
-def provider_http_error(exc: Exception) -> HTTPException:
+def provider_error(exc: Exception) -> ApplicationError:
     if isinstance(exc, QdrantError):
         _log_provider_failure(exc, "qdrant")
-        return HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        return ApplicationError(kind="service_unavailable",
             detail="Knowledge search is temporarily unavailable. Please retry shortly.",
         )
     if isinstance(exc, OpenRouterError):
         _log_provider_failure(exc, "openrouter")
-        return HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        return ApplicationError(kind="service_unavailable",
             detail="The AI response service is temporarily unavailable. Please retry shortly.",
         )
-    return HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="A required service is currently unavailable.")
+    return ApplicationError(kind="upstream_unavailable", detail="A required service is currently unavailable.")
