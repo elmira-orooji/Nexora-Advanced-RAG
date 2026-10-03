@@ -2,14 +2,14 @@ from app.core.application_errors import ApplicationError
 from app.services.provider_factory import get_vector_store, get_language_model
 import re
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
+from app.services.transactions import transaction
+from app.repositories.answer_repository import AnswerRepository
+from app.repositories.knowledge_scope_repository import KnowledgeScopeRepository
 
 from app.core.document_set_access import require_set_access
 from app.core.metadata_filters import filter_document_ids
 from app.models.answer_feedback import AnswerRecord
-from app.models.document import Document
-from app.models.document_set import DocumentSet
 from app.models.user import User
 from app.schemas.rag import Citation
 from app.schemas.research import ResearchRequest, ResearchResponse, ResearchStep
@@ -23,12 +23,14 @@ class ResearchService:
 
     def __init__(self, db: Session):
         self.db = db
+        self.answers = AnswerRepository(db)
+        self.scopes = KnowledgeScopeRepository(db)
 
     def run(self, payload: ResearchRequest, user: User) -> ResearchResponse:
         db = self.db
         require_set_access(db, user, payload.document_set_id)
-        if db.scalar(select(DocumentSet).where(DocumentSet.id == payload.document_set_id, DocumentSet.organization_id == user.organization_id)) is None: raise ApplicationError(kind="not_found", detail="Document set not found")
-        available = set(db.scalars(select(Document.id).join(Document.document_sets).where(DocumentSet.id == payload.document_set_id, Document.status == "indexed")).all())
+        if self.scopes.get_set(payload.document_set_id, user.organization_id) is None: raise ApplicationError(kind="not_found", detail="Document set not found")
+        available = self.scopes.indexed_document_ids(payload.document_set_id)
         available = filter_document_ids(db, available, payload.filters)
         if payload.document_ids:
             requested = set(payload.document_ids)
@@ -52,7 +54,7 @@ class ResearchService:
         if not sources:
             message = "No sufficient evidence was found for this research question."
             record = AnswerRecord(user_id=user.id, document_set_id=payload.document_set_id, question=payload.question, answer=message, grounded=False, citation_count=0)
-            db.add(record); db.commit(); db.refresh(record)
+            self._save_answer(record)
             return ResearchResponse(response_id=record.id, question=payload.question, answer=message, grounded=False, citations=[], steps=steps, evidence_reviewed=0)
         instructions = "Write a structured research report with a short executive summary, findings, limitations, and conclusion. Synthesize across sources instead of listing them. Every factual claim must retain inline [Source N] citations. Explicitly state uncertainty or conflicting evidence."
         try: answer = client.answer(payload.question, [source.model_dump(mode="json", exclude={"ocr_provenance"}) for source in sources], instructions=instructions)
@@ -65,5 +67,10 @@ class ResearchService:
         answer = re.sub(r"\[\s*(?:Source\s*)?(\d+)\s*\]", normalize, answer, flags=re.I).strip()
         citations = [Citation(id=index, chunk_id=source.chunk_id, document_id=source.document_id, filename=source.filename, chunk_index=source.chunk_index, excerpt=source.content, score=source.score, ocr_provenance=source.ocr_provenance) for index, source in enumerate(sources, 1) if index in used]
         record = AnswerRecord(user_id=user.id, document_set_id=payload.document_set_id, question=payload.question, answer=answer, grounded=bool(citations), citation_count=len(citations))
-        db.add(record); db.commit(); db.refresh(record)
+        self._save_answer(record)
         return ResearchResponse(response_id=record.id, question=payload.question, answer=answer, grounded=bool(citations), citations=citations, steps=steps, evidence_reviewed=len(sources))
+
+    def _save_answer(self, record: AnswerRecord) -> None:
+        with transaction(self.db):
+            self.answers.add(record)
+        self.answers.refresh(record)

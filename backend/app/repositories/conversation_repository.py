@@ -48,9 +48,9 @@ class ConversationRepository:
 
     def save(self, item: object) -> None:
         self.db.add(item)
-        self.db.commit()
-        self.db.refresh(item)
 
     def delete(self, item: Conversation) -> None:
         self.db.delete(item)
-        self.db.commit()
+
+    def refresh(self, item: object) -> None:
+        self.db.refresh(item)

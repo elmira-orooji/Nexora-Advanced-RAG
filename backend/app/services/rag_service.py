@@ -2,15 +2,12 @@ from app.core.application_errors import ApplicationError
 import re
 
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.document_set_access import require_document_access, require_set_access
 from app.core.metadata_filters import filter_document_ids
 from app.models.answer_feedback import AnswerRecord
-from app.models.document import Document
-from app.models.document_set import DocumentSet
 from app.models.user import User
 from app.schemas.rag import Citation, RagRequest, RagResponse
 from app.schemas.search import SearchHit
@@ -22,7 +19,9 @@ from app.services.provider_errors import VectorStoreError
 from app.services.provider_failures import provider_error
 from app.services.retrieval import hybrid_search
 from app.services.usage_tracking import record_usage
-from app.services.transactions import commit_or_rollback
+from app.services.transactions import transaction
+from app.repositories.answer_repository import AnswerRepository
+from app.repositories.knowledge_scope_repository import KnowledgeScopeRepository
 
 
 class RagService:
@@ -31,6 +30,8 @@ class RagService:
     def __init__(self, db: Session, providers: ProviderFactoryPort):
         self.db = db
         self.providers = providers
+        self.answers = AnswerRepository(db)
+        self.scopes = KnowledgeScopeRepository(db)
 
     def answer(self, payload: RagRequest, user: User) -> RagResponse:
         if payload.document_id and (payload.document_set_id or payload.document_ids):
@@ -45,10 +46,10 @@ class RagService:
             require_document_access(self.db, user, payload.document_id)
         elif payload.document_set_id:
             require_set_access(self.db, user, payload.document_set_id)
-            document_set = self.db.scalar(select(DocumentSet).where(DocumentSet.id == payload.document_set_id, DocumentSet.organization_id == user.organization_id))
+            document_set = self.scopes.get_set(payload.document_set_id, user.organization_id)
             if document_set is None:
                 raise ApplicationError(kind="not_found", detail="Document set not found")
-            available_ids = set(self.db.scalars(select(Document.id).join(Document.document_sets).where(DocumentSet.id == payload.document_set_id, Document.status == "indexed")).all())
+            available_ids = self.scopes.indexed_document_ids(payload.document_set_id)
             available_ids = filter_document_ids(self.db, available_ids, payload.filters)
             if payload.document_ids:
                 requested_ids = set(payload.document_ids)
@@ -73,7 +74,6 @@ class RagService:
         try:
             llm_result = self.providers.language_model().answer_with_usage(payload.question, contexts)
             answer = llm_result.content
-            record_usage(self.db, user.id, payload.document_set_id, "rag_answer", llm_result)
         except LanguageModelError as exc:
             increment("model_failures_total", provider="openrouter")
             send_operational_alert("model-failure", "Model request failed", "A RAG request could not be completed by the configured model provider. Check provider status, credentials, quota, and request logs.")
@@ -83,22 +83,23 @@ class RagService:
         citations = [Citation(id=index, chunk_id=source.chunk_id, document_id=source.document_id, filename=source.filename, chunk_index=source.chunk_index, excerpt=source.content, score=source.score, ocr_provenance=source.ocr_provenance) for index, source in enumerate(sources, start=1) if index in citation_ids]
         record = AnswerRecord(user_id=user.id, document_set_id=payload.document_set_id, question=payload.question, answer=answer, grounded=bool(citations), citation_count=len(citations))
         try:
-            self.db.add(record)
-            commit_or_rollback(self.db)
+            with transaction(self.db):
+                record_usage(self.db, user.id, payload.document_set_id, "rag_answer", llm_result)
+                self.answers.add(record)
         except SQLAlchemyError as exc:
             raise ApplicationError(kind="internal_error", detail="Could not save the answer") from exc
-        self.db.refresh(record)
+        self.answers.refresh(record)
         return RagResponse(response_id=record.id, question=payload.question, answer=answer, grounded=bool(citations), citations=citations, sources=sources)
 
     def _save_no_results(self, payload: RagRequest, user: User) -> RagResponse:
         message = "No relevant information was found in the indexed documents."
         record = AnswerRecord(user_id=user.id, document_set_id=payload.document_set_id, question=payload.question, answer=message, grounded=False, citation_count=0)
         try:
-            self.db.add(record)
-            commit_or_rollback(self.db)
+            with transaction(self.db):
+                self.answers.add(record)
         except SQLAlchemyError as exc:
             raise ApplicationError(kind="internal_error", detail="Could not save the answer") from exc
-        self.db.refresh(record)
+        self.answers.refresh(record)
         return RagResponse(response_id=record.id, question=payload.question, answer=message, grounded=False, citations=[], sources=[])
 
     @staticmethod

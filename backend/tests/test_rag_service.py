@@ -28,3 +28,15 @@ def test_rag_service_normalizes_only_valid_citations():
 
     assert answer == "Answer [1] [2]"
     assert citations == {1, 2}
+
+
+def test_no_evidence_answer_is_saved_in_one_transaction():
+    db = MagicMock()
+    db.refresh.side_effect = lambda record: setattr(record, "id", uuid4())
+    user = SimpleNamespace(id=uuid4())
+    payload = RagRequest(question="What is Nexora?", document_id=uuid4())
+    result = RagService(db, MagicMock())._save_no_results(payload, user)
+    assert not result.grounded
+    assert result.sources == [] and result.citations == []
+    db.commit.assert_called_once_with()
+    db.rollback.assert_not_called()

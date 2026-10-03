@@ -20,7 +20,8 @@ from app.services.provider_errors import VectorStoreError
 from app.services.provider_failures import provider_error
 from app.services.query_rewriting import should_rewrite
 from app.services.retrieval import hybrid_search
-from app.services.transactions import commit_or_rollback
+from app.services.transactions import transaction
+from app.repositories.answer_repository import AnswerRepository
 from app.services.document_visuals import wants_document_image
 
 
@@ -31,6 +32,7 @@ class ConversationService:
         self.db = db
         self.providers = providers
         self.repository = repository or ConversationRepository(db)
+        self.answers = AnswerRepository(db)
 
     def create(self, payload: ConversationCreate, user: User) -> Conversation:
         scopes = sum(value is not None for value in (payload.document_id, payload.document_set_id, payload.assistant_id)) + int(payload.workspace_scope) + int(bool(payload.document_set_ids))
@@ -53,7 +55,9 @@ class ConversationService:
                 raise ApplicationError(kind="not_found", detail="Document set not found")
             require_set_access(self.db, user, set_id)
         conversation = Conversation(user_id=user.id, title=payload.title or "New conversation", document_id=payload.document_id, document_set_id=payload.document_set_id, assistant_id=payload.assistant_id, workspace_scope=payload.workspace_scope, document_set_ids=[str(value) for value in selected_ids])
-        self.repository.save(conversation)
+        with transaction(self.db):
+            self.repository.save(conversation)
+        self.repository.refresh(conversation)
         return conversation
 
     def list(self, user: User, offset: int, limit: int) -> list[Conversation]:
@@ -67,13 +71,17 @@ class ConversationService:
 
     def update(self, conversation_id: uuid.UUID, payload: ConversationUpdate, user: User) -> Conversation:
         conversation = self.get(conversation_id, user)
-        conversation.title = payload.title.strip()
-        conversation.updated_at = datetime.now(timezone.utc)
-        self.repository.save(conversation)
+        with transaction(self.db):
+            conversation.title = payload.title.strip()
+            conversation.updated_at = datetime.now(timezone.utc)
+            self.repository.save(conversation)
+        self.repository.refresh(conversation)
         return conversation
 
     def delete(self, conversation_id: uuid.UUID, user: User) -> None:
-        self.repository.delete(self.get(conversation_id, user))
+        conversation = self.get(conversation_id, user)
+        with transaction(self.db):
+            self.repository.delete(conversation)
 
     def send_message(self, conversation_id: uuid.UUID, payload: ChatMessageCreate, user: User) -> Message:
         conversation = self.get(conversation_id, user, with_messages=True)
@@ -109,17 +117,17 @@ class ConversationService:
             answer = self._no_results_message(payload.content)
         record = AnswerRecord(user_id=user.id, assistant_id=conversation.assistant_id, document_set_id=conversation.document_set_id, question=payload.content, answer=answer, grounded=bool(sources), citation_count=len(sources))
         try:
-            self.db.add(record)
-            self.db.flush()
-            assistant_message = Message(role="assistant", content=answer, sources=[source.model_dump(mode="json") for source in sources] or None, answer_basis=answer_basis, answer_id=record.id)
-            conversation.messages.extend([Message(role="user", content=payload.content), assistant_message])
-            if conversation.title == "New conversation":
-                conversation.title = payload.content[:200]
-            conversation.updated_at = datetime.now(timezone.utc)
-            commit_or_rollback(self.db)
+            with transaction(self.db):
+                self.answers.add(record)
+                self.answers.flush()
+                assistant_message = Message(role="assistant", content=answer, sources=[source.model_dump(mode="json") for source in sources] or None, answer_basis=answer_basis, answer_id=record.id)
+                conversation.messages.extend([Message(role="user", content=payload.content), assistant_message])
+                if conversation.title == "New conversation":
+                    conversation.title = payload.content[:200]
+                conversation.updated_at = datetime.now(timezone.utc)
         except SQLAlchemyError as exc:
             raise ApplicationError(kind="internal_error", detail="Could not save the conversation message") from exc
-        self.db.refresh(assistant_message)
+        self.answers.refresh(assistant_message)
         return assistant_message
 
     def _resolve_scope(self, conversation: Conversation, user: User) -> tuple[str | None, list[str] | None, str | None, str | None, bool]:
