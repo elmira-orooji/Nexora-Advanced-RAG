@@ -6,7 +6,7 @@ from app.services import indexing_reconciler
 
 
 def test_stale_outbox_does_not_reindex_deleted_document():
-    entry = SimpleNamespace(document_id=uuid4(), action="replace_document_chunks", payload={})
+    entry = SimpleNamespace(id=uuid4(), document_id=uuid4(), attempts=0, action="replace_document_chunks", payload={})
     db = MagicMock()
     db.scalars.return_value = [entry]
     db.scalar.return_value = None

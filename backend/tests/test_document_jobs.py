@@ -232,7 +232,7 @@ class DocumentIndexRetryTests(unittest.TestCase):
                 completed_job = db.get(ProcessingJob, job_id)
                 self.assertEqual(completed_job.status, "completed")
                 document = db.get(Document, document_id)
-                self.assertEqual(document.status, "indexed")
+                self.assertEqual(document.status, "processing")
                 self.assertEqual(document.ocr_provenance, provenance)
                 self.assertIsNotNone(document.content_checksum)
                 self.assertEqual(len(document.chunks), 2)

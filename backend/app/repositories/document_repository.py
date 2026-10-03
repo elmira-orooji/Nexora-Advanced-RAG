@@ -11,12 +11,14 @@ class DocumentRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_document(self, document_id, organization_id=None, *, with_chunks=False):
+    def get_document(self, document_id, organization_id=None, *, with_chunks=False, lock=False):
         statement = select(Document).where(Document.id == document_id)
         if organization_id is not None:
             statement = statement.where(Document.organization_id == organization_id)
         if with_chunks:
             statement = statement.options(selectinload(Document.chunks))
+        if lock:
+            statement = statement.with_for_update().execution_options(populate_existing=True)
         return self.db.scalar(statement)
 
     def get_set(self, set_id, organization_id):

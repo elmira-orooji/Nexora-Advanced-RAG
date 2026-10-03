@@ -1,5 +1,4 @@
 from app.core.application_errors import ApplicationError
-from app.services.provider_factory import get_vector_store
 import uuid
 import shutil
 from pathlib import Path
@@ -12,8 +11,8 @@ from app.models.chunk import Chunk
 from app.models.user import User
 from app.repositories.document_repository import DocumentRepository
 from app.services.transactions import transaction
+from app.services.document_indexing_service import DocumentIndexingService
 from app.schemas.document import ChunkingRequest, DeleteDocumentResponse
-from app.services.provider_errors import VectorStoreError
 from app.services.text_chunker import hierarchical_chunks
 from app.services.chunk_enrichment import enrich_chunk
 
@@ -72,26 +71,16 @@ class DocumentProcessingService:
         if not document.chunks:
             raise ApplicationError(kind="conflict", detail="Document has no chunks to index")
 
-        chunks = [
-            {
-                "id": str(chunk.id),
-                "chunk_index": chunk.chunk_index,
-                "content": chunk.content,
-            }
-            for chunk in document.chunks
-        ]
-        try:
-            client = get_vector_store()
-            client.ensure_collection()
-            client.replace_document_chunks(str(document.id), document.filename, chunks)
-        except VectorStoreError as exc:
-            raise ApplicationError(kind="upstream_unavailable",
-                detail=str(exc),
-            ) from exc
-
+        indexing = DocumentIndexingService(self.db)
         with transaction(self.db):
+            # Serialize manual index/edit with deletion and reconciliation.
+            document = self.repository.get_document(document_id, user.organization_id if user else None, with_chunks=True, lock=True)
+            if document is None:
+                raise ApplicationError(kind="not_found", detail="Document not found")
             document.status = "indexed"
             document.processing_error = None
+            entry = indexing.enqueue(document)
+        indexing.apply(entry, document_id)
         self.repository.refresh(document)
         return document
 
@@ -105,24 +94,18 @@ class DocumentProcessingService:
         document_dir = _get_document_directory(document)
         # Match the worker's lock order (job, then document).
         self.repository.lock_job_then_document(document_id)
-        try:
-            qdrant = get_vector_store()
-            qdrant.ensure_collection()
-            qdrant.delete_document(str(document.id))
-        except VectorStoreError as exc:
-            raise ApplicationError(kind="upstream_unavailable",
-                detail=str(exc),
-            ) from exc
-
+        indexing = DocumentIndexingService(self.db)
         try:
             with transaction(self.db):
                 # Delete queued/running jobs explicitly: workers detect the missing claim
                 # at the next extraction checkpoint instead of continuing OCR/fallback.
                 self.repository.delete_jobs(document_id)
                 self.repository.delete(document)
+                entry = indexing.enqueue_delete(document_id)
         except SQLAlchemyError as exc:
             raise ApplicationError(kind="internal_error", detail="Could not delete document") from exc
 
+        indexing.apply_delete(entry, document_id)
         storage_removed = True
         if document_dir is not None and document_dir.exists():
             try:

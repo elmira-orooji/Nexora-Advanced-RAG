@@ -13,6 +13,8 @@ from sqlalchemy import select, update
 from app.db.database import SessionLocal
 from app.models.indexing_outbox import IndexingOutbox
 from app.models.document import Document
+from app.repositories.document_repository import DocumentRepository
+from app.services.document_indexing_service import indexing_payload, mark_indexed
 
 logger = logging.getLogger(__name__)
 
@@ -33,24 +35,33 @@ def reconcile_indexing_outbox() -> int:
         if not entries:
             return 0
 
-        qdrant = get_vector_store()
-        qdrant.ensure_collection()
+        qdrant = None
 
         for entry in entries:
+            entry_id = entry.id
+            document_id = entry.document_id
+            attempts = entry.attempts or 0
             try:
+                if qdrant is None:
+                    qdrant = get_vector_store()
+                    qdrant.ensure_collection()
                 payload = entry.payload
                 action = entry.action
                 if action == "replace_document_chunks":
                     # Share the document lock with deletion and immediate apply.
                     # A stale outbox snapshot must not recreate deleted vectors.
-                    if db.scalar(select(Document.id).where(Document.id == entry.document_id).with_for_update()) is None:
-                        db.rollback()
+                    document = DocumentRepository(db).get_document(entry.document_id, with_chunks=True, lock=True)
+                    if document is None:
+                        entry.status = "cancelled"
+                        db.commit()
                         continue
+                    payload = indexing_payload(document)
                     qdrant.replace_document_chunks(
                         payload["document_id"],
                         payload["filename"],
                         payload["chunks"],
                     )
+                    mark_indexed(db, document, entry)
                 elif action == "delete_document":
                     qdrant.delete_document(payload["document_id"])
                 else:
@@ -70,26 +81,38 @@ def reconcile_indexing_outbox() -> int:
                 )
             except Exception as exc:
                 db.rollback()
-                entry_attempts = (entry.attempts or 0) + 1
+                qdrant = None
+                entry_attempts = attempts + 1
                 error_msg = str(exc)[:1000]
                 if entry_attempts >= MAX_RECONCILE_ATTEMPTS:
                     new_status = "failed"
                     logger.error(
                         "Indexing outbox entry exceeded max attempts",
-                        extra={"outbox_id": str(entry.id), "document_id": str(entry.document_id), "attempts": entry_attempts},
+                        extra={"outbox_id": str(entry_id), "document_id": str(document_id), "attempts": entry_attempts},
                         exc_info=True,
                     )
                 else:
                     new_status = "pending"
                     logger.warning(
                         "Indexing outbox reconciliation failed; will retry",
-                        extra={"outbox_id": str(entry.id), "document_id": str(entry.document_id), "attempt": entry_attempts},
+                        extra={"outbox_id": str(entry_id), "document_id": str(document_id), "attempt": entry_attempts},
                         exc_info=True,
                     )
                 with SessionLocal() as err_db:
+                    if new_status == "failed" and document_id is not None:
+                        document = DocumentRepository(err_db).get_document(document_id, lock=True)
+                        latest_id = err_db.scalar(select(IndexingOutbox.id).where(
+                            IndexingOutbox.document_id == document_id,
+                            IndexingOutbox.action == "replace_document_chunks",
+                        ).order_by(IndexingOutbox.created_at.desc(), IndexingOutbox.id.desc()).limit(1))
+                        # An old failed intent must not overwrite a newer edit.
+                        if document is not None and latest_id == entry_id and document.status == "processing":
+                            document.status = "failed"
+                            document.processing_stage = "dead_letter"
+                            document.processing_error = "Could not synchronize the document index. Retry processing."
                     err_db.execute(
                         update(IndexingOutbox)
-                        .where(IndexingOutbox.id == entry.id)
+                        .where(IndexingOutbox.id == entry_id)
                         .values(status=new_status, attempts=entry_attempts, last_error=error_msg, updated_at=datetime.now(timezone.utc))
                     )
                     err_db.commit()

@@ -20,17 +20,12 @@ from app.services.document_processing_service import _get_document_directory
 from app.services.document_upload import save_upload as _save_upload, upload_metadata
 from app.services.file_storage import atomic_write_text
 from app.services.provider_errors import VectorStoreError
-from app.services.provider_factory import get_vector_store
 from app.services.transactions import transaction
+from app.services.document_indexing_service import DocumentIndexingService
 from app.services.upload_security import stage_and_scan_upload
 
 
 logger = logging.getLogger(__name__)
-
-def _sync_active_chunks(document: Document) -> None:
-    client = get_vector_store()
-    client.ensure_collection()
-    client.replace_document_chunks(str(document.id), document.filename, [{"id": str(chunk.id), "chunk_index": chunk.chunk_index, "content": chunk.content} for chunk in document.chunks if chunk.is_active])
 
 def _document_source_path(document: Document) -> Path:
     stored_source = document.storage_path or document.extracted_text_path
@@ -51,7 +46,7 @@ class DocumentManagementService:
         db = self.db
         if user.role != "admin":
             raise ApplicationError(kind="forbidden", detail="Admin access is required")
-        document = self.repository.get_document(document_id, user.organization_id, with_chunks=True)
+        document = self.repository.get_document(document_id, user.organization_id, with_chunks=True, lock=True)
         if document is None:
             raise ApplicationError(kind="not_found", detail="Document not found")
         chunk = next((item for item in document.chunks if item.id == chunk_id), None)
@@ -67,7 +62,8 @@ class DocumentManagementService:
                     chunk.is_active = payload.is_active
                 document.updated_at = datetime.now(timezone.utc)
                 self.repository.flush()
-                _sync_active_chunks(document)
+                entry = DocumentIndexingService(db).enqueue(document)
+            DocumentIndexingService(db).apply(entry, document_id)
             self.repository.refresh(chunk)
         except VectorStoreError as exc:
             db.rollback()
@@ -129,6 +125,7 @@ class DocumentManagementService:
         db = self.db
         content_type, safe_filename, suffix = upload_metadata(file)
 
+        committed = False
         document_dir: Path | None = None
 
         try:
@@ -158,19 +155,23 @@ class DocumentManagementService:
                 )
             with transaction(db):
                 self.repository.add(document)
+            committed = True
             self.repository.refresh(document)
             return document
         except ExtractionError as exc:
             db.rollback()
-            if document_dir is not None: shutil.rmtree(document_dir, ignore_errors=True)
+            if not committed and document_dir is not None:
+                shutil.rmtree(document_dir, ignore_errors=True)
             raise ApplicationError(kind="validation_error", detail=str(exc)) from exc
         except ApplicationError:
             db.rollback()
-            if document_dir is not None: shutil.rmtree(document_dir, ignore_errors=True)
+            if not committed and document_dir is not None:
+                shutil.rmtree(document_dir, ignore_errors=True)
             raise
         except SQLAlchemyError as exc:
             db.rollback()
-            if document_dir is not None: shutil.rmtree(document_dir, ignore_errors=True)
+            if not committed and document_dir is not None:
+                shutil.rmtree(document_dir, ignore_errors=True)
             raise ApplicationError(kind="internal_error", detail="Could not save document") from exc
         finally:
             file.file.close()

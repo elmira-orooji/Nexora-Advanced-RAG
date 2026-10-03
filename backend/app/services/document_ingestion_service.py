@@ -30,6 +30,7 @@ class DocumentIngestionService:
     def ingest(self, request: Request, file: UploadFile, user: User, *, chunk_size: int, overlap: int, document_set_id: uuid.UUID | None) -> IngestResponse:
         target_set = self._target_set(user, document_set_id)
         chunking = self._chunking(chunk_size, overlap)
+        committed = False
         document_dir: Path | None = None
         try:
             content_type, filename, suffix = upload_metadata(file)
@@ -63,20 +64,24 @@ class DocumentIngestionService:
                     parent_chunk_size=target_set.parent_chunk_size if target_set else None,
                 )
                 self.repository.add(job)
+            committed = True
             self.repository.refresh(document)
             self.repository.refresh(job)
             return IngestResponse(**DocumentResponse.model_validate(document).model_dump(), job_id=job.id)
         except IntegrityError:
             self.db.rollback()
-            self._discard_stage(document_dir)
+            if not committed:
+                self._discard_stage(document_dir)
             return self._idempotent_result(user, idempotency_key(request), fingerprint)
         except ApplicationError:
             self.db.rollback()
-            self._discard_stage(document_dir)
+            if not committed:
+                self._discard_stage(document_dir)
             raise
         except (OSError, SQLAlchemyError) as exc:
             self.db.rollback()
-            self._discard_stage(document_dir)
+            if not committed:
+                self._discard_stage(document_dir)
             raise ApplicationError(kind="internal_error", detail="Could not queue document processing") from exc
         finally:
             file.file.close()

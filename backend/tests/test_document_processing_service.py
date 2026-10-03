@@ -30,31 +30,33 @@ def test_operations_reject_non_admin_before_database_access(operation):
     db.scalar.assert_not_called()
 
 
-def test_index_saves_status_after_vector_write():
-    chunk = SimpleNamespace(id=uuid4(), chunk_index=0, content="Policy text")
+def test_index_commits_intent_before_vector_write():
+    chunk = SimpleNamespace(id=uuid4(), chunk_index=0, content="Policy text", is_active=True)
     document = SimpleNamespace(id=uuid4(), filename="policy.pdf", chunks=[chunk], status="chunked", processing_error="old")
     db = MagicMock()
     db.scalar.return_value = document
     user = SimpleNamespace(role="admin", organization_id=uuid4())
-    with patch("app.services.document_processing_service.get_vector_store") as factory:
+    with patch("app.services.document_indexing_service.get_vector_store") as factory:
+        factory.return_value.replace_document_chunks.side_effect = lambda *args: db.commit.assert_called_once()
         result = DocumentProcessingService(db).index(document.id, user)
         factory.return_value.replace_document_chunks.assert_called_once_with(str(document.id), "policy.pdf", [{"id": str(chunk.id), "chunk_index": 0, "content": "Policy text"}])
     assert result.status == "indexed"
     assert result.processing_error is None
-    db.commit.assert_called_once()
+    assert db.commit.call_count == 2
+    assert db.add.call_args.args[0].status == "applied"
 
 
-def test_index_does_not_commit_when_provider_fails():
-    document = SimpleNamespace(id=uuid4(), filename="policy.pdf", chunks=[SimpleNamespace(id=uuid4(), chunk_index=0, content="Text")], status="chunked")
+def test_index_provider_failure_keeps_committed_pending_outbox():
+    document = SimpleNamespace(id=uuid4(), filename="policy.pdf", chunks=[SimpleNamespace(id=uuid4(), chunk_index=0, content="Text", is_active=True)], status="chunked")
     db = MagicMock()
     db.scalar.return_value = document
-    with patch("app.services.document_processing_service.get_vector_store") as factory:
+    with patch("app.services.document_indexing_service.get_vector_store") as factory:
         factory.return_value.ensure_collection.side_effect = QdrantError("Unavailable")
-        with pytest.raises(ApplicationError) as exc:
-            DocumentProcessingService(db).index(document.id, SimpleNamespace(role="admin", organization_id=uuid4()))
-    assert http_status(exc.value) == 502
-    assert document.status == "chunked"
-    db.commit.assert_not_called()
+        DocumentProcessingService(db).index(document.id, SimpleNamespace(role="admin", organization_id=uuid4()))
+    assert document.status == "processing"
+    assert db.add.call_args.args[0].status == "pending"
+    db.commit.assert_called_once()
+    db.rollback.assert_called_once()
 
 
 def test_chunking_preserves_enrichment_and_transaction():

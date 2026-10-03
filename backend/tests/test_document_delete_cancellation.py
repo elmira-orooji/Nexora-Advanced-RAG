@@ -14,11 +14,12 @@ def test_delete_document_removes_processing_job_in_same_transaction():
     db = MagicMock()
     db.scalar.return_value = document
     user = SimpleNamespace(role="admin", organization_id=uuid4())
-    with patch("app.services.document_processing_service._get_document_directory", return_value=None), patch("app.services.document_processing_service.get_vector_store"):
+    with patch("app.services.document_processing_service._get_document_directory", return_value=None), patch("app.services.document_indexing_service.get_vector_store"):
         result = delete_document(document_id, db, user)
     statement = db.execute.call_args.args[0]
     assert isinstance(statement, Delete)
     assert statement.table.name == ProcessingJob.__tablename__
     db.delete.assert_called_once_with(document)
-    db.commit.assert_called_once()
+    assert db.commit.call_count == 2
+    assert db.add.call_args.args[0].document_id is None
     assert result.status == "deleted"

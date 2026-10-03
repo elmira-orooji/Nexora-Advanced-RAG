@@ -4,6 +4,7 @@ import logging
 import re
 import threading
 import time
+from types import SimpleNamespace
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
@@ -14,6 +15,8 @@ from app.core.config import BASE_DIR, DOCUMENT_JOB_HEARTBEAT_SECONDS, DOCUMENT_J
 from app.db.database import SessionLocal
 from app.models.document import Document
 from app.models.indexing_outbox import IndexingOutbox
+from app.repositories.document_repository import DocumentRepository
+from app.services.document_indexing_service import indexing_payload, mark_indexed
 from app.models.processing_job import ProcessingJob
 from app.services.document_extractor import ExtractionError, extract_text_with_provenance
 from app.services.provider_errors import VectorStoreError
@@ -359,7 +362,11 @@ def process_document_job(
                 status="pending",
             ))
             _progress(db, document, job, worker_id, 100, "ready", completed=True)
-            create_notification(db, user_id=job.requested_by_id, organization_id=job.organization_id, kind="document_processed", severity="success", title="Document is ready", body=f"{document.filename} has been indexed and is ready to use.")
+            # Extraction is complete, but answers cannot use the document until
+            # the durable vector intent has actually been applied.
+            document.status = "processing"
+            document.processing_stage = "indexing"
+            document.processing_progress = 95
             db.commit()
             increment("document_jobs_completed_total", result="indexed")
         except Exception as exc:
@@ -409,15 +416,18 @@ def process_document_job(
                 with SessionLocal() as apply_db:
                     # Serialize indexing with deletion so a deleted document
                     # cannot be reintroduced into the vector store.
-                    if apply_db.scalar(select(Document.id).where(Document.id == document.id).with_for_update()) is None:
+                    current_document = DocumentRepository(apply_db).get_document(document.id, with_chunks=True, lock=True)
+                    if current_document is None:
                         return
                     qdrant = get_vector_store()
                     qdrant.ensure_collection()
+                    current_payload = indexing_payload(current_document)
                     qdrant.replace_document_chunks(
-                        outbox_payload["document_id"],
-                        outbox_payload["filename"],
-                        outbox_payload["chunks"],
+                        current_payload["document_id"],
+                        current_payload["filename"],
+                        current_payload["chunks"],
                     )
+                    mark_indexed(apply_db, current_document, SimpleNamespace(job_id=job_id))
                     apply_db.execute(
                         update(IndexingOutbox)
                         .where(
