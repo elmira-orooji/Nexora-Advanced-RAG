@@ -11,7 +11,7 @@ def test_repeated_manual_connector_sync_keeps_existing_job_state():
     db = MagicMock()
     db.get.return_value = SimpleNamespace(id=connector_id, document_set_id=document_set_id, status="syncing")
 
-    with patch("app.api.routes.connectors.require_set_access"), patch("app.api.routes.connectors.connector_sync_lock") as lock:
+    with patch("app.services.connector_management_service.require_set_access"), patch("app.services.connector_management_service.connector_sync_lock") as lock:
         result = sync(document_set_id, connector_id, db, MagicMock())
 
     assert result.status == "queued"

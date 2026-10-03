@@ -6,6 +6,7 @@ from app.core.application_errors import ApplicationError
 
 _STATUS_BY_KIND = {
     "bad_request": 400,
+    "unauthorized": 401,
     "forbidden": 403,
     "not_found": 404,
     "conflict": 409,

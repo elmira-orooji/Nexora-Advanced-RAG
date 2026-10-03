@@ -295,7 +295,7 @@ class ConnectorLockTests(unittest.TestCase):
             engine.dispose()
 
     def test_manual_sync_rejects_live_owner(self):
-        from fastapi import HTTPException
+        from app.core.application_errors import ApplicationError
         from app.api.routes.connectors import sync
         from types import SimpleNamespace
 
@@ -305,10 +305,10 @@ class ConnectorLockTests(unittest.TestCase):
         @contextmanager
         def busy(*args):
             yield False
-        with patch("app.api.routes.connectors.require_set_access"), patch("app.api.routes.connectors.connector_sync_lock", busy):
-            with self.assertRaises(HTTPException) as raised:
+        with patch("app.services.connector_management_service.require_set_access"), patch("app.services.connector_management_service.connector_sync_lock", busy):
+            with self.assertRaises(ApplicationError) as raised:
                 sync(set_id, connector_id, db, MagicMock())
-        self.assertEqual(raised.exception.status_code, 409)
+        self.assertEqual(raised.exception.kind, "conflict")
         db.commit.assert_not_called()
 
     def test_stale_worker_heartbeat_does_not_extend_lost_lease(self):

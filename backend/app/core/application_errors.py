@@ -3,7 +3,7 @@
 from typing import Any, Literal
 
 ErrorKind = Literal[
-    "bad_request", "forbidden", "not_found", "conflict", "payload_too_large",
+    "bad_request", "unauthorized", "forbidden", "not_found", "conflict", "payload_too_large",
     "unsupported_media_type", "validation_error", "internal_error",
     "upstream_unavailable", "service_unavailable",
 ]
