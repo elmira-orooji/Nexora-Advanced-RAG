@@ -1,3 +1,5 @@
+from app.core.application_errors import ApplicationError
+from app.api.application_errors import to_http_exception
 import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
@@ -35,27 +37,27 @@ class DeleteMemberTests(unittest.TestCase):
     def test_admin_and_other_organization_are_protected(self):
         for target, code in ((self.admin, 403), (self.outsider, 404)):
             with self.subTest(code=code):
-                with self.assertRaises(HTTPException) as error:
+                with self.assertRaises((HTTPException, ApplicationError)) as error:
                     delete_user(target.id, self.db, self.admin)
-                self.assertEqual(error.exception.status_code, code)
+                self.assertEqual(to_http_exception(error.exception).status_code if isinstance(error.exception, ApplicationError) else error.exception.status_code, code)
                 self.assertIsNotNone(self.db.get(User, target.id))
 
     def test_missing_member(self):
-        with self.assertRaises(HTTPException) as error:
+        with self.assertRaises((HTTPException, ApplicationError)) as error:
             delete_user(uuid4(), self.db, self.admin)
-        self.assertEqual(error.exception.status_code, 404)
+        self.assertEqual(to_http_exception(error.exception).status_code if isinstance(error.exception, ApplicationError) else error.exception.status_code, 404)
 
     def test_non_admin_is_denied(self):
-        with self.assertRaises(HTTPException) as error:
+        with self.assertRaises((HTTPException, ApplicationError)) as error:
             admin_only(self.member)
-        self.assertEqual(error.exception.status_code, 403)
+        self.assertEqual(to_http_exception(error.exception).status_code if isinstance(error.exception, ApplicationError) else error.exception.status_code, 403)
 
     def test_constraint_failure_rolls_back(self):
         member_id = self.member.id
         with patch.object(self.db, "commit", side_effect=IntegrityError("delete", {}, Exception("constraint"))):
-            with self.assertRaises(HTTPException) as error:
+            with self.assertRaises((HTTPException, ApplicationError)) as error:
                 delete_user(member_id, self.db, self.admin)
-        self.assertEqual(error.exception.status_code, 409)
+        self.assertEqual(to_http_exception(error.exception).status_code if isinstance(error.exception, ApplicationError) else error.exception.status_code, 409)
         self.assertIsNotNone(self.db.get(User, member_id))
 
     def test_directory_lists_admins_first_then_members_by_creation_time(self):
@@ -90,25 +92,25 @@ class UpdateMemberTests(unittest.TestCase):
         self.db.commit()
 
     def test_deactivate_revokes_sessions(self):
-        with patch("app.api.routes.users.revoke_user_sessions") as revoke:
+        with patch("app.repositories.user_repository.UserRepository.revoke_sessions") as revoke:
             result = update_user(self.member.id, UserAdminUpdate(is_active=False), self.db, self.admin)
-        revoke.assert_called_once_with(self.db, self.member.id)
+        revoke.assert_called_once_with(self.member.id)
         self.assertFalse(result.is_active)
         self.assertFalse(self.db.get(User, self.member.id).is_active)
 
     def test_reactivate_does_not_revoke(self):
-        with patch("app.api.routes.users.revoke_user_sessions") as revoke:
+        with patch("app.repositories.user_repository.UserRepository.revoke_sessions") as revoke:
             update_user(self.member.id, UserAdminUpdate(is_active=True), self.db, self.admin)
         revoke.assert_not_called()
         self.assertTrue(self.db.get(User, self.member.id).is_active)
 
     def test_cannot_deactivate_own_account(self):
-        with self.assertRaises(HTTPException) as error:
+        with self.assertRaises((HTTPException, ApplicationError)) as error:
             update_user(self.admin.id, UserAdminUpdate(is_active=False), self.db, self.admin)
-        self.assertEqual(error.exception.status_code, 403)
+        self.assertEqual(to_http_exception(error.exception).status_code if isinstance(error.exception, ApplicationError) else error.exception.status_code, 403)
         self.assertTrue(self.db.get(User, self.admin.id).is_active)
 
     def test_missing_user(self):
-        with self.assertRaises(HTTPException) as error:
+        with self.assertRaises((HTTPException, ApplicationError)) as error:
             update_user(uuid4(), UserAdminUpdate(is_active=False), self.db, self.admin)
-        self.assertEqual(error.exception.status_code, 404)
+        self.assertEqual(to_http_exception(error.exception).status_code if isinstance(error.exception, ApplicationError) else error.exception.status_code, 404)
