@@ -15,6 +15,8 @@ describe("AppToaster", () => {
     render(<><AppToaster /><InlineSuccessMessages /></>);
     act(() => { toast.success("Operation completed"); });
     expect(await screen.findByText("Operation completed")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveStyle({ background: "transparent" });
+    expect(screen.getByRole("status")).not.toHaveClass("border");
     fireEvent.click(screen.getByRole("button", { name: "Dismiss success message" }));
     expect(screen.queryByText("Operation completed")).not.toBeInTheDocument();
   });
