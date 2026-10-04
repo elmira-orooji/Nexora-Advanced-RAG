@@ -57,6 +57,13 @@ export default function ConversationPage({ conversationId, onConversationChange,
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sendError, setSendError] = useState("");
+  const [copyNotice, setCopyNotice] = useState("");
+  useEffect(() => {
+    if (!copyNotice) return;
+    const timer = window.setTimeout(() => setCopyNotice(""), 3000);
+    return () => window.clearTimeout(timer);
+  }, [copyNotice]);
+  useEffect(() => setCopyNotice(""), [conversationId]);
   const [loadRevision, setLoadRevision] = useState(0);
   const [sending, setSending] = useState(false);
   const [sendSlow, setSendSlow] = useState(false);
@@ -248,7 +255,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
     </header>
 
     <section className="relative z-10 min-h-0 flex-1 overflow-hidden px-0 sm:px-3">
-      {messages.length ? <OnyxChatWindow messages={messages} isThinking={sending} isSlow={sendSlow} assistantName={assistantName} onContinue={() => void send(isFa ? "پاسخ قبلی ناتمام ماند. فقط ادامهٔ آن را بدون تکرار بخش قبلی، با همان منابع و از محل قطع‌شدن بنویس." : "The previous answer was cut off. Continue from where it stopped, using the same sources and without repeating the previous part.")} /> : <div className="flex h-full flex-col items-center justify-center text-center">
+      {messages.length ? <OnyxChatWindow messages={messages} isThinking={sending} isSlow={sendSlow} assistantName={assistantName} onCopySuccess={setCopyNotice} onContinue={() => void send(isFa ? "پاسخ قبلی ناتمام ماند. فقط ادامهٔ آن را بدون تکرار بخش قبلی، با همان منابع و از محل قطع‌شدن بنویس." : "The previous answer was cut off. Continue from where it stopped, using the same sources and without repeating the previous part.")} /> : <div className="flex h-full flex-col items-center justify-center text-center">
         <span className="grid size-14 place-items-center rounded-2xl border border-[#18c7f4]/25 bg-[#7c27ff]/25 text-[#d9a6ff]"><MessageSquareText size={23} /></span>
         <h2 className="mt-5 text-xl font-semibold">{assistantName ? (isFa ? `گفتگو با ${assistantName} را آغاز کنید` : `Start a conversation with ${assistantName}`) : (isFa ? "گفتگوی مستند را آغاز کنید" : "Start a source-grounded conversation")}</h2>
         <p className="mt-2 max-w-md text-sm leading-6 conversation-muted">{assistantName ? (assistantSources.length ? (isFa ? `این دستیار از ${assistantSources.join("، ")} استفاده می‌کند. پاسخ‌ها و منابع در گفت‌وگوهای اخیر ذخیره می‌شوند.` : `This assistant uses ${assistantSources.join(", ")}. Answers and sources are saved in Recent chats.`) : (isFa ? "این دستیار منبع اختصاصی ندارد. پاسخ‌ها و منابع در گفت‌وگوهای اخیر ذخیره می‌شوند." : "This assistant has no dedicated knowledge base. Answers and sources are saved in Recent chats.")) : (isFa ? "پایگاه دانشی را انتخاب کنید. پیام‌ها، پاسخ‌ها و منابع شما در گفت‌وگوهای اخیر باقی می‌مانند." : "Choose the knowledge base this conversation should use. Your messages, answers, and sources remain available in Recent chats.")}</p>
@@ -258,7 +265,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
         </div>}
       </div>}
     </section>
-    <div className="conversation-dock relative z-20 shrink-0 px-0 pb-4 pt-3 sm:px-3 sm:pb-5">{sendError && <InlineError className="mb-3" message={sendError} onDismiss={() => setSendError("")} />}<ChatInput prominent disabled={!conversationId && !selectedSetId} isSending={sending} onSend={send} onCancel={cancelSend} /><div className="mt-2 flex items-center justify-center gap-1.5 text-xs conversation-muted"><FileText size={10} />{isFa ? "پاسخ‌ها ممکن است خطا داشته باشند؛ منابع را بررسی کنید." : "AI can make mistakes. Verify important details in the cited sources."}</div></div>
+    <div className="conversation-dock relative z-20 shrink-0 px-0 pb-4 pt-3 sm:px-3 sm:pb-5">{sendError && <InlineError className="mb-3" message={sendError} onDismiss={() => setSendError("")} />}<ChatInput prominent disabled={!conversationId && !selectedSetId} isSending={sending} onSend={send} onCancel={cancelSend} />{copyNotice && <p role="status" className="mt-2 text-center text-xs" style={{ color: "var(--status-success)" }}>{copyNotice}</p>}<div className="mt-2 flex items-center justify-center gap-1.5 text-xs conversation-muted"><FileText size={10} />{isFa ? "پاسخ‌ها ممکن است خطا داشته باشند؛ منابع را بررسی کنید." : "AI can make mistakes. Verify important details in the cited sources."}</div></div>
   </div>;
 }
 
