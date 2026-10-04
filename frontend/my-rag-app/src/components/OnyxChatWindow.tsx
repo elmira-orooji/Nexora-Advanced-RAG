@@ -20,14 +20,19 @@ interface Props {
   isSlow?: boolean;
   assistantName?: string;
   onContinue?: () => void;
-  onCopySuccess?: (message: string) => void;
 }
 
-export default function OnyxChatWindow({ messages, isThinking, isSlow = false, assistantName, onContinue, onCopySuccess }: Props) {
+export default function OnyxChatWindow({ messages, isThinking, isSlow = false, assistantName, onContinue }: Props) {
   const { i18n } = useTranslation();
   const isFa = i18n.language.startsWith("fa");
   const [evidence, setEvidence] = useState<{ selected: Source; sources: Source[] } | null>(null);
   const [copyError, setCopyError] = useState("");
+  const [copiedQuestion, setCopiedQuestion] = useState<{ id: string; text: string; revision: number } | null>(null);
+  useEffect(() => {
+    if (!copiedQuestion) return;
+    const timer = window.setTimeout(() => setCopiedQuestion(null), 3000);
+    return () => window.clearTimeout(timer);
+  }, [copiedQuestion]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
   useEffect(() => {
@@ -59,7 +64,7 @@ export default function OnyxChatWindow({ messages, isThinking, isSlow = false, a
     <div ref={scrollRef} onScroll={(event) => { const node = event.currentTarget; followLatest.current = node.scrollHeight - node.scrollTop - node.clientHeight < 100; }} className="chat-thread-scroll h-full overflow-y-auto pe-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
       <div className="chat-thread-messages">
         {messages.map((message) => message.role === "user" ? <article key={message.id} data-scroll-message={message.id} className="chat-question">
-          <div className="chat-question-stack"><span className="chat-question-label">{isFa ? "شما" : "You"}</span><div className="chat-question-bubble"><div dir="auto">{message.content}</div></div><div className="chat-question-meta"><time dateTime={message.createdAt} title={new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.createdAt))}>{new Intl.DateTimeFormat(i18n.language, { hour: "numeric", minute: "2-digit" }).format(new Date(message.createdAt))}</time><button type="button" onClick={() => { void copyQuestion(message.content, isFa, setCopyError, undefined, undefined, onCopySuccess); }} aria-label={isFa ? "کپی پرسش" : "Copy question"} title={isFa ? "کپی پرسش" : "Copy question"}><Copy size={14} /></button></div></div>
+          <div className="chat-question-stack"><span className="chat-question-label">{isFa ? "شما" : "You"}</span><div className="chat-question-bubble"><div dir="auto">{message.content}</div></div>{copiedQuestion?.id === message.id && <p role="status" className="mt-1 text-xs" style={{ color: "var(--status-success)" }}>{copiedQuestion.text}</p>}<div className="chat-question-meta"><time dateTime={message.createdAt} title={new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.createdAt))}>{new Intl.DateTimeFormat(i18n.language, { hour: "numeric", minute: "2-digit" }).format(new Date(message.createdAt))}</time><button type="button" onClick={() => { void copyQuestion(message.content, isFa, setCopyError, undefined, undefined, (text) => setCopiedQuestion((previous) => ({ id: message.id, text, revision: (previous?.revision ?? 0) + 1 }))); }} aria-label={isFa ? "کپی پرسش" : "Copy question"} title={isFa ? "کپی پرسش" : "Copy question"}><Copy size={14} /></button></div></div>
         </article> : <article key={message.id} data-scroll-message={message.id} className="chat-answer">
           <NexoraAvatar />
           <div className="chat-answer-body">
