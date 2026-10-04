@@ -288,7 +288,7 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 .chat-thread .chat-answer { position: relative; display: block; }
 .chat-thread .chat-answer > .nexora-avatar { position: absolute; inset-inline-start: 0; top: 0; }
 .chat-thread .chat-answer-body { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 0; }
-.chat-thread .chat-answer-heading { min-height: 36px; padding-inline-start: 48px; margin-bottom: 18px; }
+.chat-thread .chat-answer-heading { min-height: 44px; padding-inline-start: 46px; margin-bottom: 18px; }
 .chat-thread .chat-answer-heading strong { font-size: 12px; }
 .chat-thread .chat-answer-heading > span:last-child { font-size: var(--font-size-helper); }
 .chat-thread .chat-question-bubble { border-color: transparent; background: var(--answer-tint); border-radius: 16px 16px 4px 16px; }

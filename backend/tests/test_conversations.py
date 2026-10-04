@@ -72,7 +72,7 @@ class ConversationAssistantTests(unittest.TestCase):
         stack.enter_context(patch("app.services.conversation_service.accessible_set_ids", return_value=None))
         self.rewrite = stack.enter_context(patch("app.services.conversation_service.should_rewrite", return_value=False))
         self.search = stack.enter_context(patch("app.services.conversation_service.hybrid_search", return_value=[]))
-        self.client.return_value.answer.return_value = "Generated answer"
+        self.client.return_value.answer_with_usage.return_value = SimpleNamespace(content="Generated answer", truncated=False)
         self.client.return_value.rewrite_query.return_value = "Rewritten question"
 
     def send(self):
@@ -82,7 +82,7 @@ class ConversationAssistantTests(unittest.TestCase):
         result = self.send()
         self.assertEqual(result.content, "Generated answer")
         self.client.assert_called_once_with(model="selected/model")
-        self.assertTrue(self.client.return_value.answer.call_args.kwargs["hybrid"])
+        self.assertTrue(self.client.return_value.answer_with_usage.call_args.kwargs["hybrid"])
         self.search.assert_not_called()
         self.qdrant.assert_not_called()
 
@@ -102,9 +102,13 @@ class ConversationAssistantTests(unittest.TestCase):
         self.assertTrue(all(call.kwargs == {"model": "selected/model"} for call in self.client.call_args_list))
         self.assertEqual(self.search.call_args.kwargs["query"], "Rewritten question")
         self.assertEqual(self.search.call_args.kwargs["document_ids"], [str(document_id)])
-        kwargs = self.client.return_value.answer.call_args.kwargs
+        kwargs = self.client.return_value.answer_with_usage.call_args.kwargs
         self.assertFalse(kwargs["hybrid"])
         self.assertEqual(kwargs["instructions"], "Custom instructions")
+
+    def test_length_limit_is_persisted_on_message(self):
+        self.client.return_value.answer_with_usage.return_value.truncated = True
+        self.assertTrue(self.send().truncated)
 
     def test_inactive_assistant_cannot_trigger_rewrite(self):
         self.assistant.is_active = False

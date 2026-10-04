@@ -6,6 +6,13 @@ from app.services.http_resilience import HttpResponse
 
 
 class ModelPromptTests(unittest.TestCase):
+    def test_length_finish_reason_and_configurable_budget(self):
+        for reason, expected in [("length", True), ("stop", False), (None, False)]:
+            with self.subTest(reason=reason), patch("app.services.openrouter.OPENROUTER_API_KEY", "test-key"), patch("app.services.openrouter.ANSWER_MAX_TOKENS", 2048), patch.object(OpenRouterClient, "_request", return_value={"choices": [{"finish_reason": reason, "message": {"content": "Answer"}}]}) as request:
+                result = OpenRouterClient().answer_with_usage("Question", [])
+            self.assertEqual(result.truncated, expected)
+            self.assertEqual(request.call_args.args[0]["max_tokens"], 2048)
+
     def test_catalog_filters_non_text_models_and_sorts_free_first(self):
         response = HttpResponse(status=200, headers={}, body=json.dumps({"data": [
             {"id": "provider/paid", "name": "Paid", "pricing": {"prompt": "1", "completion": "2"}},

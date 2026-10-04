@@ -47,6 +47,7 @@ class MessageResponse(BaseModel):
     content: str
     sources: list[SearchHit] | None
     answer_basis: Literal["sources", "general", "hybrid"] | None = None
+    truncated: bool = False
     answer_id: uuid.UUID | None
     created_at: datetime
 

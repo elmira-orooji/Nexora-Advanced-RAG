@@ -9,7 +9,7 @@ export default function AnswerLoading({ isFa, assistantName, slow = false }: { i
       <span className="sr-only">{label}</span>
       <header className="chat-answer-heading" aria-hidden="true">
         <NexoraAvatar />
-        <strong className={assistantName ? undefined : "nexora-wordmark"} dir={assistantName ? "auto" : "ltr"}>{assistantName || "Nexora"}</strong>
+        {assistantName && <strong dir="auto">{assistantName}</strong>}
         <span className="answer-thinking-state"><span />{liveLabel}</span>
       </header>
       <div className="answer-thinking-content" aria-hidden="true">

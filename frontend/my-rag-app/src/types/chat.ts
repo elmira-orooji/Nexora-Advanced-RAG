@@ -39,6 +39,7 @@ export interface ChatMessage {
   sources?: Source[];
   grounded?: boolean;
   answerBasis?: AnswerBasis;
+  truncated?: boolean;
   responseId?: string;
   feedback?: 1 | -1;
   research?: { steps: Array<{ query: string; evidence_count: number }>; evidenceReviewed: number };

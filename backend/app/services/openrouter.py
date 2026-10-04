@@ -4,6 +4,7 @@ from time import perf_counter
 from typing import Any
 
 from app.core.config import OPENROUTER_API_KEY, OPENROUTER_INPUT_COST_PER_MILLION, OPENROUTER_MODEL, OPENROUTER_OUTPUT_COST_PER_MILLION
+from app.core.config import ANSWER_MAX_TOKENS
 from app.services.http_resilience import HttpStatusError, ResilientHttpClient, ResilientHttpError
 from app.services.performance_measurement import observe_provider_latency
 from app.services.provider_errors import LanguageModelError
@@ -30,6 +31,7 @@ class LLMResult:
     completion_tokens: int
     total_tokens: int
     estimated_cost_usd: float
+    truncated: bool = False
 
 
 class OpenRouterClient:
@@ -141,7 +143,7 @@ class OpenRouterClient:
                 "model": self.model,
                 "messages": messages,
                 "temperature": 0.2,
-                "max_tokens": 800,
+                "max_tokens": ANSWER_MAX_TOKENS,
             }
         )
 
@@ -156,7 +158,7 @@ class OpenRouterClient:
         completion_tokens = int(usage.get("completion_tokens") or 0)
         total_tokens = int(usage.get("total_tokens") or prompt_tokens + completion_tokens)
         cost = prompt_tokens * OPENROUTER_INPUT_COST_PER_MILLION / 1_000_000 + completion_tokens * OPENROUTER_OUTPUT_COST_PER_MILLION / 1_000_000
-        return LLMResult(content=answer.strip(), model=str(response.get("model") or self.model), latency_ms=round((perf_counter() - started) * 1000, 2), prompt_tokens=prompt_tokens, completion_tokens=completion_tokens, total_tokens=total_tokens, estimated_cost_usd=round(cost, 8))
+        return LLMResult(content=answer.strip(), model=str(response.get("model") or self.model), latency_ms=round((perf_counter() - started) * 1000, 2), prompt_tokens=prompt_tokens, completion_tokens=completion_tokens, total_tokens=total_tokens, estimated_cost_usd=round(cost, 8), truncated=response["choices"][0].get("finish_reason") == "length")
 
     def rewrite_query(self, question: str, history: list[dict[str, str]]) -> str:
         recent = [item for item in history[-8:] if item.get("role") in {"user", "assistant"} and item.get("content")]

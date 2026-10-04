@@ -103,6 +103,7 @@ class ConversationService:
             raise provider_error(exc) from exc
         sources = [SearchHit(score=point["score"], **point["payload"]) for point in points]
         answer_basis = ("hybrid" if sources else "general") if hybrid else "sources"
+        truncated = False
         if sources and wants_document_image(payload.content):
             sources = sources[:1]
             sources[0].visual_query = payload.content
@@ -110,7 +111,9 @@ class ConversationService:
             answer = ("در حال آماده‌سازی تصویر بخش مرتبط از فایل اصلی هستم. نتیجه یا دلیل در دسترس نبودن تصویر در پایین نمایش داده می‌شود. [Source 1]" if any("\u0600" <= char <= "\u06ff" for char in payload.content) else "Preparing the relevant region from the original document. The image or an explanation will appear below. [Source 1]")
         elif sources or hybrid:
             try:
-                answer = self.providers.language_model(model=model_id).answer(payload.content, [source.model_dump(mode="json", exclude={"ocr_provenance"}) for source in sources], history=history, instructions=instructions, hybrid=hybrid)
+                result = self.providers.language_model(model=model_id).answer_with_usage(payload.content, [source.model_dump(mode="json", exclude={"ocr_provenance"}) for source in sources], history=history, instructions=instructions, hybrid=hybrid)
+                answer = result.content
+                truncated = bool(getattr(result, "truncated", False))
             except LanguageModelError as exc:
                 raise provider_error(exc) from exc
         else:
@@ -120,7 +123,7 @@ class ConversationService:
             with transaction(self.db):
                 self.answers.add(record)
                 self.answers.flush()
-                assistant_message = Message(role="assistant", content=answer, sources=[source.model_dump(mode="json") for source in sources] or None, answer_basis=answer_basis, answer_id=record.id)
+                assistant_message = Message(role="assistant", content=answer, sources=[source.model_dump(mode="json") for source in sources] or None, answer_basis=answer_basis, answer_id=record.id, truncated=truncated)
                 conversation.messages.extend([Message(role="user", content=payload.content), assistant_message])
                 if conversation.title == "New conversation":
                     conversation.title = payload.content[:200]

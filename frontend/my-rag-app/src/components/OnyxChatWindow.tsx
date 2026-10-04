@@ -19,9 +19,10 @@ interface Props {
   isThinking: boolean;
   isSlow?: boolean;
   assistantName?: string;
+  onContinue?: () => void;
 }
 
-export default function OnyxChatWindow({ messages, isThinking, isSlow = false, assistantName }: Props) {
+export default function OnyxChatWindow({ messages, isThinking, isSlow = false, assistantName, onContinue }: Props) {
   const { i18n } = useTranslation();
   const isFa = i18n.language.startsWith("fa");
   const [evidence, setEvidence] = useState<{ selected: Source; sources: Source[] } | null>(null);
@@ -61,10 +62,11 @@ export default function OnyxChatWindow({ messages, isThinking, isSlow = false, a
         </article> : <article key={message.id} data-scroll-message={message.id} className="chat-answer">
           <NexoraAvatar />
           <div className="chat-answer-body">
-            <header className="chat-answer-heading"><strong className="nexora-wordmark" dir="ltr">Nexora</strong>{assistantName && <span dir="auto">{assistantName}</span>}</header>
+            <header className="chat-answer-heading">{assistantName && <span dir="auto">{assistantName}</span>}</header>
             {message.research && <details className="mb-4 overflow-hidden rounded-2xl border border-white/[.07] bg-white/[.025]"><summary className="flex cursor-pointer list-none items-center gap-2.5 px-4 py-3 text-xs font-semibold text-white/70"><Telescope size={14} className="text-[#c43cff]" />{isFa ? "فعالیت بازیابی" : "Retrieval activity"}<span className="ms-auto text-xs font-normal text-white/45">{message.research.steps.length} {isFa ? "جست‌وجو" : "searches"} · {message.research.evidenceReviewed} {isFa ? "منبع" : "sources"}</span><ChevronDown size={13} className="text-white/45" /></summary><div className="space-y-2 border-t border-white/[.06] px-4 py-3">{message.research.steps.map((step, stepIndex) => <div key={stepIndex} className="flex items-center gap-2 text-xs leading-5 text-white/55"><Check size={11} className="text-emerald-300/70" /><span className="min-w-0 flex-1 truncate">{step.query}</span><span className="shrink-0 text-white/45">{step.evidence_count}</span></div>)}</div></details>}
 
             <div className="chat-answer-text answer-markdown" dir="auto"><AnswerMarkdown content={message.content} sources={message.sources || []} onOpen={(source) => setEvidence({ selected: source, sources: message.sources?.length ? message.sources : [source] })} /></div>
+            {message.truncated && <div className="mt-3 text-sm" role="status"><p>{isFa ? "پاسخ به محدودیت طول رسید و ناتمام ماند." : "The answer reached its length limit and is incomplete."}</p>{onContinue && message.id === messages.at(-1)?.id && <button type="button" disabled={isThinking} onClick={onContinue} className="mt-2 rounded-lg border px-3 py-2 disabled:opacity-50">{isFa ? "ادامهٔ پاسخ" : "Continue answer"}</button>}</div>}
             {message.sources?.filter((source) => source.visualQuery && source.documentId).map((source) => <SourceRegionImage key={source.id} source={source} isFa={isFa} />)}
             {message.sources?.length ? <AnswerSources sources={message.sources} isFa={isFa} onOpen={(source) => setEvidence({ selected: source, sources: message.sources ?? [source] })} /> : null}
 

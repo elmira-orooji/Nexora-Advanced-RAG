@@ -25,6 +25,7 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     sources: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON)
     answer_basis: Mapped[str | None] = mapped_column(String(20))
+    truncated: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
     answer_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("answer_records.id", ondelete="SET NULL"), index=True
     )

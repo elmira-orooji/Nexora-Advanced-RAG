@@ -30,6 +30,7 @@ export interface PersistedMessage {
     ocr_provenance?: { provider: string; model?: string; completed_at: string } | null;
   }> | null;
   answer_basis: AnswerBasis | null;
+  truncated?: boolean;
   answer_id: string | null;
   created_at: string;
 }
