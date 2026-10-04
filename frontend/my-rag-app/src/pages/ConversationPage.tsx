@@ -203,7 +203,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
       <main className="conversation-welcome">
         <div className="conversation-intro">
           <span className="conversation-emblem">
-            <img src="/brand/nexora-symbol.svg" alt="" width={24} height={24} />
+            <img src="/brand/nexora-symbol.svg" alt="" width={48} height={48} />
           </span>
           <h1 className="conversation-title">
             {isFa ? "امروز چه چیزی را بررسی کنیم؟" : "What would you like to explore?"}
