@@ -1,3 +1,4 @@
-.nexora-avatar { display: inline-grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; border: 1px solid var(--brand-line); border-radius: var(--radius-panel); background: var(--brand-soft); }
-html:not(.dark) .nexora-avatar { border-color: var(--brand-line); background: var(--brand-soft); }
-.nexora-avatar img { display: block; width: 20px; height: 20px; }
+@font-face { font-family: "Cyber Copix"; src: url("/fonts/cyber-copix/Cyber-Copix.otf") format("opentype"); font-display: swap; }
+.nexora-avatar { display: inline-grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; }
+.nexora-avatar img { display: block; width: 36px; height: 36px; }
+.chat-answer-heading strong.nexora-wordmark { font-family: "Cyber Copix", sans-serif; font-size: 22px; font-weight: 400; line-height: 1.2; }
