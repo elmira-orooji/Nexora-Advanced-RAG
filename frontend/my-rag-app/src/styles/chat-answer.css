@@ -209,6 +209,8 @@ html:not(.dark) .conversation-scroll-preview > span { color: #687287; }
 
 /* Sent/received composition adapted from 21st.dev/@jakobhoeg/chat-bubble. */
 .chat-question-stack { max-width: 78%; display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
+.chat-question-stack { position: relative; }
+.chat-question-stack > p[role="status"] { position: absolute; right: 12px; bottom: 4px; margin: 0; text-align: right; line-height: 1.6; background: transparent; pointer-events: none; }
 .chat-question-label { color: var(--answer-muted); font-size: var(--font-size-helper); padding-inline: 3px; }
 .chat-question-meta { display: flex; min-height: 24px; align-items: center; justify-content: flex-end; gap: 8px; direction: ltr; padding-inline: 4px; color: var(--answer-muted); font-size: 12px; opacity: 0; transition: opacity 160ms ease; }
 .chat-question-stack:hover .chat-question-meta, .chat-question-stack:focus-within .chat-question-meta { opacity: 1; }
