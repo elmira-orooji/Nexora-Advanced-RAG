@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, FileSearch, FileText, FileUp, Loader2, MessageSquareText, RefreshCw, ShieldCheck } from "lucide-react";
+import { BookOpen, FileText, FileUp, Loader2, MessageSquareText, RefreshCw, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import "../styles/conversation.css";
@@ -60,7 +60,6 @@ export default function ConversationPage({ conversationId, onConversationChange,
   const [sending, setSending] = useState(false);
   const [sendSlow, setSendSlow] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState("");
-  const [suggestedPrompt, setSuggestedPrompt] = useState({ value: "", revision: 0 });
   const createdConversationId = useRef<string | null>(null);
   const sendAbortController = useRef<AbortController | null>(null);
   const sendSlowTimer = useRef<number | null>(null);
@@ -192,18 +191,6 @@ export default function ConversationPage({ conversationId, onConversationChange,
   </div>;
 
   if (!messages.length && !conversationId) {
-    const suggestions = isFa
-      ? [
-          ["خلاصه‌سازی", "مهم‌ترین نکات اسناد این پایگاه دانش را خلاصه کن"],
-          ["یافتن پاسخ", "براساس منابع موجود، پاسخ دقیق و مستند ارائه بده"],
-          ["مقایسه منابع", "دیدگاه منابع مختلف درباره یک موضوع را مقایسه کن"],
-        ]
-      : [
-          ["Summarize knowledge", "Summarize the most important insights in this knowledge base"],
-          ["Find a grounded answer", "Give me a precise answer supported by the available sources"],
-          ["Compare sources", "Compare how different documents discuss the same topic"],
-        ];
-
     return <div dir={isFa ? "rtl" : "ltr"} className="conversation-page conversation-page--welcome flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto px-4 sm:px-7 lg:px-10">
 
       <header className="conversation-header flex shrink-0 items-center justify-between">
@@ -239,15 +226,8 @@ export default function ConversationPage({ conversationId, onConversationChange,
           </div>
 
           {knowledgeReady && sendError && <InlineError className="mb-3" message={sendError} onDismiss={() => setSendError("")} />}
-          <ChatInput key={suggestedPrompt.revision} initialValue={suggestedPrompt.value} prominent disabled={!knowledgeReady} isSending={sending} onSend={send} onCancel={cancelSend} />
+          <ChatInput prominent disabled={!knowledgeReady} isSending={sending} onSend={send} onCancel={cancelSend} />
           {!knowledgeReady && canCreateKnowledge && <KnowledgeStartPanel isFa={isFa} hasSet={Boolean(selectedSet) || (isAllKnowledgeSets && sets.length > 0)} canCreate={canCreateKnowledge} onOpenKnowledge={onOpenKnowledge} />}
-
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {suggestions.map(([label, prompt], index) => <button key={label} type="button" onClick={() => setSuggestedPrompt((current) => ({ value: prompt, revision: current.revision + 1 }))} className="conversation-suggestion">
-              <span className="conversation-suggestion-icon">{index === 0 ? <FileText size={13} /> : index === 1 ? <FileSearch size={13} /> : <ShieldCheck size={13} />}</span>
-              <span className="conversation-suggestion-label">{label}</span>
-            </button>)}
-          </div>
 
           <div className="mt-4 flex items-center justify-center gap-1.5 text-xs conversation-muted"><ShieldCheck size={10} />{isFa ? "پاسخ‌ها همراه با ارجاع به منابع ذخیره می‌شوند" : "Answers are saved with traceable source citations"}</div>
         </div>

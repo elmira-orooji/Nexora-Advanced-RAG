@@ -124,7 +124,7 @@ describe("ConversationPage", () => {
     expect(screen.getByText(/Answers and sources are saved in Recent chats/)).toBeInTheDocument();
   });
 
-  it("keeps the chat composer and suggestions for users without knowledge access", async () => {
+  it("keeps the chat composer without shortcut buttons for users without knowledge access", async () => {
     mocks.getUser.mockReturnValue({ role: "user" });
     mocks.listSets.mockResolvedValueOnce([]);
     const openKnowledge = vi.fn();
@@ -133,10 +133,9 @@ describe("ConversationPage", () => {
     expect(screen.getByText("No accessible knowledge base")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Upload first document" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Create knowledge base" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Summarize knowledge/i })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /Summarize knowledge|Find a grounded answer|Compare sources/i })).not.toBeInTheDocument();
     expect(screen.getByText("No accessible knowledge base").closest(".conversation-context")).not.toBeNull();
     expect(document.querySelector(".conversation-knowledge-notice")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Summarize knowledge/i }));
     expect(mocks.send).not.toHaveBeenCalled();
     expect(openKnowledge).not.toHaveBeenCalled();
   });
@@ -145,7 +144,7 @@ describe("ConversationPage", () => {
     mocks.getUser.mockReturnValue({ role: "user" });
     render(<ConversationPage conversationId={null} onConversationChange={vi.fn()} onConversationsUpdated={vi.fn()} onOpenKnowledge={vi.fn()} />);
     expect(await screen.findByRole("textbox", { name: "Message" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: /Summarize knowledge/i })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /Summarize knowledge|Find a grounded answer|Compare sources/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select knowledge bases" })).toBeEnabled();
   });
 });
