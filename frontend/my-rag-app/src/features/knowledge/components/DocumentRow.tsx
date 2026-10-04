@@ -15,6 +15,9 @@ export function DocumentRow({ document, isAdmin, isFa, canDelete, onRetry, onPau
   if (ready) return <IndexedDocumentRow document={document} isAdmin={isAdmin} isFa={isFa} canDelete={canDelete} onRemove={onRemove} />;
   if (active) {
     const paused = document.status === "paused";
+    // At 95%, extraction has completed and vector indexing belongs to the
+    // durable outbox, not the pausable processing job.
+    const canPause = !paused && !(document.processing_stage === "indexing" && document.processing_progress >= 95);
     const waiting = paused || ["retry_wait", "requeued", "queued"].includes(document.processing_stage);
     return <div className="group grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3.5 hover:bg-white/[.025]">
       <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/[.07] bg-white/[.035] kb-accent">{paused ? <Pause size={16} /> : <RefreshCw size={16} className={waiting ? "" : "animate-spin"} />}</span>
@@ -27,7 +30,7 @@ export function DocumentRow({ document, isAdmin, isFa, canDelete, onRetry, onPau
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {isAdmin && !paused && <button disabled={pausing || retrying} onClick={async () => {
+        {isAdmin && canPause && <button disabled={pausing || retrying} onClick={async () => {
           setRetryError(""); setPausing(true);
           try { await onPause(); }
           catch (error) { setRetryError(operationError(error, "processing", isFa)); }
@@ -55,4 +58,3 @@ function IndexedDocumentRow({ document, isAdmin, isFa, canDelete, onRemove }: { 
   const ocrTitle = document.ocr_provenance ? `${providerLabel}${document.ocr_provenance.model ? ` · ${document.ocr_provenance.model}` : ""}` : undefined;
   return <><div className="group flex items-center gap-3 px-4 py-3.5 hover:bg-white/[.025]"><span className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/[.07] bg-white/[.035] kb-accent"><FileText size={17} /></span><div className="min-w-0 flex-1"><p className="nexora-file-name text-sm font-semibold kb-text">{document.filename}</p><p className="mt-1 text-xs kb-muted">{new Intl.DateTimeFormat(isFa ? "fa-IR" : "en", { dateStyle: "medium" }).format(new Date(document.created_at))}</p>{document.ocr_provenance && <p title={ocrTitle} aria-label={isFa ? `متن با OCR سرویس ${providerLabel} استخراج شده است` : `OCR processed by ${providerLabel}`} className="mt-1 text-xs text-violet-200/80">OCR · {providerLabel}</p>}</div><span className="rounded-full border border-emerald-300/10 bg-emerald-300/[.055] px-2.5 py-1 text-xs text-emerald-200/75">{document.status}</span><button onClick={() => setInspecting(true)} title={isFa ? "بازرسی سند و قطعه‌ها" : "Inspect document chunks"} className="app-icon-button grid size-8 place-items-center rounded-lg kb-muted hover:text-[#d9a6ff]"><ScanSearch size={14} /></button>{canDelete && <button onClick={() => void onRemove()} title={isFa ? "حذف سند و لغو پردازش" : "Delete document and cancel processing"} className="app-icon-button grid size-8 place-items-center rounded-lg kb-muted opacity-100 hover:text-rose-300 md:opacity-0 md:group-hover:opacity-100"><X size={14} /></button>}</div>{inspecting && <DocumentChunkInspector documentId={document.id} isAdmin={isAdmin} isFa={isFa} onClose={() => setInspecting(false)} />}</>;
 }
-
