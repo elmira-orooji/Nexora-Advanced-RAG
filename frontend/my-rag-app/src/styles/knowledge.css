@@ -183,6 +183,14 @@ html:not(.dark) .kb-page {
 .app-shell .kb-page .knowledge-dropzone:focus-visible { outline: 2px solid var(--kb-accent); outline-offset: 3px; }
 .kb-page button { cursor: pointer; }
 .kb-page button:disabled { cursor: not-allowed; }
+.kb-selected-set-actions { flex-shrink: 0; }
+.kb-selected-set-actions .kb-connect { flex-shrink: 0; white-space: nowrap; }
+.kb-selected-set-actions .kb-connect svg { flex-shrink: 0; }
+@media (max-width: 480px) {
+  .kb-selected-set-header { flex-wrap: wrap; }
+  .kb-selected-set-header > div:first-child { flex-basis: 100%; }
+  .kb-selected-set-actions { margin-inline-start: auto; }
+}
 .app-shell .kb-page .knowledge-chat-panel { --knowledge-chat-bg: var(--surface-raised); background: var(--knowledge-chat-bg); border-color: var(--kb-line) !important; box-shadow: none; backdrop-filter: none; }
 .app-shell .kb-page .knowledge-assistant-header { min-height: 68px; height: 68px; background: var(--knowledge-chat-bg); border-color: var(--kb-line); }
 .app-shell .kb-page .knowledge-assistant-logo { border: 0; background: transparent; box-shadow: none; }
