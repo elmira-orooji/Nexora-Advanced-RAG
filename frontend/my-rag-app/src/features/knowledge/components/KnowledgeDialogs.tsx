@@ -46,7 +46,7 @@ function ChunkNumber({ label, value, min, max, onChange }: { label: string; valu
 
 export function SetDialog({ mode, item, isFa, copy, onClose, onSaved }: { mode: "create" | "edit"; item?: DocumentSet; isFa: boolean; copy: Record<string, string>; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState(item?.name || ""); const [description, setDescription] = useState(item?.description || ""); const [saving, setSaving] = useState(false); const [error, setError] = useState("");
-  const submit = async (event: React.FormEvent) => { event.preventDefault(); if (saving || name.trim().length < 2) return; setError(""); setSaving(true); try { if (mode === "create") await knowledgeService.createSet({ name: name.trim(), description: description.trim() }); else if (item) await knowledgeService.updateSet(item.id, { name: name.trim(), description: description.trim() || null }); toast.success(isFa ? "مجموعه ذخیره شد" : "Knowledge set saved"); onSaved(); } catch (error) { setError((error as Error).message); } finally { setSaving(false); } };
+  const submit = async (event: React.FormEvent) => { event.preventDefault(); if (saving || name.trim().length < 2) return; setError(""); setSaving(true); try { if (mode === "create") await knowledgeService.createSet({ name: name.trim(), description: description.trim() }); else if (item) await knowledgeService.updateSet(item.id, { name: name.trim(), description: description.trim() || null }); onSaved(); } catch (error) { setError((error as Error).message); } finally { setSaving(false); } };
   return createPortal(<div className="app-shell" style={{ fontFamily: isFa ? "Vazirmatn, sans-serif" : "Inter, sans-serif" }}>
     <div className="kb-page fixed inset-0 z-[80] grid place-items-center p-4 backdrop-blur-sm" style={{ background: "#18213380" }} dir={isFa ? "rtl" : "ltr"} onMouseDown={onClose}>
       <motion.form className="chunk-settings kb-set-dialog" role="dialog" aria-modal="true" aria-labelledby="set-dialog-title" initial={{ opacity: 0, scale: .97 }} animate={{ opacity: 1, scale: 1 }} onSubmit={submit} onMouseDown={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "Escape" && !saving) onClose(); }}>
@@ -61,4 +61,3 @@ export function SetDialog({ mode, item, isFa, copy, onClose, onSaved }: { mode: 
     </div>
   </div>, document.body);
 }
-
