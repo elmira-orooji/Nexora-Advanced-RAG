@@ -91,7 +91,7 @@ export default function ChatWindow({ messages, isThinking, isSlow = false }: Cha
           <NexoraAvatar />
           <div className="chat-answer-body">
             <header className="chat-answer-heading"><strong>Nexora</strong></header>
-            <div className="chat-answer-text"><CitedText content={message.content} sources={message.sources || []} onOpen={setEvidence} /></div>
+            <div className="chat-answer-text" dir="auto"><CitedText content={message.content} sources={message.sources || []} onOpen={setEvidence} /></div>
             <AnswerTrustBadge answerBasis={message.answerBasis} grounded={message.grounded} sourceCount={message.sources?.length ?? 0} isFa={isFa} onOpenSources={message.sources?.length ? () => setEvidence(message.sources![0]) : undefined} />
             {message.research && <details className="chat-answer-research"><summary><Telescope size={14} />{isFa ? "مراحل پژوهش" : "Research trail"}<span>{message.research.steps.length} {isFa ? "جست‌وجو" : "searches"} · {message.research.evidenceReviewed} {isFa ? "شاهد" : "evidence"}</span></summary><div className="chat-answer-research-steps">{message.research.steps.map((step, index) => <div key={index}><span className="chat-answer-source-number">{index + 1}</span><span className="chat-answer-research-query">{step.query}</span><span>{step.evidence_count}</span></div>)}</div></details>}
             {message.sources?.length ? <AnswerSources sources={message.sources} isFa={isFa} onOpen={setEvidence} /> : null}

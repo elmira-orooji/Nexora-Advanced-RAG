@@ -46,7 +46,7 @@ export default function AnswerTrustBadge({ answerBasis, grounded, sourceCount = 
   }[state];
   const Icon = copy.icon;
 
-  const content = <><Icon size={compact ? 12 : 14} /><span>{copy.label}</span>{!compact && <small>{copy.detail}</small>}</>;
+  const content = <><Icon size={compact ? 12 : 14} /><span>{copy.label}</span>{!compact && state !== "insufficient" && <small>{copy.detail}</small>}</>;
   const className = `answer-trust-badge is-${state}${compact ? " is-compact" : ""}`;
   if (state === "sources" && onOpenSources) return <button type="button" className={`${className} is-actionable`} onClick={onOpenSources} aria-label={isFa ? "مشاهده منابع پاسخ مستند" : "View sources for this grounded answer"}>{content}</button>;
   return <div className={className} role="status" aria-label={`${copy.label}. ${copy.detail}`} title={copy.detail}>

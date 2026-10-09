@@ -79,6 +79,8 @@ html:not(.dark) :is(.chat-answer, .chat-question, .chat-evidence) {
 .chat-answer-grounding.is-grounded, .answer-trust-badge.is-sources { color: var(--answer-success); }
 .chat-answer-grounding.is-ungrounded, .answer-trust-badge:is(.is-general, .is-hybrid, .is-insufficient) { color: var(--answer-warning); }
 .answer-trust-badge small { color: var(--answer-muted); }
+.answer-trust-badge.is-insufficient > span { white-space: nowrap; }
+.chat-answer-text[dir="auto"] { text-align: start; unicode-bidi: plaintext; }
 .chat-answer-research { margin-top: 14px; border: 1px solid var(--answer-border); border-radius: 10px; background: transparent; }
 .chat-answer-research summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 11px 12px; color: var(--answer-text); font-size: 12px; font-weight: 500; cursor: pointer; list-style: none; }
 .chat-answer-research summary::-webkit-details-marker { display: none; }
