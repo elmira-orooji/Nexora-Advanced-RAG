@@ -61,13 +61,19 @@ function useDialogFocus<T extends HTMLElement>(open: boolean, onClose: () => voi
   return { ref, onKeyDown };
 }
 
-async function copyToClipboard(value: string, success: string, failure: string, onError: (message: string) => void) {
-  try {
-    await navigator.clipboard.writeText(value);
-    toast.success(success);
-  } catch {
-    onError(failure);
-  }
+function CopyTextButton({ value, success, failure, label, className, onError }: { value: string; success: string; failure: string; label: string; className?: string; onError: (message: string) => void }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timer.current !== null) clearTimeout(timer.current); }, []);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      if (timer.current !== null) clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(false), 2500);
+    } catch { onError(failure); }
+  };
+  return <span className="chat-copy-control"><button type="button" className={className} aria-label={label} title={label} onClick={() => void copy()}><Copy size={14} /></button>{copied && <span role="status" className="chat-copy-confirmation">{success}</span>}</span>;
 }
 
 export default function ChatWindow({ messages, isThinking, isSlow = false }: ChatWindowProps) {
@@ -81,7 +87,7 @@ export default function ChatWindow({ messages, isThinking, isSlow = false }: Cha
     <div className="chat-thread-scroll h-full overflow-y-auto pe-1">
       <div className="chat-thread-messages">
       {messages.map((message) => message.role === "user"
-        ? <article key={message.id} className="chat-question"><div className="chat-question-stack"><div className="chat-question-bubble">{message.content}</div><div className="chat-question-meta"><time dateTime={message.createdAt} title={new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.createdAt))}>{new Intl.DateTimeFormat(i18n.language, { hour: "numeric", minute: "2-digit" }).format(new Date(message.createdAt))}</time><button type="button" onClick={() => void copyToClipboard(message.content, isFa ? "پرسش کپی شد" : "Question copied", isFa ? "کپی پرسش انجام نشد" : "Could not copy question", setCopyError)} aria-label={isFa ? "کپی پرسش" : "Copy question"} title={isFa ? "کپی پرسش" : "Copy question"}><Copy size={14} /></button></div></div></article>
+        ? <article key={message.id} className="chat-question"><div className="chat-question-stack"><div className="chat-question-bubble">{message.content}</div><div className="chat-question-meta"><time dateTime={message.createdAt} title={new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(message.createdAt))}>{new Intl.DateTimeFormat(i18n.language, { hour: "numeric", minute: "2-digit" }).format(new Date(message.createdAt))}</time><CopyTextButton value={message.content} success={isFa ? "پرسش کپی شد" : "Question copied"} failure={isFa ? "کپی پرسش انجام نشد" : "Could not copy question"} label={isFa ? "کپی پرسش" : "Copy question"} onError={setCopyError} /></div></div></article>
         : <article key={message.id} className="chat-answer">
           <NexoraAvatar />
           <div className="chat-answer-body">
@@ -90,7 +96,7 @@ export default function ChatWindow({ messages, isThinking, isSlow = false }: Cha
             <AnswerTrustBadge answerBasis={message.answerBasis} grounded={message.grounded} sourceCount={message.sources?.length ?? 0} isFa={isFa} onOpenSources={message.sources?.length ? () => setEvidence(message.sources![0]) : undefined} />
             {message.research && <details className="chat-answer-research"><summary><Telescope size={14} />{isFa ? "مراحل پژوهش" : "Research trail"}<span>{message.research.steps.length} {isFa ? "جست‌وجو" : "searches"} · {message.research.evidenceReviewed} {isFa ? "شاهد" : "evidence"}</span></summary><div className="chat-answer-research-steps">{message.research.steps.map((step, index) => <div key={index}><span className="chat-answer-source-number">{index + 1}</span><span className="chat-answer-research-query">{step.query}</span><span>{step.evidence_count}</span></div>)}</div></details>}
             {message.sources?.length ? <AnswerSources sources={message.sources} isFa={isFa} onOpen={setEvidence} /> : null}
-            <div className="chat-answer-actions"><button aria-label="Copy response" onClick={() => void copyToClipboard(message.content, isFa ? "پاسخ کپی شد" : "Response copied", isFa ? "کپی پاسخ ناموفق بود" : "Could not copy response", setCopyError)} className="chat-answer-action"><Copy size={13} /></button>{message.responseId && <MessageFeedback responseId={message.responseId} isFa={isFa} />}</div>
+            <div className="chat-answer-actions"><CopyTextButton value={message.content} success={isFa ? "پاسخ کپی شد" : "Response copied"} failure={isFa ? "کپی پاسخ ناموفق بود" : "Could not copy response"} label={isFa ? "کپی پاسخ" : "Copy response"} className="chat-answer-action" onError={setCopyError} />{message.responseId && <MessageFeedback responseId={message.responseId} isFa={isFa} />}</div>
           </div>
         </article>)}
       {isThinking && <AnswerLoading isFa={isFa} slow={isSlow} />}

@@ -139,6 +139,8 @@ html:not(.dark) :is(.chat-answer, .chat-question, .chat-evidence) {
   font-size: 12px;
 }
 .chat-answer-action svg, .chat-answer-source-count svg { width: 16px; height: 16px; }
+.chat-copy-control { position: relative; display: inline-flex; align-items: center; }
+.chat-copy-confirmation { position: absolute; top: calc(100% + 4px); inset-inline-start: 0; z-index: 2; white-space: nowrap; font-size: 11px; line-height: 1.6; color: var(--status-success); background: transparent; pointer-events: none; }
 .chat-answer-citation {
   display: inline-grid;
   place-items: center;
