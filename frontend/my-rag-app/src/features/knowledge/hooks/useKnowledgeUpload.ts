@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import toast from "react-hot-toast";
 import { knowledgeService } from "../../../services/knowledgeService";
 import { runUploadQueue } from "../../../lib/uploadQueue";
 const MAX_CONCURRENT_UPLOADS = 3;
@@ -31,7 +30,6 @@ export function useKnowledgeUpload({ selectedSetId, isFa, refreshSetData, loadSe
       onUpdate: (id, changes) => updateTask(id, changes),
     });
     if (succeeded > 0) {
-      toast.success(isFa ? `${succeeded.toLocaleString("fa-IR")} فایل با موفقیت بارگذاری شد` : `${succeeded} file${succeeded === 1 ? "" : "s"} uploaded successfully`);
       await refreshSetData(uploadSetId);
       await loadSets();
     }
