@@ -137,7 +137,6 @@ export default function AppLayout() {
       await conversationService.remove(item.id);
       if (activeConversationId === item.id) navigate(PAGE_PATHS.chat, { replace: true });
       loadConversations();
-      toast.success(i18n.language.startsWith("fa") ? "گفتگو حذف شد" : "Conversation deleted");
     } catch (error) { setInlineError((error as Error).message); }
   };
 

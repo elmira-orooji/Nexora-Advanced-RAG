@@ -9,7 +9,7 @@ export default function InlineSuccessMessages() {
   const isFa = i18n.language.startsWith("fa");
   const messages = toasts.filter((item) => item.visible && item.type === "success");
   if (!messages.length) return null;
-  return <div dir={isFa ? "rtl" : "ltr"} className="relative z-20 shrink-0 px-4 pt-3 sm:px-7" aria-label={isFa ? "نتیجهٔ عملیات" : "Operation results"}>
+  return <div dir={isFa ? "rtl" : "ltr"} className="relative z-20 shrink-0 px-4 pt-3 sm:px-7" style={{ background: "var(--surface-canvas)" }} aria-label={isFa ? "نتیجهٔ عملیات" : "Operation results"}>
     <div className="mx-auto flex w-full max-w-[1000px] flex-col gap-2">
       {messages.map((item) => <div key={item.id} role="status" aria-live="polite" className="flex min-w-0 items-start gap-2 px-3 py-2.5 text-sm" style={{ background: "transparent", color: "var(--text-primary)" }}>
         <CircleCheck size={17} className="mt-0.5 shrink-0" style={{ color: "var(--status-success)" }} aria-hidden="true" />
