@@ -34,14 +34,6 @@ html:not(.dark) .conversation-page {
 .conversation-header { min-height: 68px; gap: 16px; border-bottom: 1px solid var(--cv-line); }
 .conversation-header-icon { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--cv-line); border-radius: 8px; color: var(--cv-accent); }
 .conversation-welcome { display: flex; flex: 1 0 auto; flex-direction: column; align-items: center; justify-content: center; padding-block: 48px 64px; }
-.conversation-page--welcome { overflow-y: hidden; }
-.conversation-welcome--new { flex: 1 1 auto; justify-content: space-between; padding-block: 0 16px; }
-.conversation-welcome--new .conversation-intro { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; padding: 32px 0; }
-.conversation-welcome--new .conversation-emblem { width: 56px; height: 56px; border: 1px solid color-mix(in srgb, var(--cv-accent) 24%, transparent); border-radius: 16px; background: var(--cv-tint); }
-.conversation-welcome--new .conversation-title { margin-top: 24px; font-size: clamp(20px, 2vw, 26px); }
-.conversation-welcome--new .conversation-description { max-width: 560px; font-size: 14px; }
-.conversation-compose-area--new { flex: 0 0 auto; width: 100%; max-width: var(--conversation-content-max); margin-inline: auto; padding-bottom: 4px; }
-.conversation-welcome--new .conversation-context { justify-content: flex-start; }
 .conversation-intro { width: 100%; max-width: 600px; margin-bottom: 32px; text-align: center; }
 .conversation-emblem { display: grid; place-items: center; width: 64px; height: 64px; margin-inline: auto; color: var(--cv-accent); }
 .conversation-title { margin-top: 22px; font-size: clamp(22px, 2.1vw, 30px); font-weight: 600; line-height: 1.5; letter-spacing: -.025em; color: var(--cv-text); text-wrap: balance; }
@@ -118,10 +110,6 @@ html:not(.dark) .conversation-page {
 .app-shell .conversation-page button:focus-visible { outline: 2px solid var(--cv-accent); outline-offset: 3px; }
 @media (max-width: 640px) {
   .conversation-welcome { padding-block: 28px 32px; }
-  .conversation-welcome--new { padding-block: 0 10px; }
-  .conversation-welcome--new .conversation-intro { padding: 18px 0; }
-  .conversation-welcome--new .conversation-description { max-width: 340px; }
-  .conversation-page--welcome .conversation-header { min-height: 60px; }
   .conversation-intro { margin-bottom: 24px; }
   .conversation-description { max-width: 340px; }
   .conversation-suggestion { padding: 10px 12px; }
