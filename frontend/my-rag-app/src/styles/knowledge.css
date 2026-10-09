@@ -184,6 +184,8 @@ html:not(.dark) .kb-page {
 .kb-page button { cursor: pointer; }
 .kb-page button:disabled { cursor: not-allowed; }
 .kb-selected-set-actions { flex-shrink: 0; }
+.kb-selected-set-header { align-items: flex-start; }
+.kb-selected-set-description { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; }
 .kb-selected-set-actions .kb-connect { flex-shrink: 0; white-space: nowrap; }
 .kb-selected-set-actions .kb-connect svg { flex-shrink: 0; }
 @media (max-width: 480px) {
