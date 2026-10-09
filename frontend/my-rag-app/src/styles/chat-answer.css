@@ -79,6 +79,16 @@ html:not(.dark) :is(.chat-answer, .chat-question, .chat-evidence) {
 .chat-answer-grounding.is-grounded, .answer-trust-badge.is-sources { color: var(--answer-success); }
 .chat-answer-grounding.is-ungrounded, .answer-trust-badge:is(.is-general, .is-hybrid, .is-insufficient) { color: var(--answer-warning); }
 .answer-trust-badge small { color: var(--answer-muted); }
+.chat-answer-research { margin-top: 14px; border: 1px solid var(--answer-border); border-radius: 10px; background: transparent; }
+.chat-answer-research summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 11px 12px; color: var(--answer-text); font-size: 12px; font-weight: 500; cursor: pointer; list-style: none; }
+.chat-answer-research summary::-webkit-details-marker { display: none; }
+.chat-answer-research summary > svg { flex-shrink: 0; color: var(--answer-accent); }
+.chat-answer-research summary > span { margin-inline-start: auto; color: var(--answer-muted); font-size: 11px; font-weight: 400; }
+.chat-answer-research summary:hover { background: var(--answer-tint); border-radius: 10px; }
+.chat-answer-research summary:focus-visible { outline: 2px solid var(--answer-accent); outline-offset: 2px; border-radius: 10px; }
+.chat-answer-research-steps { display: grid; gap: 10px; padding: 12px; border-top: 1px solid var(--answer-border); }
+.chat-answer-research-steps > div { display: flex; align-items: flex-start; gap: 8px; color: var(--answer-muted); font-size: 12px; line-height: 1.8; }
+.chat-answer-research-query { min-width: 0; flex: 1; overflow-wrap: anywhere; }
 .answer-trust-badge.is-compact { margin-top: 10px; font-size: var(--font-size-helper); }
 .chat-answer-source {
   display: inline-flex;
