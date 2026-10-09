@@ -198,7 +198,7 @@ export default function UploadFilesPage({ initialAction }: UploadFilesPageProps)
       <div className="flex h-full w-[min(100vw,400px)] flex-col xl:w-[360px]">
         <header className="knowledge-assistant-header flex h-[74px] shrink-0 items-center justify-between px-5">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="knowledge-assistant-logo grid size-10 shrink-0 place-items-center rounded-xl"><MessageSquareText size={18} /></span>
+            <span className="knowledge-assistant-logo grid size-10 shrink-0 place-items-center"><img src="/brand/nexora-symbol.svg" alt="" width={36} height={36} /></span>
             <div className="min-w-0"><h2 className="truncate text-sm font-semibold tracking-[-.01em]">{copy.chatTitle}</h2><p className="mt-1 truncate text-xs">{selectedSet?.name || copy.chatSub}</p></div>
           </div>
           <button aria-label={isFa ? "بستن دستیار" : "Close assistant"} onClick={() => setChatOpen(false)} className="knowledge-assistant-close app-icon-button grid size-9 shrink-0 place-items-center rounded-xl"><PanelRightClose size={17} className={`hidden xl:block ${isFa ? "-scale-x-100" : ""}`} /><X size={17} className="xl:hidden" /></button>

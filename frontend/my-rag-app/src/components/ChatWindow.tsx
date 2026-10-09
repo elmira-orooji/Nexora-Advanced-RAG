@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Copy, FileText, Quote, Telescope, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import toast from "react-hot-toast";
 import type { ChatMessage, Source } from "../types/chat";
 import { feedbackService, type FeedbackReason } from "../services/feedbackService";
 import AnswerTrustBadge from "./AnswerTrustBadge";
@@ -113,8 +112,14 @@ function MessageFeedback({ responseId, isFa }: { responseId: string; isFa: boole
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const positive = async () => { setSaving(true); setError(""); try { await feedbackService.save(responseId, 1); setRating(1); setOpen(false); toast.success(isFa ? "از بازخورد شما متشکریم" : "Thanks for your feedback"); } catch (e) { setError((e as Error).message); setOpen(true); } finally { setSaving(false); } };
-  const negative = async () => { if (!reason) return; setSaving(true); setError(""); try { await feedbackService.save(responseId, -1, reason, comment.trim()); setRating(-1); setOpen(false); toast.success(isFa ? "بازخورد ثبت شد" : "Feedback saved"); } catch (e) { setError((e as Error).message); } finally { setSaving(false); } };
+  const [feedbackStatus, setFeedbackStatus] = useState("");
+  useEffect(() => {
+    if (!feedbackStatus) return;
+    const timer = setTimeout(() => setFeedbackStatus(""), 2500);
+    return () => clearTimeout(timer);
+  }, [feedbackStatus]);
+  const positive = async () => { setSaving(true); setError(""); setFeedbackStatus(""); try { await feedbackService.save(responseId, 1); setRating(1); setOpen(false); setFeedbackStatus(isFa ? "از بازخورد شما متشکریم" : "Thanks for your feedback"); } catch (e) { setError((e as Error).message); setOpen(true); } finally { setSaving(false); } };
+  const negative = async () => { if (!reason) return; setSaving(true); setError(""); setFeedbackStatus(""); try { await feedbackService.save(responseId, -1, reason, comment.trim()); setRating(-1); setOpen(false); setFeedbackStatus(isFa ? "بازخورد ثبت شد" : "Feedback saved"); } catch (e) { setError((e as Error).message); } finally { setSaving(false); } };
   const reasons: Array<[FeedbackReason, string]> = [
     ["incorrect", isFa ? "پاسخ اشتباه بود" : "The answer was incorrect"],
     ["irrelevant_source", isFa ? "منبع نامرتبط بود" : "The source was irrelevant"],
@@ -124,9 +129,10 @@ function MessageFeedback({ responseId, isFa }: { responseId: string; isFa: boole
   ];
   const close = () => setOpen(false);
   const dialog = useDialogFocus<HTMLDivElement>(open, close);
-  return <div className="relative flex items-center gap-1">
+  return <div className="chat-feedback relative flex items-center gap-1">
     <button disabled={saving} onClick={() => void positive()} aria-label="Helpful" className={`grid size-7 place-items-center rounded-lg transition ${rating === 1 ? "bg-emerald-300/10 text-emerald-200" : "text-white/25 hover:bg-white/[.06] hover:text-white/70"}`}><ThumbsUp size={13} /></button>
     <button disabled={saving} onClick={() => setOpen(!open)} aria-label="Not helpful" className={`grid size-7 place-items-center rounded-lg transition ${rating === -1 ? "bg-rose-300/10 text-rose-200" : "text-white/25 hover:bg-white/[.06] hover:text-white/70"}`}><ThumbsDown size={13} /></button>
+    {feedbackStatus && <span role="status" className="chat-copy-confirmation">{feedbackStatus}</span>}
     {open && <div ref={dialog.ref} role="dialog" aria-modal="false" aria-labelledby={`feedback-title-${responseId}`} tabIndex={-1} onKeyDown={dialog.onKeyDown} className="nexora-dropdown absolute bottom-9 start-0 z-30 w-72 rounded-2xl border border-white/10 bg-[rgba(18,14,25,.98)] p-3 shadow-2xl backdrop-blur-2xl"><div className="flex items-center justify-between"><p id={`feedback-title-${responseId}`} className="text-xs font-semibold text-white/75">{isFa ? "مشکل پاسخ چه بود؟" : "What was wrong with the answer?"}</p><button onClick={close} aria-label={isFa ? "بستن پنجره بازخورد" : "Close feedback dialog"} className="grid size-6 place-items-center rounded-md text-white/30 hover:bg-white/5"><X size={12} /></button></div><div className="mt-2 space-y-1">{reasons.map(([value, label]) => <button key={value} aria-pressed={reason === value} onClick={() => setReason(value)} className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-start text-xs ${reason === value ? "bg-[#7c27ff]/35 text-white/80" : "text-white/55 hover:bg-white/[.04]"}`}><span className={`size-2 rounded-full border ${reason === value ? "border-[#c43cff] bg-[#c43cff]" : "border-white/20"}`} />{label}</button>)}</div>{reason === "other" && <textarea value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} rows={2} placeholder={isFa ? "توضیح اختیاری..." : "Optional details..."} className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-black/20 p-2.5 text-xs outline-none placeholder:text-white/30 focus:border-[#18c7f4]/40" />}{error && <InlineError className="mt-2" message={error} onDismiss={() => setError("")} />}<button disabled={!reason || saving} onClick={() => void negative()} className="mt-3 h-9 w-full rounded-xl bg-[#7c27ff] text-xs font-semibold disabled:opacity-40">{saving ? "…" : isFa ? "ثبت بازخورد" : "Submit feedback"}</button></div>}
   </div>;
 }

@@ -140,6 +140,15 @@ html:not(.dark) :is(.chat-answer, .chat-question, .chat-evidence) {
 }
 .chat-answer-action svg, .chat-answer-source-count svg { width: 16px; height: 16px; }
 .chat-copy-control { position: relative; display: inline-flex; align-items: center; }
+.chat-feedback > button { color: var(--answer-muted); background: transparent; }
+.chat-feedback > button:hover { color: var(--answer-accent); background: var(--answer-tint); }
+.chat-feedback > button[class*="bg-emerald"] { color: var(--answer-success) !important; }
+.chat-feedback > button[class*="bg-rose"] { color: var(--status-danger) !important; }
+.chat-feedback .nexora-dropdown { max-width: calc(100vw - 48px); color: var(--answer-text); background: var(--answer-panel); border-color: var(--answer-border); border-radius: 12px; box-shadow: var(--shadow-soft); backdrop-filter: none; }
+.chat-feedback .nexora-dropdown p { color: var(--answer-text) !important; }
+.chat-feedback .nexora-dropdown button { color: var(--answer-muted); }
+.chat-feedback .nexora-dropdown button[aria-pressed="true"] { color: var(--answer-accent) !important; background: var(--answer-tint); }
+.chat-feedback .nexora-dropdown > button:last-child { color: var(--text-inverse) !important; background: var(--brand-action); }
 .chat-copy-confirmation { position: absolute; top: calc(100% + 4px); inset-inline-start: 0; z-index: 2; white-space: nowrap; font-size: 11px; line-height: 1.6; color: var(--status-success); background: transparent; pointer-events: none; }
 .chat-answer-citation {
   display: inline-grid;

@@ -183,22 +183,22 @@ html:not(.dark) .kb-page {
 .app-shell .kb-page .knowledge-dropzone:focus-visible { outline: 2px solid var(--kb-accent); outline-offset: 3px; }
 .kb-page button { cursor: pointer; }
 .kb-page button:disabled { cursor: not-allowed; }
-.app-shell .kb-page .knowledge-chat-panel { background: var(--kb-panel); border-color: var(--kb-line) !important; box-shadow: none; backdrop-filter: none; }
-.app-shell .kb-page .knowledge-assistant-header { min-height: 68px; height: 68px; background: var(--kb-panel); border-color: var(--kb-line); }
+.app-shell .kb-page .knowledge-chat-panel { background: var(--kb-bg); border-color: var(--kb-line) !important; box-shadow: none; backdrop-filter: none; }
+.app-shell .kb-page .knowledge-assistant-header { min-height: 68px; height: 68px; background: var(--kb-bg); border-color: var(--kb-line); }
+.app-shell .kb-page .knowledge-assistant-logo { border: 0; background: transparent; box-shadow: none; }
 .app-shell .kb-page .knowledge-assistant-header p,
 .app-shell .kb-page .knowledge-assistant-empty p { color: var(--kb-muted); }
 .app-shell .kb-page .knowledge-assistant-empty h3 { color: var(--kb-text); }
-.app-shell .kb-page .knowledge-assistant-logo,
 .app-shell .kb-page .knowledge-assistant-empty-icon { color: var(--kb-accent); border: 1px solid var(--kb-line); background: var(--kb-tint); box-shadow: none; }
 .app-shell .kb-page .knowledge-assistant-empty-icon { width: 46px; height: 46px; border-radius: 12px; }
 .app-shell .kb-page .knowledge-assistant-context { color: var(--kb-muted); border-color: var(--kb-line); background: transparent; }
-.app-shell .kb-page .knowledge-assistant-dock { border-color: var(--kb-line); background: var(--kb-panel); box-shadow: none; }
+.app-shell .kb-page .knowledge-assistant-dock { border-color: var(--kb-line); background: var(--kb-bg); box-shadow: none; }
 .app-shell .kb-page .knowledge-assistant-tools { grid-template-columns: 1fr; }
 .app-shell .kb-page .knowledge-assistant-tools button { max-width: 100%; }
 .app-shell .kb-page .knowledge-answer-mode { border: 1px solid var(--kb-line); border-radius: 8px; background: var(--kb-bg); }
 .app-shell .kb-page .knowledge-answer-mode button { color: var(--kb-muted); border-radius: 5px; background: transparent; box-shadow: none; }
 .app-shell .kb-page .knowledge-answer-mode button.is-active { color: var(--kb-accent); background: var(--kb-tint); box-shadow: none; }
-.app-shell .kb-page .app-composer { border-color: var(--kb-line); border-radius: 12px; padding: 8px; background: var(--kb-panel); box-shadow: none; backdrop-filter: none; }
+.app-shell .kb-page .app-composer { border-color: var(--kb-line); border-radius: 18px; padding: 14px; background: var(--kb-panel); box-shadow: 0 8px 30px #10192c08; backdrop-filter: none; }
 .app-shell .kb-page .app-composer:focus-within { border-color: var(--kb-accent); box-shadow: 0 0 0 3px var(--kb-tint); }
 .app-shell .kb-page .chat-composer-textarea { color: var(--kb-text); caret-color: var(--kb-text); font-size: 14px; line-height: 1.5; background: transparent; border: 0; box-shadow: none; }
 .app-shell .kb-page .chat-composer-textarea::placeholder { color: var(--kb-muted); }
