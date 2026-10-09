@@ -1,11 +1,27 @@
 import unittest
 import json
 from unittest.mock import patch
-from app.services.openrouter import OpenRouterClient
-from app.services.http_resilience import HttpResponse
+from app.services.openrouter import OpenRouterClient, OpenRouterError
+from app.services.http_resilience import HttpResponse, HttpStatusError
 
 
 class ModelPromptTests(unittest.TestCase):
+    def test_rejected_request_logs_reason_without_key_or_prompt(self):
+        error = HttpStatusError(403, json.dumps({"error": {"message": "Access denied test-key"}}).encode(), {})
+        with patch("app.services.openrouter.OPENROUTER_API_KEY", "test-key"), patch("app.services.openrouter._HTTP.request", side_effect=error), self.assertLogs("app.services.openrouter", level="WARNING") as logs:
+            with self.assertRaises(OpenRouterError) as raised:
+                OpenRouterClient(model="provider/model")._request({"messages": [{"content": "private document"}]})
+        self.assertEqual(raised.exception.status_code, 403)
+        self.assertIn("Access denied [redacted]", logs.output[0])
+        self.assertNotIn("test-key", logs.output[0])
+        self.assertNotIn("private document", logs.output[0])
+
+    def test_html_rejection_reports_gateway_title(self):
+        error = HttpStatusError(403, b"<html><title>Access Forbidden</title><body>private</body></html>", {})
+        with patch("app.services.openrouter.OPENROUTER_API_KEY", "test-key"), patch("app.services.openrouter._HTTP.request", side_effect=error):
+            with self.assertRaisesRegex(OpenRouterError, "Access Forbidden"):
+                OpenRouterClient()._request({})
+
     def test_length_finish_reason_and_configurable_budget(self):
         for reason, expected in [("length", True), ("stop", False), (None, False)]:
             with self.subTest(reason=reason), patch("app.services.openrouter.OPENROUTER_API_KEY", "test-key"), patch("app.services.openrouter.ANSWER_MAX_TOKENS", 2048), patch.object(OpenRouterClient, "_request", return_value={"choices": [{"finish_reason": reason, "message": {"content": "Answer"}}]}) as request:

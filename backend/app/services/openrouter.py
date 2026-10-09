@@ -1,4 +1,6 @@
 import json
+import logging
+import re
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Any
@@ -11,6 +13,7 @@ from app.services.provider_errors import LanguageModelError
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 _HTTP = ResilientHttpClient()
+logger = logging.getLogger(__name__)
 
 
 class OpenRouterError(LanguageModelError):
@@ -234,14 +237,22 @@ class OpenRouterClient:
         except HttpStatusError as exc:
             result = "failed"
             message = f"OpenRouter returned HTTP {exc.status}"
+            detail = None
             try:
                 error_body = json.loads(exc.body.decode("utf-8"))
                 detail = error_body.get("error", {}).get("message")
-                if detail:
-                    message = f"{message}: {detail[:300]}"
             except (UnicodeDecodeError, json.JSONDecodeError, AttributeError):
                 pass
-            raise OpenRouterError(message) from exc
+            if not isinstance(detail, str):
+                # HTML gateway denials have no JSON error; keep only their title.
+                title = re.search(r"<title[^>]*>([^<]{1,300})</title>", exc.body[:4096].decode("utf-8", errors="replace"), re.I)
+                detail = title.group(1) if title else "No structured error detail returned by provider"
+            detail = detail.replace(self.api_key, "[redacted]")
+            detail = re.sub(r"sk-[A-Za-z0-9_-]+", "[redacted]", detail)
+            detail = " ".join(detail.split())[:300]
+            message = f"{message}: {detail}"
+            logger.warning("OpenRouter request rejected: status=%s model=%s reason=%s", exc.status, self.model, detail)
+            raise OpenRouterError(message, status_code=exc.status) from exc
         except ResilientHttpError as exc:
             result = "failed"
             raise OpenRouterError("Could not communicate with OpenRouter") from exc
