@@ -194,13 +194,6 @@ export default function ConversationPage({ conversationId, onConversationChange,
   if (!messages.length && !conversationId) {
     return <div dir={isFa ? "rtl" : "ltr"} className="conversation-page conversation-page--welcome flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto px-4 sm:px-7 lg:px-10">
 
-      <header className="conversation-header flex shrink-0 items-center justify-between">
-        <div className="flex items-center gap-2.5 text-xs font-semibold conversation-muted">
-          <span className="conversation-header-icon"><MessageSquareText size={13} /></span>
-          <span>{isFa ? "گفتگوی جدید" : "New conversation"}</span>
-        </div>
-      </header>
-
       <main className="conversation-welcome">
         <div className="conversation-intro">
           <span className="conversation-emblem">
