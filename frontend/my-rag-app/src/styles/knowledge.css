@@ -184,8 +184,10 @@ html:not(.dark) .kb-page {
 .kb-page button { cursor: pointer; }
 .kb-page button:disabled { cursor: not-allowed; }
 .kb-selected-set-actions { flex-shrink: 0; }
-.kb-selected-set-header { align-items: flex-start; }
-.kb-selected-set-description { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; }
+.kb-description-preview { min-width: 0; }
+.kb-description-expanded { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; }
+.kb-description-toggle { margin-top: 4px; padding: 2px 0; color: var(--kb-accent); background: transparent; border: 0; font-size: 12px; }
+.kb-description-toggle:hover { text-decoration: underline; }
 .kb-selected-set-actions .kb-connect { flex-shrink: 0; white-space: nowrap; }
 .kb-selected-set-actions .kb-connect svg { flex-shrink: 0; }
 @media (max-width: 480px) {
