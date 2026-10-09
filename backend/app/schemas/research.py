@@ -5,7 +5,7 @@ from app.schemas.metadata import MetadataFilters
 
 
 class ResearchRequest(BaseModel):
-    question: str = Field(min_length=5, max_length=2000)
+    question: str = Field(min_length=2, max_length=2000)
     document_set_id: uuid.UUID
     document_ids: list[uuid.UUID] | None = Field(default=None, max_length=50)
     max_steps: int = Field(default=4, ge=2, le=6)

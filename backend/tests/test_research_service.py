@@ -20,6 +20,12 @@ from app.services.openrouter import OpenRouterError
 from app.services.qdrant import QdrantError
 
 
+@pytest.mark.parametrize("question", ["سلام", "Hi", "چه؟"])
+def test_research_accepts_short_questions(question):
+    payload = ResearchRequest(question=question, document_set_id=uuid4())
+    assert payload.question == question
+
+
 @pytest.fixture
 def context():
     db = MagicMock()
