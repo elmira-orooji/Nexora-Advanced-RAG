@@ -1,11 +1,9 @@
-import { confirmAction } from "../services/confirmation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Copy, FileText, Quote, Share2, Telescope, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { Copy, FileText, Quote, Telescope, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import type { ChatMessage, Source } from "../types/chat";
 import { feedbackService, type FeedbackReason } from "../services/feedbackService";
-import { shareService } from "../services/shareService";
 import AnswerTrustBadge from "./AnswerTrustBadge";
 import AnswerSources from "./AnswerSources";
 import AnswerLoading from "./AnswerLoading";
@@ -76,7 +74,6 @@ export default function ChatWindow({ messages, isThinking, isSlow = false }: Cha
   const { i18n } = useTranslation();
   const isFa = i18n.language.startsWith("fa");
   const [evidence, setEvidence] = useState<Source | null>(null);
-  const [shareOpen, setShareOpen] = useState(false);
   const [copyError, setCopyError] = useState("");
 
   return <div className="chat-thread knowledge-chat relative h-full" dir={isFa ? "rtl" : "ltr"}>
@@ -93,24 +90,14 @@ export default function ChatWindow({ messages, isThinking, isSlow = false }: Cha
             <AnswerTrustBadge answerBasis={message.answerBasis} grounded={message.grounded} sourceCount={message.sources?.length ?? 0} isFa={isFa} onOpenSources={message.sources?.length ? () => setEvidence(message.sources![0]) : undefined} />
             {message.research && <details className="chat-answer-research"><summary><Telescope size={14} />{isFa ? "مراحل پژوهش" : "Research trail"}<span>{message.research.steps.length} {isFa ? "جست‌وجو" : "searches"} · {message.research.evidenceReviewed} {isFa ? "شاهد" : "evidence"}</span></summary><div className="chat-answer-research-steps">{message.research.steps.map((step, index) => <div key={index}><span className="chat-answer-source-number">{index + 1}</span><span className="chat-answer-research-query">{step.query}</span><span>{step.evidence_count}</span></div>)}</div></details>}
             {message.sources?.length ? <AnswerSources sources={message.sources} isFa={isFa} onOpen={setEvidence} /> : null}
-            <div className="chat-answer-actions"><button aria-label="Copy response" onClick={() => void copyToClipboard(message.content, isFa ? "پاسخ کپی شد" : "Response copied", isFa ? "کپی پاسخ ناموفق بود" : "Could not copy response", setCopyError)} className="chat-answer-action"><Copy size={13} /></button>{message.responseId && <MessageFeedback responseId={message.responseId} isFa={isFa} />}<button onClick={() => setShareOpen(true)} aria-label="Share conversation" className="chat-answer-action"><Share2 size={13} /></button></div>
+            <div className="chat-answer-actions"><button aria-label="Copy response" onClick={() => void copyToClipboard(message.content, isFa ? "پاسخ کپی شد" : "Response copied", isFa ? "کپی پاسخ ناموفق بود" : "Could not copy response", setCopyError)} className="chat-answer-action"><Copy size={13} /></button>{message.responseId && <MessageFeedback responseId={message.responseId} isFa={isFa} />}</div>
           </div>
         </article>)}
       {isThinking && <AnswerLoading isFa={isFa} slow={isSlow} />}
       </div>
     </div>
     {evidence && <EvidenceDrawer source={evidence} isFa={isFa} onClose={() => setEvidence(null)} />}
-    {shareOpen && <ShareDialog messages={messages} isFa={isFa} onClose={() => setShareOpen(false)} />}
   </div>;
-}
-
-function ShareDialog({ messages, isFa, onClose }: { messages: ChatMessage[]; isFa: boolean; onClose: () => void }) {
-  const [visibility, setVisibility] = useState<"team" | "link">("team"); const [expiry, setExpiry] = useState<1 | 7 | 30>(7); const [saving, setSaving] = useState(false); const [created, setCreated] = useState<{ id: string; token: string } | null>(null); const [error, setError] = useState("");
-  const dialog = useDialogFocus<HTMLDivElement>(true, onClose);
-  const url = created ? `${window.location.origin}/share/${visibility}/${created.token}` : "";
-  const create = async () => { setSaving(true); setError(""); try { const title = messages.find((item) => item.role === "user")?.content || "Shared conversation"; const result = await shareService.create(title.slice(0, 100), visibility, expiry, messages); setCreated({ id: result.id, token: result.share_token }); } catch (e) { setError((e as Error).message); } finally { setSaving(false); } };
-  const revoke = async (id = created?.id) => { if (!id || !await confirmAction(isFa ? "دسترسی این لینک اشتراک‌گذاری لغو شود؟" : "Revoke access to this shared link?")) return; setError(""); try { await shareService.revoke(id); if (created?.id === id) setCreated(null); toast.success(isFa ? "دسترسی لغو شد" : "Share access revoked"); } catch (e) { setError((e as Error).message); } };
-  return <div className="absolute inset-0 z-40 grid place-items-center rounded-[20px] bg-black/75 p-3 backdrop-blur-md" onMouseDown={onClose}><div ref={dialog.ref} role="dialog" aria-modal="true" aria-labelledby="share-dialog-title" tabIndex={-1} onKeyDown={dialog.onKeyDown} onMouseDown={(event) => event.stopPropagation()} className="w-full max-w-sm rounded-[22px] border border-white/10 bg-[rgba(18,14,25,.98)] p-5 shadow-2xl"><div className="flex items-center justify-between"><div><h3 id="share-dialog-title" className="text-sm font-semibold">{isFa ? "اشتراک‌گذاری گفتگو" : "Share conversation"}</h3><p className="mt-1 text-xs text-white/45">{isFa ? "یک نسخه فقط‌خواندنی منتشر می‌شود." : "A read-only snapshot will be published."}</p></div><button onClick={onClose} aria-label={isFa ? "بستن پنجره اشتراک‌گذاری" : "Close share dialog"} className="grid size-8 place-items-center rounded-lg text-white/30 hover:bg-white/5"><X size={14} /></button></div>{error && <InlineError className="mt-3" message={error} onDismiss={() => setError("")} />}{created ? <div className="mt-5"><div className="flex gap-2"><input readOnly value={url} aria-label={isFa ? "لینک اشتراک‌گذاری" : "Share link"} className="h-10 min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-3 text-xs text-white/60" /><button onClick={() => void copyToClipboard(url, isFa ? "لینک کپی شد" : "Link copied", isFa ? "کپی لینک ناموفق بود" : "Could not copy link", setError)} className="rounded-xl bg-[#7c27ff] px-4 text-xs font-semibold">{isFa ? "کپی" : "Copy"}</button></div><button onClick={() => void revoke()} className="mt-4 w-full rounded-xl border border-rose-300/10 py-2.5 text-xs text-rose-200/70">{isFa ? "لغو دسترسی" : "Revoke access"}</button></div> : <><div className="mt-5 grid grid-cols-2 gap-2">{(["team", "link"] as const).map((value) => <button key={value} type="button" aria-pressed={visibility === value} onClick={() => setVisibility(value)} className={`rounded-xl border p-3 text-start ${visibility === value ? "border-[#18c7f4]/35 bg-[#7c27ff]/25" : "border-white/[.08]"}`}><p className="text-xs font-semibold text-white/75">{value === "team" ? (isFa ? "اعضای تیم" : "Team members") : (isFa ? "لینک عمومی" : "Public link")}</p><p className="mt-1 text-xs text-white/45">{value === "team" ? (isFa ? "نیازمند ورود" : "Sign-in required") : (isFa ? "هرکس لینک را دارد" : "Anyone with link")}</p></button>)}</div><div className="mt-4 flex gap-1 rounded-xl bg-black/20 p-1">{([1, 7, 30] as const).map((value) => <button key={value} type="button" aria-pressed={expiry === value} onClick={() => setExpiry(value)} className={`flex-1 rounded-lg py-2 text-xs ${expiry === value ? "bg-[#7c27ff] text-white" : "text-white/45"}`}>{isFa ? `${value} روز` : `${value} days`}</button>)}</div><button disabled={saving} onClick={() => void create()} className="mt-5 h-10 w-full rounded-xl bg-[#7c27ff] text-xs font-semibold disabled:opacity-50">{saving ? "…" : isFa ? "ایجاد لینک امن" : "Create secure link"}</button></>}</div></div>;
 }
 
 function MessageFeedback({ responseId, isFa }: { responseId: string; isFa: boolean }) {
