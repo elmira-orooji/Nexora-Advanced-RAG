@@ -26,6 +26,11 @@ html:not(.dark) .conversation-page {
 .conversation-page .conversation-muted { color: var(--cv-muted); }
 .conversation-header-inner { max-width: var(--conversation-content-max); margin-inline: auto; }
 .conversation-page .conversation-accent { color: var(--cv-accent); }
+.conversation-assistant-emblem { display: grid; place-items: center; width: 64px; height: 64px; margin-inline: auto; }
+.conversation-assistant-emblem img { display: block; width: 48px; height: 48px; }
+.conversation-assistant-title { max-width: 600px; margin: 20px 0 0; color: var(--cv-text); font-size: clamp(20px, 2vw, 26px); font-weight: 600; line-height: 1.5; letter-spacing: -.025em; text-wrap: balance; }
+.conversation-page[dir="rtl"] .conversation-assistant-title { letter-spacing: 0; }
+.conversation-assistant-title + p { max-width: 540px; margin-top: 10px; line-height: 1.9; text-wrap: pretty; }
 .conversation-header { min-height: 68px; gap: 16px; border-bottom: 1px solid var(--cv-line); }
 .conversation-header-icon { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--cv-line); border-radius: 8px; color: var(--cv-accent); }
 .conversation-welcome { display: flex; flex: 1 0 auto; flex-direction: column; align-items: center; justify-content: center; padding-block: 48px 64px; }
