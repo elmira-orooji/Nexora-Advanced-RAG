@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, FileText, FileUp, Loader2, MessageSquareText, RefreshCw, ShieldCheck } from "lucide-react";
+import { BookOpen, FileText, FileUp, Loader2, MessageSquareText, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import "../styles/conversation.css";
@@ -193,28 +193,38 @@ export default function ConversationPage({ conversationId, onConversationChange,
 
   if (!messages.length && !conversationId) {
     return <div dir={isFa ? "rtl" : "ltr"} className="conversation-page conversation-page--welcome flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto px-4 sm:px-7 lg:px-10">
-
-      <header className="conversation-header flex shrink-0 items-center justify-between">
-        <div className="flex items-center gap-2.5 text-xs font-semibold conversation-muted">
-          <span className="conversation-header-icon"><MessageSquareText size={13} /></span>
-          <span>{isFa ? "گفتگوی جدید" : "New conversation"}</span>
+      <header className="conversation-header conversation-header-inner flex w-full shrink-0 items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <NexoraAvatar />
+          <h1 className="truncate text-sm font-semibold tracking-[-.02em] conversation-muted">{isFa ? "گفتگوی جدید" : "New conversation"}</h1>
+        </div>
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <span className="conversation-assistant-context hidden sm:inline-flex">{isFa ? "گفتگوی مستند" : "Source-grounded chat"}</span>
+          <span className="conversation-assistant-context" title={selectedSetIds.length ? (isAllKnowledgeSets ? sets.map((set) => set.name).join(" · ") : sets.filter((set) => selectedSetIds.includes(set.id)).map((set) => set.name).join(" · ")) : undefined}>
+            <BookOpen size={12} />
+            <span className="truncate">{selectedSetIds.length === 0
+              ? (isFa ? "پایگاه دانشی انتخاب نشده" : "No knowledge base selected")
+              : isAllKnowledgeSets
+                ? (isFa ? `${sets.length} پایگاه دانش` : `${sets.length} knowledge ${sets.length === 1 ? "base" : "bases"}`)
+                : (isFa ? `${selectedSetIds.length} پایگاه دانش انتخاب‌شده` : `${selectedSetIds.length} knowledge ${selectedSetIds.length === 1 ? "base" : "bases"} selected`)}</span>
+          </span>
         </div>
       </header>
 
-      <main className="conversation-welcome">
+      <main className="conversation-welcome conversation-welcome--new min-h-0 w-full">
         <div className="conversation-intro">
           <span className="conversation-emblem">
-            <img src="/brand/nexora-symbol.svg" alt="" width={48} height={48} />
+            <MessageSquareText size={23} aria-hidden="true" />
           </span>
-          <h1 className="conversation-title">
-            {isFa ? "امروز چه چیزی را بررسی کنیم؟" : "What would you like to explore?"}
-          </h1>
+          <h2 className="conversation-title">
+            {isFa ? "گفتگوی مستند را آغاز کنید" : "Start a source-grounded conversation"}
+          </h2>
           <p className="conversation-description">
-            {isFa ? "از دانش سازمانی خود سؤال کنید و پاسخ‌هایی دقیق، مستند و قابل پیگیری دریافت کنید." : "Ask across your organizational knowledge and get precise, source-grounded answers you can verify."}
+            {isFa ? "پایگاه دانش موردنظر را انتخاب کنید و پرسش خود را بنویسید. پاسخ‌ها و منابع در گفت‌وگوهای اخیر ذخیره می‌شوند." : "Choose a knowledge base and ask a question. Answers and sources are saved in Recent chats."}
           </p>
         </div>
 
-        <div className="conversation-compose-area">
+        <div className="conversation-compose-area conversation-compose-area--new">
           <div className="conversation-context">
             <div className="conversation-selector">
               <BookOpen size={12} className="shrink-0 conversation-accent" />
@@ -230,7 +240,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
           <ChatInput prominent disabled={!knowledgeReady} isSending={sending} onSend={send} onCancel={cancelSend} />
           {!knowledgeReady && canCreateKnowledge && <KnowledgeStartPanel isFa={isFa} hasSet={Boolean(selectedSet) || (isAllKnowledgeSets && sets.length > 0)} canCreate={canCreateKnowledge} onOpenKnowledge={onOpenKnowledge} />}
 
-          <div className="mt-4 flex items-center justify-center gap-1.5 text-xs conversation-muted"><ShieldCheck size={10} />{isFa ? "پاسخ‌ها همراه با ارجاع به منابع ذخیره می‌شوند" : "Answers are saved with traceable source citations"}</div>
+          <div className="mt-2 flex items-center justify-center gap-1.5 text-xs conversation-muted"><FileText size={10} />{isFa ? "پاسخ هوش مصنوعی ممکن است خطا داشته باشد؛ منابع را بررسی کنید." : "AI can make mistakes. Verify important details in the cited sources."}</div>
         </div>
       </main>
     </div>;
