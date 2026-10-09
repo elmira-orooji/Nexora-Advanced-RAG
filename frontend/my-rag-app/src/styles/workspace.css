@@ -1,0 +1,14 @@
+.workspace-page { background: var(--surface-canvas); color: var(--text-primary); font-family: var(--font-ui); }
+.workspace-page[dir="rtl"] { font-family: var(--font-fa); }
+.workspace-page .workspace-muted { color: var(--text-muted) !important; }
+.workspace-eyebrow { color: var(--text-muted); }
+.workspace-page .workspace-card { border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-panel); box-shadow: none; }
+.workspace-page button.workspace-card:hover { border-color: var(--brand-line); background: var(--surface-raised); }
+.workspace-primary { border-radius: 9px; background: var(--brand-action); color: var(--text-inverse); transition: background 150ms ease; }
+.workspace-primary:hover { background: var(--brand-action-hover); }
+.workspace-icon { color: var(--brand); background: var(--brand-soft); }
+.workspace-conversations > button + button { border-top: 1px solid var(--border-subtle); }
+.workspace-conversation { color: var(--text-primary); }
+.workspace-conversation:hover { color: var(--brand); background: var(--brand-soft); }
+.workspace-link { color: var(--brand); }
+.workspace-page button:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
