@@ -183,8 +183,8 @@ html:not(.dark) .kb-page {
 .app-shell .kb-page .knowledge-dropzone:focus-visible { outline: 2px solid var(--kb-accent); outline-offset: 3px; }
 .kb-page button { cursor: pointer; }
 .kb-page button:disabled { cursor: not-allowed; }
-.app-shell .kb-page .knowledge-chat-panel { background: var(--kb-bg); border-color: var(--kb-line) !important; box-shadow: none; backdrop-filter: none; }
-.app-shell .kb-page .knowledge-assistant-header { min-height: 68px; height: 68px; background: var(--kb-bg); border-color: var(--kb-line); }
+.app-shell .kb-page .knowledge-chat-panel { --knowledge-chat-bg: var(--surface-raised); background: var(--knowledge-chat-bg); border-color: var(--kb-line) !important; box-shadow: none; backdrop-filter: none; }
+.app-shell .kb-page .knowledge-assistant-header { min-height: 68px; height: 68px; background: var(--knowledge-chat-bg); border-color: var(--kb-line); }
 .app-shell .kb-page .knowledge-assistant-logo { border: 0; background: transparent; box-shadow: none; }
 .app-shell .kb-page .knowledge-assistant-header p,
 .app-shell .kb-page .knowledge-assistant-empty p { color: var(--kb-muted); }
@@ -192,7 +192,7 @@ html:not(.dark) .kb-page {
 .app-shell .kb-page .knowledge-assistant-empty-icon { color: var(--kb-accent); border: 1px solid var(--kb-line); background: var(--kb-tint); box-shadow: none; }
 .app-shell .kb-page .knowledge-assistant-empty-icon { width: 46px; height: 46px; border-radius: 12px; }
 .app-shell .kb-page .knowledge-assistant-context { color: var(--kb-muted); border-color: var(--kb-line); background: transparent; }
-.app-shell .kb-page .knowledge-assistant-dock { border-color: var(--kb-line); background: var(--kb-bg); box-shadow: none; }
+.app-shell .kb-page .knowledge-assistant-dock { border-color: var(--kb-line); background: var(--knowledge-chat-bg); box-shadow: none; }
 .app-shell .kb-page .knowledge-assistant-tools { grid-template-columns: 1fr; }
 .app-shell .kb-page .knowledge-assistant-tools button { max-width: 100%; }
 .app-shell .kb-page .knowledge-answer-mode { border: 1px solid var(--kb-line); border-radius: 8px; background: var(--kb-bg); }
