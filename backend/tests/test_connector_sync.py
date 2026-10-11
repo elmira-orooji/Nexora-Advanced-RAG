@@ -1,4 +1,4 @@
-from app.services.connector_sources import transport, s3
+from app.services.connectors.sources import transport, s3
 import io
 import hashlib
 import json
@@ -12,7 +12,7 @@ from urllib.request import Request
 from types import SimpleNamespace
 from uuid import uuid4
 
-from app.services import connector_sync as sync
+from app.services.connectors import connector_sync as sync
 
 
 class ConnectorDeletionTests(unittest.TestCase):

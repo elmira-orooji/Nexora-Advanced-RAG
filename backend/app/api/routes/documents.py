@@ -22,10 +22,10 @@ from app.schemas.document import (
     IngestResponse,
 )
 # Retain the existing upload helper exports for callers.
-from app.services.document_upload import ALLOWED_FILE_TYPES, save_upload as _save_upload
-from app.services.document_ingestion_service import DocumentIngestionService
-from app.services.document_processing_service import DocumentProcessingService
-from app.services.document_management_service import DocumentManagementService, _document_source_path
+from app.services.documents.document_upload import ALLOWED_FILE_TYPES, save_upload as _save_upload
+from app.services.documents.document_ingestion_service import DocumentIngestionService
+from app.services.documents.document_processing_service import DocumentProcessingService
+from app.services.documents.document_management_service import DocumentManagementService, _document_source_path
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 

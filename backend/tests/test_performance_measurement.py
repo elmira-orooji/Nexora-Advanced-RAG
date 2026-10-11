@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, text
 
-from app.services.performance_measurement import (
+from app.services.operations.performance_measurement import (
     begin_request_measurement,
     finish_request_measurement,
     process_memory_bytes,

@@ -7,9 +7,9 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-from app.services import document_management_service as documents
+from app.services.documents import document_management_service as documents
 from app.api.routes.documents import ALLOWED_FILE_TYPES, _save_upload, ingest_document, upload_document
-from app.services.document_extractor import ExtractionResult
+from app.services.documents.document_extractor import ExtractionResult
 
 
 class DocumentUploadExecutionTests(unittest.TestCase):

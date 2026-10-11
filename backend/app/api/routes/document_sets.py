@@ -7,7 +7,7 @@ from app.api.routes.auth import get_current_user
 from app.db.database import get_db
 from app.models.user import User
 from app.schemas.document_set import DocumentMembershipRequest, DocumentSetCreate, DocumentSetDetail, DocumentSetResponse, DocumentSetUpdate
-from app.services import document_set_service
+from app.services.application import document_set_service
 
 router = APIRouter(prefix="/document-sets", tags=["document-sets"])
 

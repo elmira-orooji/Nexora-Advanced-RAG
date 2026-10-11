@@ -6,7 +6,7 @@ from app.db.database import get_db
 from app.models.user import User
 from app.schemas.connector import ConnectorCreate, ConnectorResponse, ConnectorScheduleUpdate, SyncResponse, WebhookConnectorCreate, WebhookConnectorCreated, WebhookEvent, WebhookEventResponse
 from app.core.rate_limit import rate_limit, webhook_limiter
-from app.services.connector_management_service import ConnectorManagementService
+from app.services.connectors.connector_management_service import ConnectorManagementService
 
 router = APIRouter(prefix="/document-sets/{set_id}/connectors", tags=["connectors"])
 

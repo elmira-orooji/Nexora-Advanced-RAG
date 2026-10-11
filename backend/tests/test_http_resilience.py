@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from app.services.http_resilience import (
+from app.services.providers.http_resilience import (
     CircuitOpenError,
     HttpResponse,
     ResilientHttpClient,
@@ -21,8 +21,8 @@ class HttpResilienceTests(unittest.TestCase):
         )
 
         with (
-            patch("app.services.http_resilience.random.uniform", return_value=0),
-            patch("app.services.http_resilience.time.sleep") as sleep,
+            patch("app.services.providers.http_resilience.random.uniform", return_value=0),
+            patch("app.services.providers.http_resilience.time.sleep") as sleep,
         ):
             response = client.request("GET", "https://service.example/data", timeout_seconds=2)
 
@@ -39,7 +39,7 @@ class HttpResilienceTests(unittest.TestCase):
             ]
         )
 
-        with patch("app.services.http_resilience.time.sleep") as sleep:
+        with patch("app.services.providers.http_resilience.time.sleep") as sleep:
             client.request("GET", "https://service.example/data", timeout_seconds=2)
 
         sleep.assert_called_once_with(4.0)
@@ -74,7 +74,7 @@ class HttpResilienceTests(unittest.TestCase):
         )
         connection = MagicMock()
 
-        with patch("app.services.http_resilience.HTTPSConnection", return_value=connection) as factory:
+        with patch("app.services.providers.http_resilience.HTTPSConnection", return_value=connection) as factory:
             first = client._connection(parsed, 2)
             second = client._connection(parsed, 3)
 

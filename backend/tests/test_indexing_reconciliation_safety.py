@@ -10,7 +10,7 @@ from app.db.database import Base
 from app.models.document import Document
 from app.models.chunk import Chunk
 from app.models.indexing_outbox import IndexingOutbox
-from app.services import indexing_reconciler
+from app.services.documents import indexing_reconciler
 
 
 @pytest.fixture

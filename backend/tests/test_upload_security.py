@@ -14,8 +14,8 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
-from app.services import upload_security
-from app.services.upload_security import MalwareDetectedError, UploadContentError, stage_and_scan_upload, validate_upload_content
+from app.services.documents import upload_security
+from app.services.documents.upload_security import MalwareDetectedError, UploadContentError, stage_and_scan_upload, validate_upload_content
 
 
 class UploadSecurityTests(TestCase):

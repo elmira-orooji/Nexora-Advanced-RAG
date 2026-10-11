@@ -54,7 +54,7 @@ Shared conversation links are read-only snapshots. Anyone with a public link tok
 
 Logs must not contain passwords, session tokens, cookies, authorization headers, API keys, full document text, or full conversation content. Security-relevant events should include failed sign-ins, account lockouts, password changes, access denials, connector failures, and shared-link revocations, with an event identifier and timestamp.
 
-Retention and deletion procedures must cover original documents, extracted text, vectors, conversations, backups, and logs. Deleting a document must remove its associated stored content and retrieval vectors according to the organization’s retention policy. See [DATA_RETENTION_AND_PRIVACY.md](DATA_RETENTION_AND_PRIVACY.md) and [BACKUP_AND_RECOVERY.md](BACKUP_AND_RECOVERY.md).
+Retention and deletion procedures must cover original documents, extracted text, vectors, conversations, backups, and logs. Deleting a document must remove its associated stored content and retrieval vectors according to the organization’s retention policy. See [DATA_RETENTION_AND_PRIVACY.md](documents/architecture/DATA_RETENTION_AND_PRIVACY.md) and [BACKUP_AND_RECOVERY.md](documents/operations/BACKUP_AND_RECOVERY.md).
 
 ## Security verification
 

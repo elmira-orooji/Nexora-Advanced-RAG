@@ -4,9 +4,9 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 
-from app.services import cloud_ocr
-from app.services.document_extractor import ExtractionError
-from app.services.document_jobs import _retryable_document_error
+from app.services.documents import cloud_ocr
+from app.services.documents.document_extractor import ExtractionError
+from app.services.documents.document_jobs import _retryable_document_error
 
 
 @pytest.mark.parametrize("error, expected", [

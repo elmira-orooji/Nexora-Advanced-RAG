@@ -20,8 +20,8 @@ from app.models.user import User
 from app.models.auth_session import AuthSession
 from app.models.organization import Organization
 from app.schemas.auth import AuthUser, LoginRequest, LoginResponse, PasswordChangeRequest
-from app.services.login_throttle import clear_account_failures, record_failure, retry_after, throttle_keys
-from app.services.security_audit import audit_security_event
+from app.services.security.login_throttle import clear_account_failures, record_failure, retry_after, throttle_keys
+from app.services.operations.security_audit import audit_security_event
 from app.core.rate_limit import auth_limiter, rate_limit
 
 router = APIRouter(prefix="/auth", tags=["auth"])

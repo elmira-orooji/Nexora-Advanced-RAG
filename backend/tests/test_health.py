@@ -5,7 +5,7 @@ from fastapi import Response, status
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.main import health, readiness, startup_collection_setup
-from app.services.qdrant import QdrantError
+from app.services.providers.qdrant import QdrantError
 
 
 class HealthCheckTests(unittest.TestCase):

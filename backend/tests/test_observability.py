@@ -2,7 +2,7 @@ import logging
 
 from app.core.logging import JsonFormatter
 from app.core.request_context import reset_request_id, set_request_id
-from app.services import operational_metrics
+from app.services.operations import operational_metrics
 
 
 def test_structured_log_contains_request_id():

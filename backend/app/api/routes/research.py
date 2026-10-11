@@ -5,7 +5,7 @@ from app.api.routes.auth import get_current_user
 from app.db.database import get_db
 from app.models.user import User
 from app.schemas.research import ResearchRequest, ResearchResponse
-from app.services.research_service import ResearchService
+from app.services.retrieval.research_service import ResearchService
 
 router = APIRouter(prefix="/research", tags=["deep-research"])
 

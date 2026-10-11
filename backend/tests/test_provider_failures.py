@@ -6,10 +6,10 @@ def http_status(error):
     return to_http_exception(error).status_code if isinstance(error, ApplicationError) else error.status_code
 
 
-from app.services.openrouter import OpenRouterError
-from app.services.provider_failures import provider_error
-from app.services.qdrant import QdrantError
-from app.services.http_resilience import CircuitOpenError, HttpStatusError, ResilientHttpError
+from app.services.providers.openrouter import OpenRouterError
+from app.services.providers.provider_failures import provider_error
+from app.services.providers.qdrant import QdrantError
+from app.services.providers.http_resilience import CircuitOpenError, HttpStatusError, ResilientHttpError
 from app.core.logging import JsonFormatter
 from app.core.request_context import reset_request_id, set_request_id
 

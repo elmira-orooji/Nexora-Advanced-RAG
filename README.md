@@ -38,7 +38,7 @@ Document worker → storage → extraction/OCR → chunking and indexing → Qdr
 Connector scheduler → permitted remote sources → document processing queue
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for component boundaries, data flow, worker behavior, and RAG retrieval details.
+See [ARCHITECTURE.md](documents/architecture/ARCHITECTURE.md) for component boundaries, data flow, worker behavior, and RAG retrieval details.
 
 ## Quick start with Docker
 
@@ -133,7 +133,7 @@ python -m app.workers.connector_scheduler_worker
 ### Frontend
 
 ```powershell
-cd frontend/my-rag-app
+cd frontend/app
 npm install
 npm run dev
 ```
@@ -176,7 +176,7 @@ The application does not currently include malware scanning. Do not treat MIME c
 
 `/ready` returns `503` until all required dependencies and worker heartbeats are available. This is intentional and makes it suitable for deployment readiness probes.
 
-For production, use HTTPS, set `APP_ENV=production`, set `AUTH_COOKIE_SECURE=true`, restrict `FRONTEND_ORIGINS` to the real frontend origin, and keep PostgreSQL and Qdrant off the public network. Full deployment guidance is available in [DEPLOYMENT.md](DEPLOYMENT.md).
+For production, use HTTPS, set `APP_ENV=production`, set `AUTH_COOKIE_SECURE=true`, restrict `FRONTEND_ORIGINS` to the real frontend origin, and keep PostgreSQL and Qdrant off the public network. Full deployment guidance is available in [DEPLOYMENT.md](documents/operations/DEPLOYMENT.md).
 
 ## Quality checks
 
@@ -189,7 +189,7 @@ cd backend
 python -m pytest
 
 # Frontend unit tests and production build
-cd frontend/my-rag-app
+cd frontend/app
 npm run test
 npm run build
 
@@ -203,27 +203,23 @@ GitHub Actions runs backend tests on pushes and pull requests to `dev` and `main
 
 ```text
 backend/                    FastAPI routes, models, migrations, workers, and tests
-frontend/my-rag-app/        React application, component tests, and Playwright tests
-documents/                  Product and requirements documents
+frontend/app/               React application, feature modules, and tests
+documents/                  Architecture, operations, design, and deliverables
 compose.yml                 Full local Docker Compose stack
-ARCHITECTURE.md             System design and data flows
-DEPLOYMENT.md               Docker and production deployment guide
 SECURITY.md                 Security posture and operational requirements
-BACKUP_AND_RECOVERY.md      Backup and recovery procedures
-DESIGN.md                   UI design system rules
 ```
 
 ## Documentation
 
-- [Architecture](ARCHITECTURE.md)
-- [Deployment](DEPLOYMENT.md)
+- [Architecture](documents/architecture/ARCHITECTURE.md)
+- [Deployment](documents/operations/DEPLOYMENT.md)
 - [Security](SECURITY.md)
 - [Contribution policy](CONTRIBUTING.md)
-- [Backup and recovery](BACKUP_AND_RECOVERY.md)
-- [Design system](DESIGN.md)
-- [Software requirements specification](documents/Nexora-SRS.pdf)
+- [Backup and recovery](documents/operations/BACKUP_AND_RECOVERY.md)
+- [Design system](documents/development/DESIGN.md)
+- [Software requirements specification](documents/requirements/Nexora-SRS.pdf)
 - [Backend workers and OCR](backend/README.md)
-- [Connector scheduler](backend/CONNECTOR_SCHEDULER.md)
+- [Connector scheduler](documents/operations/CONNECTOR_SCHEDULER.md)
 
 ## Troubleshooting
 
@@ -238,3 +234,5 @@ DESIGN.md                   UI design system rules
 ## Security note
 
 Do not commit `.env` files, passwords, API keys, OAuth refresh tokens, Qdrant keys, OCR credentials, uploaded data, or backups. Review [SECURITY.md](SECURITY.md) before exposing the application to users or connecting it to organization data. Report vulnerabilities privately; do not use public GitHub issues for sensitive security details.
+- [Documentation index](documents/README.md)
+- [Repository organization](documents/development/PROJECT_STRUCTURE.md)

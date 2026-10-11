@@ -19,7 +19,7 @@ from app.schemas.evaluation import (
     EvaluationCaseResponse,
     EvaluationCaseUpdate,
 )
-from app.services.eval_service import run_evaluation
+from app.services.application.eval_service import run_evaluation
 
 router = APIRouter(prefix="/document-sets/{set_id}/evaluation-cases", tags=["evaluation"])
 

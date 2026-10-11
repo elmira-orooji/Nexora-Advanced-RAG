@@ -14,8 +14,8 @@ import pytest
 from fastapi import HTTPException
 from app.core.config import UPLOAD_DIR
 from app.schemas.document import ChunkingRequest
-from app.services.document_processing_service import DocumentProcessingService
-from app.services.qdrant import QdrantError
+from app.services.documents.document_processing_service import DocumentProcessingService
+from app.services.providers.qdrant import QdrantError
 
 
 @pytest.mark.parametrize("operation", ["create_chunks", "index", "delete"])
@@ -36,7 +36,7 @@ def test_index_commits_intent_before_vector_write():
     db = MagicMock()
     db.scalar.return_value = document
     user = SimpleNamespace(role="admin", organization_id=uuid4())
-    with patch("app.services.document_indexing_service.get_vector_store") as factory:
+    with patch("app.services.documents.document_indexing_service.get_vector_store") as factory:
         factory.return_value.replace_document_chunks.side_effect = lambda *args: db.commit.assert_called_once()
         result = DocumentProcessingService(db).index(document.id, user)
         factory.return_value.replace_document_chunks.assert_called_once_with(str(document.id), "policy.pdf", [{"id": str(chunk.id), "chunk_index": 0, "content": "Policy text"}])
@@ -50,7 +50,7 @@ def test_index_provider_failure_keeps_committed_pending_outbox():
     document = SimpleNamespace(id=uuid4(), filename="policy.pdf", chunks=[SimpleNamespace(id=uuid4(), chunk_index=0, content="Text", is_active=True)], status="chunked")
     db = MagicMock()
     db.scalar.return_value = document
-    with patch("app.services.document_indexing_service.get_vector_store") as factory:
+    with patch("app.services.documents.document_indexing_service.get_vector_store") as factory:
         factory.return_value.ensure_collection.side_effect = QdrantError("Unavailable")
         DocumentProcessingService(db).index(document.id, SimpleNamespace(role="admin", organization_id=uuid4()))
     assert document.status == "processing"
@@ -68,7 +68,7 @@ def test_chunking_preserves_enrichment_and_transaction():
     path.is_file.return_value = True
     path.read_text.return_value = "Policy text"
     user = SimpleNamespace(role="admin", organization_id=uuid4())
-    with patch("app.services.document_processing_service.resolve_document_path", return_value=path), patch("app.services.document_processing_service.hierarchical_chunks", return_value=[("Policy text", 0, "Parent")]), patch("app.services.document_processing_service.enrich_chunk", return_value=(["policy"], ["What?"])):
+    with patch("app.services.documents.document_processing_service.resolve_document_path", return_value=path), patch("app.services.documents.document_processing_service.hierarchical_chunks", return_value=[("Policy text", 0, "Parent")]), patch("app.services.documents.document_processing_service.enrich_chunk", return_value=(["policy"], ["What?"])):
         result = DocumentProcessingService(db).create_chunks(document.id, ChunkingRequest(), user)
     assert result.status == "chunked"
     assert result.chunks[0].keywords == ["policy"]

@@ -2,7 +2,7 @@ import threading
 import unittest
 from unittest.mock import patch
 
-from app.services.worker_heartbeat import maintain_worker_heartbeat
+from app.services.operations.worker_heartbeat import maintain_worker_heartbeat
 
 
 class WorkerHeartbeatLoopTests(unittest.TestCase):
@@ -13,7 +13,7 @@ class WorkerHeartbeatLoopTests(unittest.TestCase):
             heartbeat_sent.set()
             return True
 
-        with patch("app.services.worker_heartbeat.send_heartbeat", side_effect=send) as mocked_send:
+        with patch("app.services.operations.worker_heartbeat.send_heartbeat", side_effect=send) as mocked_send:
             with maintain_worker_heartbeat(
                 "worker-1",
                 "document_worker",
@@ -32,8 +32,8 @@ class WorkerHeartbeatLoopTests(unittest.TestCase):
             return False
 
         with (
-            patch("app.services.worker_heartbeat.send_heartbeat", side_effect=send),
-            patch("app.services.worker_heartbeat.register_worker") as register,
+            patch("app.services.operations.worker_heartbeat.send_heartbeat", side_effect=send),
+            patch("app.services.operations.worker_heartbeat.register_worker") as register,
         ):
             with maintain_worker_heartbeat(
                 "worker-1",

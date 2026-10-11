@@ -12,11 +12,11 @@ from app.core.config import (
     WORKER_HEARTBEAT_SECONDS,
 )
 from app.core.logging import configure_logging
-from app.services.document_jobs import claim_document_job, maintain_document_job_lease, process_document_job, recover_document_jobs
-from app.services.data_retention import purge_expired_operational_data
-from app.services.indexing_reconciler import reconcile_indexing_outbox
-from app.services.operational_alerts import deliver_due_operational_alerts
-from app.services.worker_heartbeat import deregister_worker, maintain_worker_heartbeat, register_worker
+from app.services.documents.document_jobs import claim_document_job, maintain_document_job_lease, process_document_job, recover_document_jobs
+from app.services.operations.data_retention import purge_expired_operational_data
+from app.services.documents.indexing_reconciler import reconcile_indexing_outbox
+from app.services.operations.operational_alerts import deliver_due_operational_alerts
+from app.services.operations.worker_heartbeat import deregister_worker, maintain_worker_heartbeat, register_worker
 
 logger = logging.getLogger(__name__)
 _stopping = False

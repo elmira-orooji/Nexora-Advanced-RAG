@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from app.services.qdrant import QdrantClient
+from app.services.providers.qdrant import QdrantClient
 
 
 class QdrantReadinessTests(unittest.TestCase):

@@ -7,9 +7,9 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.routes import documents
-from app.services import document_management_service as management
-from app.services.document_jobs import check_document_job_ownership, DocumentJobOwnershipLost
-from app.services import document_jobs
+from app.services.documents import document_management_service as management
+from app.services.documents.document_jobs import check_document_job_ownership, DocumentJobOwnershipLost
+from app.services.documents import document_jobs
 from app.models.processing_job import ProcessingJob
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

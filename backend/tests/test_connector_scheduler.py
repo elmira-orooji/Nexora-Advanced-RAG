@@ -12,10 +12,10 @@ from app.models.connector import Connector
 from app.models.sync_lease import SyncLease
 from app.models.user import User
 from app.models.notification import Notification
-from app.services import connector_scheduler as scheduler
+from app.services.connectors import connector_scheduler as scheduler
 from app.workers import connector_scheduler_worker as scheduler_worker
-from app.services.connector_scheduler import run_due_connector_syncs
-from app.services.connector_lock import connector_sync_lock
+from app.services.connectors.connector_scheduler import run_due_connector_syncs
+from app.services.connectors.connector_lock import connector_sync_lock
 
 
 class ConnectorSchedulerTests(unittest.TestCase):
@@ -27,7 +27,7 @@ class ConnectorSchedulerTests(unittest.TestCase):
         User.__table__.create(self.engine)
         Notification.__table__.create(self.engine)
         self.sessions = sessionmaker(bind=self.engine, expire_on_commit=True)
-        self.enterContext(patch("app.services.connector_scheduler.SessionLocal", self.sessions))
+        self.enterContext(patch("app.services.connectors.connector_scheduler.SessionLocal", self.sessions))
         self.locked = set()
         @contextmanager
         def lock(db, connector_id):
@@ -39,7 +39,7 @@ class ConnectorSchedulerTests(unittest.TestCase):
                 yield True
             finally:
                 self.locked.remove(connector_id)
-        self.enterContext(patch("app.services.connector_scheduler.connector_sync_lock", lock, create=True))
+        self.enterContext(patch("app.services.connectors.connector_scheduler.connector_sync_lock", lock, create=True))
 
     def seed(self, count):
         ids = [uuid4() for _ in range(count)]
@@ -62,13 +62,13 @@ class ConnectorSchedulerTests(unittest.TestCase):
             if len(seen) == 1:
                 # The other worker starts after the first worker releases its locks.
                 run_due_connector_syncs()
-        with patch("app.services.connector_scheduler.sync_connector", side_effect=sync):
+        with patch("app.services.connectors.connector_scheduler.sync_connector", side_effect=sync):
             run_due_connector_syncs()
         self.assertCountEqual(seen, ids)
 
     def test_failure_does_not_prevent_next_job(self):
         ids = self.seed(2)
-        with patch("app.services.connector_scheduler.sync_connector", side_effect=[RuntimeError("Sync failed"), None]), patch.object(scheduler.logger, "exception") as logged:
+        with patch("app.services.connectors.connector_scheduler.sync_connector", side_effect=[RuntimeError("Sync failed"), None]), patch.object(scheduler.logger, "exception") as logged:
             self.assertEqual(run_due_connector_syncs(), 2)
         logged.assert_called_once()
         self.assertIn("connector_id", logged.call_args.kwargs["extra"])
@@ -82,9 +82,9 @@ class ConnectorSchedulerTests(unittest.TestCase):
         from urllib.error import URLError
         ids = self.seed(1)
         now = datetime.now(timezone.utc)
-        with patch("app.services.connector_scheduler.CONNECTOR_SYNC_MAX_ATTEMPTS", 3), \
-             patch("app.services.connector_scheduler.CONNECTOR_SYNC_RETRY_BASE_SECONDS", 10), \
-             patch("app.services.connector_scheduler.sync_connector", side_effect=URLError("connection refused")):
+        with patch("app.services.connectors.connector_scheduler.CONNECTOR_SYNC_MAX_ATTEMPTS", 3), \
+             patch("app.services.connectors.connector_scheduler.CONNECTOR_SYNC_RETRY_BASE_SECONDS", 10), \
+             patch("app.services.connectors.connector_scheduler.sync_connector", side_effect=URLError("connection refused")):
             run_due_connector_syncs()
         with self.sessions() as db:
             item = db.get(Connector, ids[0])
@@ -102,8 +102,8 @@ class ConnectorSchedulerTests(unittest.TestCase):
     def test_exhausted_retries_enter_dead_letter(self):
         from urllib.error import URLError
         ids = self.seed(1)
-        with patch("app.services.connector_scheduler.CONNECTOR_SYNC_MAX_ATTEMPTS", 2), \
-             patch("app.services.connector_scheduler.sync_connector", side_effect=URLError("connection refused")):
+        with patch("app.services.connectors.connector_scheduler.CONNECTOR_SYNC_MAX_ATTEMPTS", 2), \
+             patch("app.services.connectors.connector_scheduler.sync_connector", side_effect=URLError("connection refused")):
             # First attempt -> retrying
             run_due_connector_syncs()
         with self.sessions() as db:
@@ -113,8 +113,8 @@ class ConnectorSchedulerTests(unittest.TestCase):
             # Move next_attempt_at into the past so scheduler picks it up again
             item.next_attempt_at = datetime.now(timezone.utc) - timedelta(seconds=1)
             db.commit()
-        with patch("app.services.connector_scheduler.CONNECTOR_SYNC_MAX_ATTEMPTS", 2), \
-             patch("app.services.connector_scheduler.sync_connector", side_effect=URLError("connection refused")):
+        with patch("app.services.connectors.connector_scheduler.CONNECTOR_SYNC_MAX_ATTEMPTS", 2), \
+             patch("app.services.connectors.connector_scheduler.sync_connector", side_effect=URLError("connection refused")):
             run_due_connector_syncs()
         with self.sessions() as db:
             item = db.get(Connector, ids[0])
@@ -126,15 +126,15 @@ class ConnectorSchedulerTests(unittest.TestCase):
     def test_successful_sync_resets_retry_state(self):
         from urllib.error import URLError
         ids = self.seed(1)
-        with patch("app.services.connector_scheduler.CONNECTOR_SYNC_MAX_ATTEMPTS", 5), \
-             patch("app.services.connector_scheduler.sync_connector", side_effect=[URLError("fail"), None]):
+        with patch("app.services.connectors.connector_scheduler.CONNECTOR_SYNC_MAX_ATTEMPTS", 5), \
+             patch("app.services.connectors.connector_scheduler.sync_connector", side_effect=[URLError("fail"), None]):
             run_due_connector_syncs()
         with self.sessions() as db:
             item = db.get(Connector, ids[0])
             self.assertEqual(item.status, "retrying")
             item.next_attempt_at = datetime.now(timezone.utc) - timedelta(seconds=1)
             db.commit()
-        with patch("app.services.connector_scheduler.sync_connector"):
+        with patch("app.services.connectors.connector_scheduler.sync_connector"):
             run_due_connector_syncs()
         with self.sessions() as db:
             item = db.get(Connector, ids[0])
@@ -146,13 +146,13 @@ class ConnectorSchedulerTests(unittest.TestCase):
 
     def test_run_is_bounded_to_ten_claims(self):
         self.seed(11)
-        with patch("app.services.connector_scheduler.sync_connector") as sync:
+        with patch("app.services.connectors.connector_scheduler.sync_connector") as sync:
             self.assertEqual(run_due_connector_syncs(), 10)
             self.assertEqual(sync.call_count, 10)
             self.assertEqual(run_due_connector_syncs(), 1)
 
     def test_empty_queue_does_not_run_sync(self):
-        with patch("app.services.connector_scheduler.sync_connector") as sync:
+        with patch("app.services.connectors.connector_scheduler.sync_connector") as sync:
             self.assertEqual(run_due_connector_syncs(), 0)
         sync.assert_not_called()
 
@@ -163,7 +163,7 @@ class ConnectorSchedulerTests(unittest.TestCase):
             item.status = "syncing"
             item.next_sync_at = datetime.now(timezone.utc) + timedelta(days=1)
             db.commit()
-        with patch("app.services.connector_scheduler.sync_connector") as sync:
+        with patch("app.services.connectors.connector_scheduler.sync_connector") as sync:
             self.assertEqual(run_due_connector_syncs(), 1)
         sync.assert_called_once()
         with self.sessions() as db:
@@ -175,7 +175,7 @@ class ConnectorSchedulerTests(unittest.TestCase):
             db.get(Connector, connector_id).status = "syncing"
             db.commit()
         self.locked.add(connector_id)
-        with patch("app.services.connector_scheduler.sync_connector") as sync:
+        with patch("app.services.connectors.connector_scheduler.sync_connector") as sync:
             self.assertEqual(run_due_connector_syncs(), 0)
             sync.assert_not_called()
             self.locked.remove(connector_id)
@@ -189,7 +189,7 @@ class ConnectorSchedulerTests(unittest.TestCase):
             item.schedule_enabled = False
             item.next_sync_at = None
             db.commit()
-        with patch("app.services.connector_scheduler.sync_connector"):
+        with patch("app.services.connectors.connector_scheduler.sync_connector"):
             self.assertEqual(run_due_connector_syncs(), 1)
         with self.sessions() as db:
             item = db.get(Connector, connector_id)
@@ -305,7 +305,7 @@ class ConnectorLockTests(unittest.TestCase):
         @contextmanager
         def busy(*args):
             yield False
-        with patch("app.services.connector_management_service.require_set_access"), patch("app.services.connector_management_service.connector_sync_lock", busy):
+        with patch("app.services.connectors.connector_management_service.require_set_access"), patch("app.services.connectors.connector_management_service.connector_sync_lock", busy):
             with self.assertRaises(ApplicationError) as raised:
                 sync(set_id, connector_id, db, MagicMock())
         self.assertEqual(raised.exception.kind, "conflict")

@@ -20,9 +20,9 @@ from PIL import Image, ImageDraw
 from pypdf import PdfWriter
 from pypdf.generic import DictionaryObject, NameObject, DecodedStreamObject
 
-from app.services.document_visuals import source_region, VisualUnavailable, wants_document_image, _locate, _crop
+from app.services.documents.document_visuals import source_region, VisualUnavailable, wants_document_image, _locate, _crop
 from app.api.routes.documents import get_source_region, SourceRegionRequest
-from app.services import cloud_ocr
+from app.services.documents import cloud_ocr
 
 
 def pdf_with_text(path, rotation=0):
@@ -99,7 +99,7 @@ def test_saved_scan_coordinates_show_correct_page_without_external_ocr(tmp_path)
         writer.write(output)
     layout = {"checksum": hashlib.sha256(path.read_bytes()).hexdigest(), "pages": [{"page": 24, "width": 400, "height": 500, "words": [["Insurance", [10, 100, 90, 130]], ["commitments", [100, 100, 180, 130]], ["coverage", [190, 100, 250, 130]]]}]}
     (tmp_path / "visual-layout.json").write_text(json.dumps(layout), encoding="utf-8")
-    with patch("app.services.document_visuals._ocr_words") as ocr:
+    with patch("app.services.documents.document_visuals._ocr_words") as ocr:
         result = source_region(path, "application/pdf", "Show insurance commitments image", "Insurance commitments coverage")
     assert result["page"] == 24
     ocr.assert_not_called()
@@ -109,7 +109,7 @@ def test_saved_image_layout_is_used_when_ocr_disabled(tmp_path):
     path = tmp_path / "original.png"
     Image.new("RGB", (400, 500), "white").save(path)
     (tmp_path / "visual-layout.json").write_text(json.dumps({"checksum": hashlib.sha256(path.read_bytes()).hexdigest(), "pages": [{"page": 1, "width": 400, "height": 500, "words": [["Insurance", [10, 100, 90, 130]], ["commitments", [100, 100, 180, 130]], ["coverage", [190, 100, 250, 130]]]}]}), encoding="utf-8")
-    with patch("app.services.document_visuals._ocr_words") as ocr:
+    with patch("app.services.documents.document_visuals._ocr_words") as ocr:
         result = source_region(path, "image/png", "Show insurance commitments image", "Insurance commitments coverage")
     assert result["page"] == 1
     ocr.assert_not_called()
@@ -128,7 +128,7 @@ def test_google_vision_returns_layout_without_writing_files_during_extraction(tm
 
 def test_preview_checks_access_before_reading_file():
     db = MagicMock()
-    with patch("app.services.document_management_service.require_document_access", side_effect=HTTPException(403, "Forbidden")), patch("app.services.document_management_service._document_source_path") as path:
+    with patch("app.services.documents.document_management_service.require_document_access", side_effect=HTTPException(403, "Forbidden")), patch("app.services.documents.document_management_service._document_source_path") as path:
         with pytest.raises((HTTPException, ApplicationError)) as error:
             get_source_region(uuid4(), SourceRegionRequest(chunk_id=uuid4(), query="show image"), Response(), db, SimpleNamespace())
     assert http_status(error.value) == 403
@@ -138,7 +138,7 @@ def test_preview_checks_access_before_reading_file():
 def test_missing_or_cross_document_chunk_does_not_read_source():
     db = MagicMock()
     db.scalar.return_value = None
-    with patch("app.services.document_management_service.require_document_access", return_value=SimpleNamespace()), patch("app.services.document_management_service._document_source_path") as path:
+    with patch("app.services.documents.document_management_service.require_document_access", return_value=SimpleNamespace()), patch("app.services.documents.document_management_service._document_source_path") as path:
         with pytest.raises((HTTPException, ApplicationError)) as error:
             get_source_region(uuid4(), SourceRegionRequest(chunk_id=uuid4(), query="show image"), Response(), db, SimpleNamespace())
     assert http_status(error.value) == 404

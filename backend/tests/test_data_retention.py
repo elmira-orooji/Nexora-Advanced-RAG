@@ -10,7 +10,7 @@ from app.models.auth_session import AuthSession
 from app.models.chat_share import ChatShare
 from app.models.llm_usage import LLMUsage
 from app.models.notification import Notification
-from app.services import data_retention
+from app.services.operations import data_retention
 
 
 class DataRetentionTests(unittest.TestCase):

@@ -8,7 +8,7 @@ from app.db.database import get_db
 from app.models.user import User
 from app.schemas.assistant import AssistantAnswerRequest, AssistantCreate, AssistantResponse, AssistantUpdate
 from app.schemas.rag import RagResponse
-from app.services import assistant_service
+from app.services.application import assistant_service
 
 router = APIRouter(prefix="/assistants", tags=["assistants"])
 

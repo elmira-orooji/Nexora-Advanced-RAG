@@ -2,7 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-from app.services import indexing_reconciler
+from app.services.documents import indexing_reconciler
 
 
 def test_stale_outbox_does_not_reindex_deleted_document():

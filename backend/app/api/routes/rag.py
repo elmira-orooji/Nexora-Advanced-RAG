@@ -6,8 +6,8 @@ from app.core.rate_limit import rag_limiter, rate_limit
 from app.db.database import get_db
 from app.models.user import User
 from app.schemas.rag import RagRequest, RagResponse
-from app.services.provider_factory import get_provider_factory
-from app.services.rag_service import RagService
+from app.services.providers.provider_factory import get_provider_factory
+from app.services.retrieval.rag_service import RagService
 
 router = APIRouter(prefix="/rag", tags=["rag"])
 

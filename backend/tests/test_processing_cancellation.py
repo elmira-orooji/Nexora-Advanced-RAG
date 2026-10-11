@@ -4,8 +4,12 @@ from uuid import uuid4
 
 import pytest
 
-from app.services import cloud_ocr, document_jobs, document_extractor
-from app.services.processing_cancellation import ProcessingCancelled, cancellation_scope, check_processing_cancelled
+from app.services.documents import cloud_ocr
+
+from app.services.documents import document_jobs
+
+from app.services.documents import document_extractor
+from app.services.documents.processing_cancellation import ProcessingCancelled, cancellation_scope, check_processing_cancelled
 
 
 def test_deleted_job_cancels_processing():

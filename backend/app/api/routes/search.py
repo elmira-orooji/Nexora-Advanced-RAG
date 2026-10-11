@@ -5,7 +5,7 @@ from app.api.routes.auth import get_current_user
 from app.db.database import get_db
 from app.models.user import User
 from app.schemas.search import PipelineTraceResponse, PlaygroundResponse, RetrieverComparisonRequest, RetrieverComparisonResponse, SearchRequest, SearchResponse
-from app.services import search_service
+from app.services.retrieval import search_service
 
 router = APIRouter(prefix="/search", tags=["search"])
 

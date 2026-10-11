@@ -4,8 +4,8 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-from app.services import retrieval
-from app.services.retrieval import _expand_parents, _ChunkSnapshot, hybrid_search
+from app.services.retrieval import retrieval
+from app.services.retrieval.retrieval import _expand_parents, _ChunkSnapshot, hybrid_search
 
 
 class RetrievalContextTests(unittest.TestCase):
@@ -71,8 +71,8 @@ class RetrievalContextTests(unittest.TestCase):
         stale_point = {"id": str(uuid4()), "score": 0.9, "payload": {
             "chunk_id": str(uuid4()), "document_id": str(self.document_id),
             "chunk_index": 1, "filename": "test.txt", "content": "stale disabled"}}
-        with patch("app.services.retrieval.get_vector_store") as client, \
-             patch("app.services.retrieval._rerank", side_effect=lambda q, c, l: c) as rerank:
+        with patch("app.services.retrieval.retrieval.get_vector_store") as client, \
+             patch("app.services.retrieval.retrieval._rerank", side_effect=lambda q, c, l: c) as rerank:
             client.return_value.search.return_value = [stale_point, self.point(edited_snap)]
             results = hybrid_search(db, "edited", 5, document_id=str(self.document_id))
         candidates = rerank.call_args.args[1]
@@ -89,7 +89,7 @@ class RetrievalContextTests(unittest.TestCase):
             self.result([(chunk, "test.txt")]),
             self.result([(self.document_id, None)]),
         ]
-        with patch("app.services.retrieval.get_vector_store") as client:
+        with patch("app.services.retrieval.retrieval.get_vector_store") as client:
             results = hybrid_search(
                 db, "lexical", 5, document_id=str(self.document_id),
                 vector_weight=0, bm25_weight=1, use_reranker=False,
@@ -124,8 +124,8 @@ class RetrievalContextTests(unittest.TestCase):
             self.result([(self.document_id, version)]),
             self.result([(self.document_id, None)]),
         ]
-        with patch("app.services.retrieval.get_vector_store") as client, patch(
-            "app.services.retrieval._tokens", wraps=retrieval._tokens
+        with patch("app.services.retrieval.retrieval.get_vector_store") as client, patch(
+            "app.services.retrieval.retrieval._tokens", wraps=retrieval._tokens
         ) as tokens:
             client.return_value.search.return_value = []
             hybrid_search(db, "cached", 5, document_id=str(self.document_id), use_reranker=False)

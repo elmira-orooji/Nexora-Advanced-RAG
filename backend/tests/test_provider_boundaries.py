@@ -2,8 +2,8 @@ import ast
 from pathlib import Path
 from unittest.mock import patch
 
-from app.services import provider_factory
-from app.services.eval_service import _llm_judge
+from app.services.providers import provider_factory
+from app.services.application.eval_service import _llm_judge
 
 
 def test_concrete_clients_are_only_imported_by_factory():

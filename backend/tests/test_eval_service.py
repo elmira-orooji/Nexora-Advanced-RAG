@@ -1,7 +1,7 @@
 import unittest
 from uuid import uuid4
 
-from app.services.eval_service import (
+from app.services.application.eval_service import (
     EvalMetricResult,
     _context_precision,
     _keyword_score,

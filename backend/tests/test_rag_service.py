@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from app.schemas.rag import RagRequest
-from app.services.rag_service import RagService
+from app.services.retrieval.rag_service import RagService
 
 
 def test_rag_service_uses_injected_vector_store():
@@ -15,7 +15,7 @@ def test_rag_service_uses_injected_vector_store():
     user = SimpleNamespace(id=uuid4(), organization_id=uuid4())
     payload = RagRequest(question="What is Nexora?", document_id=uuid4())
 
-    with patch("app.services.rag_service.require_document_access"), patch("app.services.rag_service.hybrid_search", return_value=[]):
+    with patch("app.services.retrieval.rag_service.require_document_access"), patch("app.services.retrieval.rag_service.hybrid_search", return_value=[]):
         response = service.answer(payload, user)
 
     assert response is result

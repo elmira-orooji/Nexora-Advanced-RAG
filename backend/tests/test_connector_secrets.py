@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-from app.services import connector_secrets
+from app.services.connectors import connector_secrets
 
 
 class ConnectorSecretTests(unittest.TestCase):

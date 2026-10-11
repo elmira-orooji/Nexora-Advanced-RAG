@@ -17,7 +17,7 @@ from app.api.routes.auth import get_current_user
 from app.core.rate_limit import auth_limiter, general_limiter
 from app.db.database import get_db
 from app.main import app
-from app.services.openrouter import LLMResult
+from app.services.providers.openrouter import LLMResult
 
 
 @pytest.fixture(autouse=True)
@@ -101,9 +101,9 @@ def test_search_trace_records_usage_and_returns_the_answer(client):
     )
 
     with (
-        patch("app.services.search_service.require_set_access"),
-        patch("app.services.search_service.hybrid_search", return_value=[point]),
-        patch("app.services.openrouter.OpenRouterClient.answer_with_usage", return_value=llm_result),
+        patch("app.services.retrieval.search_service.require_set_access"),
+        patch("app.services.retrieval.search_service.hybrid_search", return_value=[point]),
+        patch("app.services.providers.openrouter.OpenRouterClient.answer_with_usage", return_value=llm_result),
     ):
         response = client.post(
             "/api/v1/search/trace",

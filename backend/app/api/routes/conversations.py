@@ -9,8 +9,8 @@ from app.db.database import get_db
 from app.models.document import Document
 from app.models.user import User
 from app.schemas.conversation import ChatMessageCreate, ConversationCreate, ConversationDetail, ConversationResponse, ConversationUpdate, MessageResponse
-from app.services.conversation_service import ConversationService
-from app.services.provider_factory import get_provider_factory
+from app.services.application.conversation_service import ConversationService
+from app.services.providers.provider_factory import get_provider_factory
 from app.api.contracts import set_offset_pagination_headers
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])

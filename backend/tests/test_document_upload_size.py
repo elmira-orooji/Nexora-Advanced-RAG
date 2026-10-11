@@ -12,7 +12,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.core.config import MAX_UPLOAD_SIZE
-from app.services.document_upload import save_upload
+from app.services.documents.document_upload import save_upload
 
 
 @pytest.mark.parametrize("size", [11 * 1024 * 1024, 100 * 1024 * 1024])

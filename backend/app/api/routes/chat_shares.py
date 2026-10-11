@@ -7,7 +7,7 @@ from app.api.routes.auth import get_current_user
 from app.db.database import get_db
 from app.models.user import User
 from app.schemas.chat_share import ChatShareCreate, ChatShareCreated, ChatShareSummary, ChatShareView
-from app.services import chat_share_service
+from app.services.application import chat_share_service
 
 router = APIRouter(tags=["chat-sharing"])
 

@@ -7,7 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.routes import documents
-from app.services import document_management_service as management
+from app.services.documents import document_management_service as management
 
 
 @pytest.mark.parametrize("status", ["retrying", "paused"])

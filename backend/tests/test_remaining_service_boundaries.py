@@ -9,8 +9,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core.application_errors import ApplicationError
 from app.schemas.document_set import DocumentSetUpdate
 from app.schemas.search import RetrieverComparisonRequest
-from app.services import chat_share_service, document_set_service, search_service
-from app.services.provider_errors import LanguageModelError
+from app.services.application import chat_share_service
+from app.services.application import document_set_service
+from app.services.retrieval import search_service
+from app.services.providers.provider_errors import LanguageModelError
 
 
 def share(visibility):

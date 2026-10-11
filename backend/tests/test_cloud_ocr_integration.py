@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from PIL import Image, ImageDraw
 
-from app.services import cloud_ocr
+from app.services.documents import cloud_ocr
 
 
 def _enabled(variable: str) -> bool:

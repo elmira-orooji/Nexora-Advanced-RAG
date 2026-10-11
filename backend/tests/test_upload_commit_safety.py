@@ -8,9 +8,9 @@ import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.application_errors import ApplicationError
-from app.services import document_management_service as management
-from app.services import document_ingestion_service as ingestion
-from app.services.document_extractor import ExtractionResult
+from app.services.documents import document_management_service as management
+from app.services.documents import document_ingestion_service as ingestion
+from app.services.documents.document_extractor import ExtractionResult
 
 
 @pytest.mark.parametrize("committed", [False, True])

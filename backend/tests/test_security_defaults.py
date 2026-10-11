@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 from app.core.rate_limit import _get_client_ip
-from app.services.security_audit import audit_security_event
+from app.services.operations.security_audit import audit_security_event
 
 
 def test_untrusted_client_cannot_spoof_forwarded_ip():

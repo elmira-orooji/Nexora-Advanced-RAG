@@ -11,13 +11,13 @@ from sqlalchemy.orm import sessionmaker
 
 from app.models.indexing_outbox import IndexingOutbox
 from app.models.processing_job import ProcessingJob
-from app.services.document_jobs import DocumentJobOwnershipLost, claim_document_job, recover_document_jobs, refresh_document_job_lease
-from app.services import document_jobs
-from app.services.document_extractor import ExtractionResult
+from app.services.documents.document_jobs import DocumentJobOwnershipLost, claim_document_job, recover_document_jobs, refresh_document_job_lease
+from app.services.documents import document_jobs
+from app.services.documents.document_extractor import ExtractionResult
 from app.db.database import Base
 from app.models.document import Document
-from app.services.document_extractor import ExtractionError
-from app.services.qdrant import QdrantError
+from app.services.documents.document_extractor import ExtractionError
+from app.services.providers.qdrant import QdrantError
 
 
 class DocumentJobRecoveryTests(unittest.TestCase):
@@ -44,7 +44,7 @@ class DocumentJobRecoveryTests(unittest.TestCase):
             db.add(ProcessingJob(id=live_id, organization_id=uuid4(), document_id=uuid4(), status="running", stage="indexing", worker_id="live", locked_at=datetime.now(timezone.utc)))
             db.commit()
 
-        with patch("app.services.document_jobs.SessionLocal", self.sessions), patch("app.services.document_jobs.DOCUMENT_JOB_LEASE_SECONDS", 3600):
+        with patch("app.services.documents.document_jobs.SessionLocal", self.sessions), patch("app.services.documents.document_jobs.DOCUMENT_JOB_LEASE_SECONDS", 3600):
             self.assertEqual(recover_document_jobs(), 1)
         with self.sessions() as db:
             stale = db.get(ProcessingJob, stale_id)
@@ -60,7 +60,7 @@ class DocumentJobRecoveryTests(unittest.TestCase):
         self.assertIn("FOR UPDATE SKIP LOCKED", sql)
 
     def test_empty_queue_returns_zero(self):
-        with patch("app.services.document_jobs.SessionLocal", self.sessions):
+        with patch("app.services.documents.document_jobs.SessionLocal", self.sessions):
             self.assertEqual(recover_document_jobs(), 0)
 
     def test_stale_heartbeat_recovery_updates_document_before_hour_long_lease(self):
@@ -92,7 +92,7 @@ class DocumentJobRecoveryTests(unittest.TestCase):
             db.add(ProcessingJob(id=queued_id, organization_id=uuid4(), document_id=uuid4(), status="queued", chunk_size=900, chunk_overlap=100))
             db.commit()
 
-        with patch("app.services.document_jobs.SessionLocal", self.sessions):
+        with patch("app.services.documents.document_jobs.SessionLocal", self.sessions):
             self.assertEqual(claim_document_job("worker-1"), queued_id)
             self.assertIsNone(claim_document_job("worker-2"))
 
@@ -108,7 +108,7 @@ class DocumentJobRecoveryTests(unittest.TestCase):
             db.add(ProcessingJob(id=queued_id, organization_id=uuid4(), document_id=uuid4(), status="queued", stage="queued"))
             db.commit()
 
-        with patch("app.services.document_jobs.SessionLocal", self.sessions):
+        with patch("app.services.documents.document_jobs.SessionLocal", self.sessions):
             self.assertEqual(claim_document_job("worker-1"), queued_id)
 
         with self.sessions() as db:
@@ -127,7 +127,7 @@ class DocumentJobRecoveryTests(unittest.TestCase):
             ))
             db.commit()
 
-        with patch("app.services.document_jobs.SessionLocal", self.sessions):
+        with patch("app.services.documents.document_jobs.SessionLocal", self.sessions):
             self.assertIsNone(claim_document_job("worker"))
 
     def test_retry_policy_classifies_transient_and_permanent_errors(self):
@@ -140,14 +140,14 @@ class DocumentJobRecoveryTests(unittest.TestCase):
         self.assertFalse(document_jobs._retryable_document_error(ValueError("invalid document")))
 
     def test_retry_delay_is_exponential_and_capped(self):
-        with patch("app.services.document_jobs.DOCUMENT_JOB_RETRY_BASE_SECONDS", 10), patch("app.services.document_jobs.DOCUMENT_JOB_RETRY_MAX_SECONDS", 25):
+        with patch("app.services.documents.document_jobs.DOCUMENT_JOB_RETRY_BASE_SECONDS", 10), patch("app.services.documents.document_jobs.DOCUMENT_JOB_RETRY_MAX_SECONDS", 25):
             self.assertEqual(document_jobs._retry_delay(1), 10)
             self.assertEqual(document_jobs._retry_delay(2), 20)
             self.assertEqual(document_jobs._retry_delay(3), 25)
 
     def test_transient_failures_exhaust_into_dead_letter(self):
         now = datetime.now(timezone.utc)
-        with patch("app.services.document_jobs.DOCUMENT_JOB_MAX_ATTEMPTS", 3), patch("app.services.document_jobs.DOCUMENT_JOB_RETRY_BASE_SECONDS", 10):
+        with patch("app.services.documents.document_jobs.DOCUMENT_JOB_MAX_ATTEMPTS", 3), patch("app.services.documents.document_jobs.DOCUMENT_JOB_RETRY_BASE_SECONDS", 10):
             retry = document_jobs._document_failure_values(QdrantError("unavailable", status_code=503), 2, now)
             exhausted = document_jobs._document_failure_values(QdrantError("unavailable", status_code=503), 3, now)
             permanent = document_jobs._document_failure_values(ValueError("invalid document"), 1, now)
@@ -166,7 +166,7 @@ class DocumentJobRecoveryTests(unittest.TestCase):
             db.add(ProcessingJob(id=job_id, organization_id=uuid4(), document_id=uuid4(), status="running", worker_id="worker-1", locked_at=old_time))
             db.commit()
 
-        with patch("app.services.document_jobs.SessionLocal", self.sessions):
+        with patch("app.services.documents.document_jobs.SessionLocal", self.sessions):
             self.assertFalse(refresh_document_job_lease(job_id, "worker-2"))
             self.assertTrue(refresh_document_job_lease(job_id, "worker-1"))
 
@@ -181,7 +181,7 @@ class DocumentJobRecoveryTests(unittest.TestCase):
             db.add(ProcessingJob(id=job_id, organization_id=uuid4(), document_id=uuid4(), status="queued"))
             db.commit()
 
-        with patch("app.services.document_jobs.SessionLocal", self.sessions), patch.object(document_jobs, "_progress") as progress:
+        with patch("app.services.documents.document_jobs.SessionLocal", self.sessions), patch.object(document_jobs, "_progress") as progress:
             document_jobs.process_document_job(job_id, "worker-without-claim")
             self.assertEqual(claim_document_job("owner"), job_id)
             document_jobs.process_document_job(job_id, "different-worker")
@@ -220,7 +220,7 @@ class DocumentIndexRetryTests(unittest.TestCase):
             db.commit()
         generated = [("first chunk", 0, "parent"), ("second chunk", 0, "parent")]
         provenance = {"provider": "mineru", "model": "vlm", "completed_at": "2026-09-24T00:00:00+00:00"}
-        with patch.object(document_jobs, "BASE_DIR", Path.cwd()), patch.object(document_jobs, "SessionLocal", sessions), patch.object(document_jobs, "extract_text_with_provenance", return_value=ExtractionResult("source text", provenance)), patch.object(document_jobs, "hierarchical_chunks", return_value=generated), patch("app.services.incremental_index.hierarchical_chunks", return_value=generated), patch("app.services.incremental_index.enrich_chunk", return_value=([], [])), patch("pathlib.Path.write_text"), patch.object(document_jobs, "get_vector_store") as factory:
+        with patch.object(document_jobs, "BASE_DIR", Path.cwd()), patch.object(document_jobs, "SessionLocal", sessions), patch.object(document_jobs, "extract_text_with_provenance", return_value=ExtractionResult("source text", provenance)), patch.object(document_jobs, "hierarchical_chunks", return_value=generated), patch("app.services.documents.incremental_index.hierarchical_chunks", return_value=generated), patch("app.services.documents.incremental_index.enrich_chunk", return_value=([], [])), patch("pathlib.Path.write_text"), patch.object(document_jobs, "get_vector_store") as factory:
             client = factory.return_value
             # Simulate Qdrant failure during immediate post-commit apply
             client.replace_document_chunks.side_effect = QdrantError("Connection lost")

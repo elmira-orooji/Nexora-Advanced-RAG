@@ -8,7 +8,7 @@ from app.db.database import get_db
 from app.models.user import User
 from app.schemas.user_management import SetPermissionItem, SetPermissionsUpdate, UserAdminCreate, UserAdminResponse, UserAdminUpdate
 
-from app.services.user_management_service import UserManagementService
+from app.services.application.user_management_service import UserManagementService
 
 router = APIRouter(prefix="/users", tags=["users"])
 

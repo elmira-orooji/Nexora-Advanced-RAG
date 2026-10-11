@@ -1,4 +1,4 @@
-from app.services.provider_factory import get_vector_store
+from app.services.providers.provider_factory import get_vector_store
 import logging
 import os
 import hmac
@@ -22,15 +22,15 @@ from app.models.llm_usage import LLMUsage
 from app.models.processing_job import ProcessingJob
 from app.models.indexing_outbox import IndexingOutbox
 from app.models.operational_alert import OperationalAlert
-from app.services.operational_metrics import increment, render
-from app.services.performance_measurement import (
+from app.services.operations.operational_metrics import increment, render
+from app.services.operations.performance_measurement import (
     begin_request_measurement,
     finish_request_measurement,
     process_memory_bytes,
     register_sqlalchemy_query_metrics,
 )
-from app.services.provider_errors import VectorStoreError
-from app.services.worker_heartbeat import get_available_worker_types
+from app.services.providers.provider_errors import VectorStoreError
+from app.services.operations.worker_heartbeat import get_available_worker_types
 from app.core.rate_limit import RateLimitMiddleware
 from app.core.logging import configure_logging
 from app.core.request_context import reset_request_id, set_request_id

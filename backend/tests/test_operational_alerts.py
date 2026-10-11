@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from app.services import operational_alerts
+from app.services.operations import operational_alerts
 
 
 @patch.object(operational_alerts, "ALERT_RECIPIENTS", ("ops@example.com",))

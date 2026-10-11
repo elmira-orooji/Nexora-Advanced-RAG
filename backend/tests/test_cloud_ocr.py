@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 from zipfile import ZipFile
 
-from app.services import cloud_ocr
-from app.services.document_extractor import _extract_pdf
+from app.services.documents import cloud_ocr
+from app.services.documents.document_extractor import _extract_pdf
 
 
 class CloudOCRTests(unittest.TestCase):
@@ -121,7 +121,7 @@ class CloudOCRTests(unittest.TestCase):
     def test_scanned_pdf_uses_ocr_after_native_extraction_is_empty(self):
         reader = MagicMock()
         reader.pages = [MagicMock(extract_text=lambda: "")]
-        with patch("app.services.document_extractor.PdfReader", return_value=reader), patch("app.services.document_extractor.extract_scanned_document_text_with_provenance", return_value=cloud_ocr.OCRResult("متن اسکن‌شده", {"provider": "jina", "model": "jina-ocr-v1", "completed_at": "2026-09-24T00:00:00+00:00"})) as ocr:
+        with patch("app.services.documents.document_extractor.PdfReader", return_value=reader), patch("app.services.documents.document_extractor.extract_scanned_document_text_with_provenance", return_value=cloud_ocr.OCRResult("متن اسکن‌شده", {"provider": "jina", "model": "jina-ocr-v1", "completed_at": "2026-09-24T00:00:00+00:00"})) as ocr:
             self.assertEqual(_extract_pdf(Path("scan.pdf")), "متن اسکن‌شده")
         ocr.assert_called_once_with(Path("scan.pdf"), "application/pdf")
 

@@ -5,7 +5,7 @@ from fastapi import HTTPException, Response
 
 from app.api.routes.auth import login
 from app.schemas.auth import LoginRequest
-from app.services.login_throttle import _key, _lock_seconds, throttle_keys
+from app.services.security.login_throttle import _key, _lock_seconds, throttle_keys
 from tests.test_auth_cookies import login_request
 
 
@@ -19,7 +19,7 @@ class LoginThrottleTests(unittest.TestCase):
         self.assertEqual(account_key, _key("account", "acme:alice"))
 
     def test_lock_duration_increases_and_is_capped(self):
-        with patch("app.services.login_throttle.AUTH_LOCK_BASE_SECONDS", 30), patch("app.services.login_throttle.AUTH_LOCK_MAX_SECONDS", 900):
+        with patch("app.services.security.login_throttle.AUTH_LOCK_BASE_SECONDS", 30), patch("app.services.security.login_throttle.AUTH_LOCK_MAX_SECONDS", 900):
             self.assertEqual(_lock_seconds(4, 5), 0)
             self.assertEqual(_lock_seconds(5, 5), 30)
             self.assertEqual(_lock_seconds(7, 5), 120)

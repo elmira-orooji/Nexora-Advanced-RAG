@@ -14,7 +14,7 @@ from typing import Callable
 from fastapi import HTTPException, Request, Response, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import RATE_LIMIT_REDIS_URL, TRUSTED_PROXY_IPS
-from app.services.security_audit import audit_security_event
+from app.services.operations.security_audit import audit_security_event
 
 
 class RateLimiter:

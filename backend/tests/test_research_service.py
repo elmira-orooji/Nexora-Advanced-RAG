@@ -15,9 +15,9 @@ from fastapi import HTTPException
 
 from app.api.routes.research import run_research
 from app.schemas.research import ResearchRequest
-from app.services import research_service as module
-from app.services.openrouter import OpenRouterError
-from app.services.qdrant import QdrantError
+from app.services.retrieval import research_service as module
+from app.services.providers.openrouter import OpenRouterError
+from app.services.providers.qdrant import QdrantError
 
 
 @pytest.mark.parametrize("question", ["سلام", "Hi", "چه؟"])

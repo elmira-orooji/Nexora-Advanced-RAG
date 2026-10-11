@@ -112,7 +112,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend/my-rag-app
+      context: ./frontend/app
     depends_on:
       api:
         condition: service_started

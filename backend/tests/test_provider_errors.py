@@ -4,13 +4,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.services.connector_scheduler import _retryable_connector_error
-from app.services.document_jobs import _retryable_document_error
-from app.services.eval_service import _llm_judge
-from app.services.openrouter import OpenRouterError
-from app.services.provider_errors import LanguageModelError, VectorStoreError
-from app.services.provider_failures import provider_error
-from app.services.qdrant import QdrantError
+from app.services.connectors.connector_scheduler import _retryable_connector_error
+from app.services.documents.document_jobs import _retryable_document_error
+from app.services.application.eval_service import _llm_judge
+from app.services.providers.openrouter import OpenRouterError
+from app.services.providers.provider_errors import LanguageModelError, VectorStoreError
+from app.services.providers.provider_failures import provider_error
+from app.services.providers.qdrant import QdrantError
 
 
 def test_adapter_errors_implement_shared_contracts():
