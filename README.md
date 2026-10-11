@@ -42,7 +42,7 @@ See [ARCHITECTURE.md](documents/architecture/ARCHITECTURE.md) for component boun
 
 ## Quick start with Docker
 
-Docker Compose is the recommended way to run the full local stack. It starts PostgreSQL, Qdrant, the API, document worker, connector scheduler, and frontend together.
+Docker Compose starts PostgreSQL, Qdrant, Redis, the API, document worker, connector scheduler, and frontend together.
 
 ### Requirements
 
@@ -113,32 +113,51 @@ OPENROUTER_API_KEY=
 OPENROUTER_MODEL=openrouter/free
 ```
 
-Apply migrations and start the three backend processes in separate terminals:
+After configuring the environment, apply migrations from the backend directory:
+
+```powershell
+alembic upgrade head
+```
+
+Then open three separate terminals, each starting from the repository root.
+
+Terminal 1 - API:
 
 ```powershell
 cd backend
 .\.venv\Scripts\Activate.ps1
-alembic upgrade head
-
-# Terminal 1
 uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
 
-# Terminal 2
+Terminal 2 - document processing:
+
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
 python -m app.workers.document_worker
+```
 
-# Terminal 3
+Terminal 3 - scheduled source synchronization:
+
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
 python -m app.workers.connector_scheduler_worker
 ```
 
 ### Frontend
 
+In a separate terminal, starting from the repository root:
+
 ```powershell
 cd frontend/app
-npm install
-npm run dev
+npm ci
+npm run dev -- --host 0.0.0.0 --port 5173 --strictPort
 ```
 
 The development server runs on [http://localhost:5173](http://localhost:5173) and proxies `/api` calls to `http://127.0.0.1:8000`.
+
+The frontend package is at `frontend/app`, not `frontend/my-rag-app`. If port 5173 is already in use, stop the existing frontend process before starting another one. Python's virtual environment is only needed for the backend and workers.
 
 ## Document processing and OCR
 
@@ -165,7 +184,9 @@ JINA_OCR_MODEL=jina-ocr-v1
 
 With `OCR_PROVIDER=jina`, Jina is attempted first and MinerU second. Use this route only when the organization approves sending document content to both providers. If either credential is missing, the configured provider list adjusts accordingly.
 
-The application does not currently include malware scanning. Do not treat MIME checks and file-size limits as an antivirus control. Before processing untrusted files in production, deploy a quarantine-and-scan workflow that blocks files when the scanner is unavailable. [SECURITY.md](SECURITY.md) defines the required controls.
+Uploads are staged in quarantine and can be scanned through ClamAV before they enter document storage and processing. Scanning is disabled by default in development and test environments; production requires `MALWARE_SCAN_MODE=required` and a reachable ClamAV service. When scanning is required, an unavailable scanner blocks the upload.
+
+For Docker, enable the scanner service with `docker compose --profile security up --build -d` and configure `MALWARE_SCAN_MODE=required`, `CLAMD_HOST=clamav`, and `CLAMD_PORT=3310` in the environment. MIME checks and file-size limits are not antivirus controls. See [SECURITY.md](SECURITY.md) for security and deployment requirements.
 
 ## Operations
 
@@ -188,8 +209,8 @@ cd backend
 .\.venv\Scripts\Activate.ps1
 python -m pytest
 
-# Frontend unit tests and production build
-cd frontend/app
+# Frontend unit tests and production build (from backend/)
+cd ../frontend/app
 npm run test
 npm run build
 
@@ -211,6 +232,8 @@ SECURITY.md                 Security posture and operational requirements
 
 ## Documentation
 
+- [Documentation index](documents/README.md)
+- [Repository organization](documents/development/PROJECT_STRUCTURE.md)
 - [Architecture](documents/architecture/ARCHITECTURE.md)
 - [Deployment](documents/operations/DEPLOYMENT.md)
 - [Security](SECURITY.md)
@@ -218,6 +241,8 @@ SECURITY.md                 Security posture and operational requirements
 - [Backup and recovery](documents/operations/BACKUP_AND_RECOVERY.md)
 - [Design system](documents/development/DESIGN.md)
 - [Software requirements specification](documents/requirements/Nexora-SRS.pdf)
+- [Editable SRS source](documents/requirements/Nexora-SRS.docx)
+- [SRS regeneration instructions](documents/requirements/README.md)
 - [Backend workers and OCR](backend/README.md)
 - [Connector scheduler](documents/operations/CONNECTOR_SCHEDULER.md)
 
@@ -234,5 +259,3 @@ SECURITY.md                 Security posture and operational requirements
 ## Security note
 
 Do not commit `.env` files, passwords, API keys, OAuth refresh tokens, Qdrant keys, OCR credentials, uploaded data, or backups. Review [SECURITY.md](SECURITY.md) before exposing the application to users or connecting it to organization data. Report vulnerabilities privately; do not use public GitHub issues for sensitive security details.
-- [Documentation index](documents/README.md)
-- [Repository organization](documents/development/PROJECT_STRUCTURE.md)
