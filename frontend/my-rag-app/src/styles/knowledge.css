@@ -189,6 +189,10 @@ html:not(.dark) .kb-page {
 .kb-description-expanded { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; }
 .kb-description-toggle { margin-top: 4px; padding: 2px 0; color: var(--kb-accent); background: transparent; border: 0; font-size: 12px; }
 .kb-description-toggle:hover { text-decoration: underline; }
+.kb-set-menu { border: 1px solid var(--kb-line); border-radius: 12px; background: var(--kb-panel); box-shadow: var(--shadow-soft); }
+.kb-set-menu-item { display: flex; width: 100%; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; color: var(--kb-text); text-align: start; font-size: 12px; }
+.kb-set-menu-item:hover { background: var(--kb-tint); }
+.kb-set-menu-item.is-danger { color: var(--kb-danger); }
 .kb-selected-set-actions .kb-connect { flex-shrink: 0; white-space: nowrap; }
 .kb-selected-set-actions .kb-connect svg { flex-shrink: 0; }
 @media (max-width: 480px) {
