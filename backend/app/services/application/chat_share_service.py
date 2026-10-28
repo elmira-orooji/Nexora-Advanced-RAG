@@ -1,4 +1,5 @@
 from app.core.application_errors import ApplicationError
+from app.core.document_set_access import require_document_access
 from app.services.transactions import transaction
 import hashlib
 import secrets
@@ -25,10 +26,26 @@ def _resolve(token: str, db: Session) -> ChatShare:
 
 def _view(item: ChatShare, db: Session) -> ChatShareView:
     owner = ChatShareRepository(db).owner(item.owner_id)
+    if owner is None:
+        raise ApplicationError(kind="not_found", detail="Shared conversation not found")
+    for message in item.messages:
+        for source in message.get("sources", []):
+            document_id = source.get("document_id")
+            if not document_id:
+                raise ApplicationError(kind="not_found", detail="Shared conversation not found")
+            try:
+                require_document_access(db, owner, uuid.UUID(str(document_id)), "manage" if item.visibility == "link" else "view")
+            except (ApplicationError, ValueError):
+                raise ApplicationError(kind="not_found", detail="Shared conversation not found") from None
     return ChatShareView(id=item.id, title=item.title, owner_username=owner.username if owner else "Former member", visibility=item.visibility, messages=[SharedMessage.model_validate(value) for value in item.messages], created_at=item.created_at, expires_at=item.expires_at)
 
 
 def create_share(payload: ChatShareCreate, db: Session, user: User):
+    for message in payload.messages:
+        for source in message.sources:
+            if source.document_id is None:
+                raise ApplicationError(kind="validation_error", detail="Each shared source must identify its document")
+            require_document_access(db, user, source.document_id, "manage" if payload.visibility == "link" else "view")
     token = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(days=payload.expires_in_days) if payload.expires_in_days else None
     item = ChatShare(owner_id=user.id, title=payload.title.strip(), visibility=payload.visibility, token_hash=_hash(token), messages=[value.model_dump(mode="json") for value in payload.messages], expires_at=expires_at)
@@ -49,6 +66,12 @@ def view_team_share(token: str, db: Session, user: User):
     if item.visibility != "team": raise ApplicationError(kind="not_found", detail="Shared conversation not found")
     owner = ChatShareRepository(db).owner(item.owner_id)
     if owner is None or owner.organization_id != user.organization_id: raise ApplicationError(kind="not_found", detail="Shared conversation not found")
+    for message in item.messages:
+        for source in message.get("sources", []):
+            try:
+                require_document_access(db, user, uuid.UUID(str(source["document_id"])))
+            except (KeyError, ApplicationError, ValueError):
+                raise ApplicationError(kind="not_found", detail="Shared conversation not found") from None
     return _view(item, db)
 
 

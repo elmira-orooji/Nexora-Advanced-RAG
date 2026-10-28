@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class SharedSource(BaseModel):
+    document_id: uuid.UUID | None = None
     title: str = Field(max_length=255)
     citation_id: int | None = None
     excerpt: str | None = Field(default=None, max_length=3000)

@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.routes.auth import get_current_user
+from app.core.document_set_access import document_access_predicate
 from app.db.database import get_db
 from app.models.document import Document
 from app.models.user import User
@@ -42,6 +43,10 @@ def get_conversation(conversation_id: uuid.UUID, db: Session = Depends(get_db), 
         for source in message.sources or []
     }
     if document_ids:
+        allowed_ids = set(db.scalars(select(Document.id).where(
+            Document.id.in_(document_ids), document_access_predicate(user)
+        )).all())
+        revoked_ids = document_ids - allowed_ids
         provenance_by_document = dict(
             db.execute(
                 select(Document.id, Document.ocr_provenance).where(Document.id.in_(document_ids))
@@ -49,6 +54,10 @@ def get_conversation(conversation_id: uuid.UUID, db: Session = Depends(get_db), 
         )
         for message in detail.messages:
             if message.sources:
+                if any(source.document_id in revoked_ids for source in message.sources):
+                    message.content = "This answer is unavailable because access to one or more source documents has changed."
+                    message.sources = []
+                    continue
                 message.sources = [
                     source.model_copy(update={"ocr_provenance": provenance_by_document.get(source.document_id)})
                     for source in message.sources

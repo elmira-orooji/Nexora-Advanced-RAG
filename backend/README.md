@@ -51,6 +51,15 @@ with multiple matched entities); all generated answers still cite original
 document chunks. `GRAPH_QUERY_MAX_HOPS` is limited to 1 or 2 and defaults to 2.
 See [the GraphRAG pilot guide](../documents/architecture/GRAPHRAG-PILOT.md).
 
+## Document-level access
+
+Administrators can grant users `view`, `edit`, or `manage` access to individual
+documents from the Users page. A document with any direct grants is restricted
+to explicitly granted users; documents without direct grants continue to inherit
+access from their knowledge sets. Retrieval scopes, document content, citations,
+conversation history, and shared chats enforce these grants. See
+[the document access guide](../documents/architecture/DOCUMENT-ACCESS-CONTROL.md).
+
 ## OCR for scanned documents
 
 PDFs with an embedded text layer are extracted locally. By default, scanned

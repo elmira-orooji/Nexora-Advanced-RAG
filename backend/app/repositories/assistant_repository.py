@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from app.core.document_set_access import document_access_predicate
 from app.models.assistant import Assistant
 from app.models.document import Document
 from app.models.document_set import DocumentSet
@@ -25,9 +26,9 @@ class AssistantRepository:
             statement = statement.where(Assistant.is_active.is_(True))
         return list(self.db.scalars(statement).all())
 
-    def indexed_document_ids(self, set_ids):
+    def indexed_document_ids(self, set_ids, user):
         return [str(value) for value in self.db.scalars(select(Document.id).join(Document.document_sets).where(
-            DocumentSet.id.in_(set_ids), Document.status == "indexed").distinct()).all()]
+            DocumentSet.id.in_(set_ids), Document.status == "indexed", document_access_predicate(user)).distinct()).all()]
 
     def add(self, item):
         self.db.add(item)

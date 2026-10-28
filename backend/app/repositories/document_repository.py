@@ -1,6 +1,7 @@
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.document_set_access import document_access_predicate
 from app.models.chunk import Chunk
 from app.models.document import Document
 from app.models.document_set import DocumentSet
@@ -25,10 +26,11 @@ class DocumentRepository:
         return self.db.scalar(select(DocumentSet).where(
             DocumentSet.id == set_id, DocumentSet.organization_id == organization_id))
 
-    def list_documents(self, organization_id, set_id, offset, limit):
+    def list_documents(self, organization_id, set_id, offset, limit, user):
         statement = select(Document).where(Document.organization_id == organization_id)
         if set_id is not None:
             statement = statement.join(Document.document_sets).where(DocumentSet.id == set_id)
+        statement = statement.where(document_access_predicate(user))
         return self.db.scalars(statement.order_by(Document.created_at.desc()).offset(offset).limit(limit)).all()
 
     def get_chunk(self, document_id, chunk_id, organization_id):

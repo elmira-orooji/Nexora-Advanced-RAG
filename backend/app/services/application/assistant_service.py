@@ -114,7 +114,7 @@ def answer_with_assistant(assistant_id: uuid.UUID, payload: AssistantAnswerReque
         set_ids = [value for value in set_ids if value in allowed]
         if not set_ids and user.role != "admin":
             raise ApplicationError(kind="forbidden", detail="You do not have access to this assistant's knowledge")
-    document_ids = AssistantRepository(db).indexed_document_ids(set_ids) if set_ids else []
+    document_ids = AssistantRepository(db).indexed_document_ids(set_ids, user) if set_ids else []
     try:
         points = []
         if document_ids:

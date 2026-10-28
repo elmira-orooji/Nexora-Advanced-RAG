@@ -8,6 +8,7 @@ from app.models.conversation import Conversation
 from app.models.document import Document
 from app.models.document_set import DocumentSet
 from app.models.document_set_permission import DocumentSetPermission
+from app.models.document_permission import DocumentPermission
 from app.models.evaluation_case import EvaluationCase
 from app.models.llm_usage import LLMUsage
 from app.models.indexing_outbox import IndexingOutbox
@@ -20,4 +21,4 @@ from app.models.organization import Organization
 from app.models.processing_job import ProcessingJob
 from app.models.user import User
 
-__all__ = ["AnswerFeedback", "AnswerRecord", "Assistant", "AuthSession", "ChatShare", "Chunk", "Connector", "ConnectorItem", "Conversation", "Document", "DocumentSet", "DocumentSetPermission", "EvaluationCase", "IndexingOutbox", "KnowledgeEntity", "KnowledgeGraphFact", "LLMUsage", "LoginThrottle", "Message", "Notification", "OperationalAlert", "Organization", "ProcessingJob", "User"]
+__all__ = ["AnswerFeedback", "AnswerRecord", "Assistant", "AuthSession", "ChatShare", "Chunk", "Connector", "ConnectorItem", "Conversation", "Document", "DocumentPermission", "DocumentSet", "DocumentSetPermission", "EvaluationCase", "IndexingOutbox", "KnowledgeEntity", "KnowledgeGraphFact", "LLMUsage", "LoginThrottle", "Message", "Notification", "OperationalAlert", "Organization", "ProcessingJob", "User"]

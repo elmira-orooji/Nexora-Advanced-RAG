@@ -5,7 +5,7 @@ import re
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.core.document_set_access import require_document_access, require_set_access
+from app.core.document_set_access import require_document_access, require_knowledge_scope_access
 from app.core.metadata_filters import filter_document_ids
 from app.models.answer_feedback import AnswerRecord
 from app.models.user import User
@@ -45,11 +45,11 @@ class RagService:
         if payload.document_id:
             require_document_access(self.db, user, payload.document_id)
         elif payload.document_set_id:
-            require_set_access(self.db, user, payload.document_set_id)
+            require_knowledge_scope_access(self.db, user, payload.document_set_id)
             document_set = self.scopes.get_set(payload.document_set_id, user.organization_id)
             if document_set is None:
                 raise ApplicationError(kind="not_found", detail="Document set not found")
-            available_ids = self.scopes.indexed_document_ids(payload.document_set_id)
+            available_ids = self.scopes.indexed_document_ids(payload.document_set_id, user)
             available_ids = filter_document_ids(self.db, available_ids, payload.filters)
             if payload.document_ids:
                 requested_ids = set(payload.document_ids)

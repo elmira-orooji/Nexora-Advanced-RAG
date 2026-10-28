@@ -7,7 +7,7 @@ from time import perf_counter
 
 from sqlalchemy.orm import Session
 
-from app.core.document_set_access import require_document_access, require_set_access
+from app.core.document_set_access import require_document_access, require_knowledge_scope_access
 from app.core.metadata_filters import filter_document_ids
 from app.repositories.knowledge_scope_repository import KnowledgeScopeRepository
 from app.models.user import User
@@ -46,8 +46,8 @@ def _scope(payload: SearchRequest, db: Session, user: User) -> tuple[str | None,
         return str(payload.document_id), None, 1
     assert payload.document_set_id is not None
     if KnowledgeScopeRepository(db).get_set(payload.document_set_id, user.organization_id) is None: raise ApplicationError(kind="not_found", detail="Document set not found")
-    require_set_access(db, user, payload.document_set_id)
-    available = KnowledgeScopeRepository(db).indexed_document_ids(payload.document_set_id)
+    require_knowledge_scope_access(db, user, payload.document_set_id)
+    available = KnowledgeScopeRepository(db).indexed_document_ids(payload.document_set_id, user)
     available = filter_document_ids(db, available, payload.filters)
     if payload.document_ids:
         requested = set(payload.document_ids)

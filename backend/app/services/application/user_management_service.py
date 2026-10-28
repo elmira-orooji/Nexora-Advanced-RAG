@@ -4,9 +4,10 @@ from sqlalchemy.orm import Session
 from app.core.application_errors import ApplicationError
 from app.core.security import hash_password
 from app.models.user import User
+from app.models.document_permission import DocumentPermission
 from app.models.document_set_permission import DocumentSetPermission
 from app.repositories.user_repository import UserRepository
-from app.schemas.user_management import SetPermissionItem
+from app.schemas.user_management import DocumentAccessCatalog, DocumentCatalogItem, DocumentPermissionItem, SetPermissionItem
 from app.services.transactions import transaction
 
 
@@ -62,17 +63,56 @@ class UserManagementService:
         return [SetPermissionItem(document_set_id=item.document_set_id, document_set_name=name, permission=item.permission)
                 for item, name in self.repository.permission_rows(user_id, admin.organization_id)]
 
+    def get_document_catalog(self, user_id, admin, *, offset: int, limit: int, search: str | None):
+        target = self._get(user_id, admin)
+        documents, current, restricted, total, permissions = self.repository.document_catalog(
+            target.id, admin.organization_id, offset, limit, search
+        )
+        return DocumentAccessCatalog(
+            documents=[DocumentCatalogItem(
+                id=document.id,
+                filename=document.filename,
+                status=document.status,
+                document_set_names=[item.name for item in document.document_sets],
+                permission=current.get(document.id),
+                restricted=document.id in restricted,
+            ) for document in documents],
+            permissions=[DocumentPermissionItem(
+                document_id=item.document_id,
+                document_name=name,
+                permission=item.permission,
+            ) for item, name in permissions],
+            total=total,
+            offset=offset,
+            limit=limit,
+        )
+
     def replace_permissions(self, user_id, payload, admin):
         target = self._get(user_id, admin)
-        if target.role == "admin" and payload.permissions:
+        if target.role == "admin" and (payload.permissions or payload.document_permissions):
             raise ApplicationError(kind="validation_error", detail="Admins already have access to all knowledge sets")
         ids = {item.document_set_id for item in payload.permissions}
+        if len(ids) != len(payload.permissions):
+            raise ApplicationError(kind="validation_error", detail="Duplicate knowledge set permissions are not allowed")
         if self.repository.existing_set_ids(ids, admin.organization_id) != ids:
             raise ApplicationError(kind="validation_error", detail="One or more knowledge sets do not exist")
+        document_items = payload.document_permissions
+        if document_items is not None:
+            document_ids = {item.document_id for item in document_items}
+            if len(document_ids) != len(document_items):
+                raise ApplicationError(kind="validation_error", detail="Duplicate document permissions are not allowed")
+            if self.repository.existing_document_ids(document_ids, admin.organization_id) != document_ids:
+                raise ApplicationError(kind="validation_error", detail="One or more documents do not exist")
         with transaction(self.db):
             self.repository.replace_permissions(user_id, [
                 DocumentSetPermission(user_id=user_id, document_set_id=item.document_set_id,
                                       permission=item.permission, granted_by_id=admin.id)
                 for item in payload.permissions
             ])
+            if document_items is not None:
+                self.repository.replace_document_permissions(user_id, [
+                    DocumentPermission(user_id=user_id, document_id=item.document_id,
+                                       permission=item.permission, granted_by_id=admin.id)
+                    for item in document_items
+                ])
         return self.get_permissions(user_id, admin)

@@ -8,6 +8,9 @@ export interface ManagedUser { id: string; username: string; job_title: string |
 export interface CreateManagedUser { username: string; password: string; job_title?: string; role: "admin" | "user"; is_active: boolean; }
 export type PermissionLevel = "view" | "edit" | "manage";
 export interface SetPermission { document_set_id: string; document_set_name: string; permission: PermissionLevel; }
+export interface DocumentPermission { document_id: string; document_name: string; permission: PermissionLevel; }
+export interface DocumentCatalogItem { id: string; filename: string; status: string; document_set_names: string[]; permission: PermissionLevel | null; restricted: boolean; }
+export interface DocumentAccessCatalog { documents: DocumentCatalogItem[]; permissions: DocumentPermission[]; total: number; offset: number; limit: number; }
 
 export const userService = {
   list: () => request<ManagedUser[]>("/users", { headers: headers() }),
@@ -15,5 +18,6 @@ export const userService = {
   remove: (userId: string) => request<void>(`/users/${userId}`, { method: "DELETE", headers: headers() }),
   listSets: () => request<DocumentSet[]>("/document-sets", { headers: headers() }),
   permissions: (userId: string) => request<SetPermission[]>(`/users/${userId}/document-set-permissions`, { headers: headers() }),
-  savePermissions: (userId: string, permissions: Array<{ document_set_id: string; permission: PermissionLevel }>) => request<SetPermission[]>(`/users/${userId}/document-set-permissions`, { method: "PUT", headers: headers(true), body: JSON.stringify({ permissions }) }),
+  documentCatalog: (userId: string, offset = 0, limit = 25, search = "") => request<DocumentAccessCatalog>(`/users/${userId}/document-catalog?offset=${offset}&limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ""}`, { headers: headers() }),
+  savePermissions: (userId: string, permissions: Array<{ document_set_id: string; permission: PermissionLevel }>, documentPermissions: Array<{ document_id: string; permission: PermissionLevel }>) => request<SetPermission[]>(`/users/${userId}/document-set-permissions`, { method: "PUT", headers: headers(true), body: JSON.stringify({ permissions, document_permissions: documentPermissions }) }),
 };

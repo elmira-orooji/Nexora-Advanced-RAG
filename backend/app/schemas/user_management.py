@@ -38,5 +38,34 @@ class SetPermissionUpdateItem(BaseModel):
     permission: Literal["view", "edit", "manage"]
 
 
+class DocumentPermissionItem(BaseModel):
+    document_id: uuid.UUID
+    document_name: str
+    permission: Literal["view", "edit", "manage"]
+
+
+class DocumentPermissionUpdateItem(BaseModel):
+    document_id: uuid.UUID
+    permission: Literal["view", "edit", "manage"]
+
+
+class DocumentCatalogItem(BaseModel):
+    id: uuid.UUID
+    filename: str
+    status: str
+    document_set_names: list[str]
+    permission: Literal["view", "edit", "manage"] | None
+    restricted: bool
+
+
+class DocumentAccessCatalog(BaseModel):
+    documents: list[DocumentCatalogItem]
+    permissions: list[DocumentPermissionItem]
+    total: int
+    offset: int
+    limit: int
+
+
 class SetPermissionsUpdate(BaseModel):
     permissions: list[SetPermissionUpdateItem] = Field(max_length=100)
+    document_permissions: list[DocumentPermissionUpdateItem] | None = Field(default=None, max_length=5000)

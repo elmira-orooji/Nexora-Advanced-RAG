@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.application_errors import ApplicationError
 from app.core.config import document_storage_relative, resolve_document_path
-from app.core.document_set_access import require_document_access, require_set_access
+from app.core.document_set_access import require_document_access, require_knowledge_scope_access, require_set_access
 from app.models.document import Document
 from app.models.processing_job import ProcessingJob
 from app.repositories.document_repository import DocumentRepository
@@ -44,8 +44,7 @@ class DocumentManagementService:
 
     def update_chunk(self, document_id, chunk_id, payload, user):
         db = self.db
-        if user.role != "admin":
-            raise ApplicationError(kind="forbidden", detail="Admin access is required")
+        require_document_access(db, user, document_id, "edit")
         document = self.repository.get_document(document_id, user.organization_id, with_chunks=True, lock=True)
         if document is None:
             raise ApplicationError(kind="not_found", detail="Document not found")
@@ -75,8 +74,7 @@ class DocumentManagementService:
 
     def regenerate_chunk_enrichment(self, document_id, chunk_id, user):
         db = self.db
-        if user.role != "admin":
-            raise ApplicationError(kind="forbidden", detail="Admin access is required")
+        require_document_access(db, user, document_id, "edit")
         chunk = self.repository.get_chunk(document_id, chunk_id, user.organization_id)
         if chunk is None:
             raise ApplicationError(kind="not_found", detail="Chunk not found")
@@ -113,13 +111,11 @@ class DocumentManagementService:
 
     def list_documents(self, offset, limit, document_set_id, user):
         db = self.db
-        if user.role != "admin" and document_set_id is None:
-            raise ApplicationError(kind="forbidden", detail="A permitted knowledge set is required")
         if document_set_id is not None:
             if self.repository.get_set(document_set_id, user.organization_id) is None:
                 raise ApplicationError(kind="not_found", detail="Document set not found")
-            require_set_access(db, user, document_set_id)
-        return self.repository.list_documents(user.organization_id, document_set_id, offset, limit)
+            require_knowledge_scope_access(db, user, document_set_id)
+        return self.repository.list_documents(user.organization_id, document_set_id, offset, limit, user)
 
     def upload_document(self, file, user):
         db = self.db
@@ -230,24 +226,13 @@ class DocumentManagementService:
 
     def get_document(self, document_id, user):
         db = self.db
+        require_document_access(db, user, document_id)
         document = self.repository.get_document(document_id, user.organization_id, with_chunks=True)
 
         if document is None:
             raise ApplicationError(kind="not_found",
                 detail="Document not found",
             )
-
-        if user.role != "admin":
-            allowed = False
-            for document_set in document.document_sets:
-                try:
-                    require_set_access(db, user, document_set.id)
-                    allowed = True
-                    break
-                except ApplicationError:
-                    continue
-            if not allowed:
-                raise ApplicationError(kind="forbidden", detail="You do not have access to this document")
 
         if document.content_type == "application/pdf" and document.storage_path:
             try:

@@ -1,6 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
+from app.core.document_set_access import document_access_predicate
 from app.models.document import Document
 from app.models.document_set import DocumentSet, document_set_documents
 from app.models.document_set_permission import DocumentSetPermission
@@ -16,8 +17,9 @@ class DocumentSetRepository:
             statement = statement.options(selectinload(DocumentSet.documents))
         return self.db.scalar(statement)
 
-    def list_counts(self, organization_id, allowed):
-        statement = (select(DocumentSet, func.count(Document.id), func.count(Document.id).filter(Document.status == "indexed"))
+    def list_counts(self, organization_id, allowed, user):
+        access = document_access_predicate(user)
+        statement = (select(DocumentSet, func.count(Document.id).filter(access), func.count(Document.id).filter(Document.status == "indexed", access))
                      .outerjoin(document_set_documents, DocumentSet.id == document_set_documents.c.document_set_id)
                      .outerjoin(Document, Document.id == document_set_documents.c.document_id)
                      .group_by(DocumentSet.id).where(DocumentSet.organization_id == organization_id)

@@ -3,8 +3,10 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.document_set_access import document_access_predicate
 from app.models.document import Document
 from app.models.document_set import DocumentSet
+from app.models.user import User
 
 
 class KnowledgeScopeRepository:
@@ -18,8 +20,8 @@ class KnowledgeScopeRepository:
             DocumentSet.id == set_id, DocumentSet.organization_id == organization_id
         ))
 
-    def indexed_document_ids(self, set_id: uuid.UUID) -> set[uuid.UUID]:
+    def indexed_document_ids(self, set_id: uuid.UUID, user: User) -> set[uuid.UUID]:
         statement = select(Document.id).join(Document.document_sets).where(
-            DocumentSet.id == set_id, Document.status == "indexed"
+            DocumentSet.id == set_id, Document.status == "indexed", document_access_predicate(user)
         )
         return set(self.db.scalars(statement).all())

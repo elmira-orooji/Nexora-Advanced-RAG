@@ -26,7 +26,7 @@ class ConversationMultiSetTests(unittest.TestCase):
         self.ids = [uuid4(), uuid4()]
 
     def test_create_deduplicates_and_checks_every_selected_set(self):
-        with patch("app.services.application.conversation_service.require_set_access") as access:
+        with patch("app.services.application.conversation_service.require_knowledge_scope_access") as access:
             result = self.service.create(ConversationCreate(document_set_ids=self.ids + self.ids), self.user)
         self.assertEqual(result.document_set_ids, [str(value) for value in self.ids])
         self.assertEqual(access.call_count, 2)
@@ -34,14 +34,14 @@ class ConversationMultiSetTests(unittest.TestCase):
 
     def test_scope_retrieves_only_selected_sets(self):
         self.repository.indexed_document_ids_for_sets.return_value = ["document"]
-        with patch("app.services.application.conversation_service.require_set_access") as access:
+        with patch("app.services.application.conversation_service.require_knowledge_scope_access") as access:
             result = self.service._resolve_scope(SimpleNamespace(document_set_ids=[str(value) for value in self.ids]), self.user)
         self.assertEqual(result, (None, ["document"], None, None, False))
         self.assertEqual(access.call_count, 2)
-        self.repository.indexed_document_ids_for_sets.assert_called_once_with(self.ids)
+        self.repository.indexed_document_ids_for_sets.assert_called_once_with(self.ids, self.user)
 
     def test_revoked_access_prevents_retrieval(self):
-        with patch("app.services.application.conversation_service.require_set_access", side_effect=HTTPException(403, "Forbidden")):
+        with patch("app.services.application.conversation_service.require_knowledge_scope_access", side_effect=HTTPException(403, "Forbidden")):
             with self.assertRaises((HTTPException, ApplicationError)):
                 self.service._resolve_scope(SimpleNamespace(document_set_ids=[str(self.ids[0])]), self.user)
         self.repository.indexed_document_ids_for_sets.assert_not_called()

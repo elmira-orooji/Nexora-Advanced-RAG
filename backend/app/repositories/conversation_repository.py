@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.document_set_access import document_access_predicate
 from app.models.assistant import Assistant
 from app.models.conversation import Conversation
 from app.models.document import Document
@@ -32,18 +33,24 @@ class ConversationRepository:
     def document_set_exists(self, set_id: uuid.UUID, organization_id: uuid.UUID) -> bool:
         return self.db.scalar(select(DocumentSet.id).where(DocumentSet.id == set_id, DocumentSet.organization_id == organization_id)) is not None
 
-    def indexed_document_ids_for_set(self, set_id: uuid.UUID) -> list[str]:
-        statement = select(Document.id).join(Document.document_sets).where(DocumentSet.id == set_id, Document.status == "indexed")
+    def indexed_document_ids_for_set(self, set_id: uuid.UUID, user) -> list[str]:
+        statement = select(Document.id).join(Document.document_sets).where(
+            DocumentSet.id == set_id, Document.status == "indexed", document_access_predicate(user))
         return [str(value) for value in self.db.scalars(statement).all()]
 
-    def indexed_document_ids_for_sets(self, set_ids: list[uuid.UUID]) -> list[str]:
-        statement = select(Document.id).join(Document.document_sets).where(DocumentSet.id.in_(set_ids), Document.status == "indexed").distinct()
+    def indexed_document_ids_for_sets(self, set_ids: list[uuid.UUID], user) -> list[str]:
+        statement = select(Document.id).join(Document.document_sets).where(
+            DocumentSet.id.in_(set_ids), Document.status == "indexed", document_access_predicate(user)).distinct()
         return [str(value) for value in self.db.scalars(statement).all()]
 
-    def indexed_workspace_document_ids(self, organization_id: uuid.UUID, set_ids: set[uuid.UUID] | None) -> list[str]:
-        statement = select(Document.id).join(Document.document_sets).where(DocumentSet.organization_id == organization_id, Document.status == "indexed")
+    def indexed_workspace_document_ids(self, organization_id: uuid.UUID, set_ids: set[uuid.UUID] | None, user) -> list[str]:
+        statement = select(Document.id).where(
+            Document.organization_id == organization_id,
+            Document.status == "indexed",
+            document_access_predicate(user),
+        )
         if set_ids is not None:
-            statement = statement.where(DocumentSet.id.in_(set_ids))
+            statement = statement.join(Document.document_sets).where(DocumentSet.id.in_(set_ids))
         return [str(value) for value in self.db.scalars(statement.distinct()).all()]
 
     def save(self, item: object) -> None:

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.core.document_set_access import accessible_set_ids, require_document_access, require_set_access
+from app.core.document_set_access import accessible_set_ids, require_document_access, require_knowledge_scope_access
 from app.models.answer_feedback import AnswerRecord
 from app.models.conversation import Conversation
 from app.models.message import Message
@@ -43,7 +43,7 @@ class ConversationService:
         if payload.document_set_id:
             if not self.repository.document_set_exists(payload.document_set_id, user.organization_id):
                 raise ApplicationError(kind="not_found", detail="Document set not found")
-            require_set_access(self.db, user, payload.document_set_id)
+            require_knowledge_scope_access(self.db, user, payload.document_set_id)
         if payload.assistant_id:
             assistant = self.repository.get_assistant(payload.assistant_id, user.organization_id)
             if assistant is None:
@@ -53,7 +53,7 @@ class ConversationService:
         for set_id in selected_ids:
             if not self.repository.document_set_exists(set_id, user.organization_id):
                 raise ApplicationError(kind="not_found", detail="Document set not found")
-            require_set_access(self.db, user, set_id)
+            require_knowledge_scope_access(self.db, user, set_id)
         conversation = Conversation(user_id=user.id, title=payload.title or "New conversation", document_id=payload.document_id, document_set_id=payload.document_set_id, assistant_id=payload.assistant_id, workspace_scope=payload.workspace_scope, document_set_ids=[str(value) for value in selected_ids])
         with transaction(self.db):
             self.repository.save(conversation)
@@ -85,7 +85,7 @@ class ConversationService:
 
     def send_message(self, conversation_id: uuid.UUID, payload: ChatMessageCreate, user: User) -> Message:
         conversation = self.get(conversation_id, user, with_messages=True)
-        history = [{"role": message.role, "content": message.content} for message in conversation.messages[-8:]]
+        history = self._permitted_history(conversation.messages[-8:], user)
         document_id, document_ids, model_id, instructions, hybrid = self._resolve_scope(conversation, user)
         retrieval_query = payload.content
         if (document_id or document_ids) and should_rewrite(payload.content, history):
@@ -137,25 +137,22 @@ class ConversationService:
         if getattr(conversation, "document_set_ids", None):
             selected_ids = [uuid.UUID(value) for value in conversation.document_set_ids]
             for set_id in selected_ids:
-                require_set_access(self.db, user, set_id)
-            return None, self.repository.indexed_document_ids_for_sets(selected_ids), None, None, False
+                require_knowledge_scope_access(self.db, user, set_id)
+            return None, self.repository.indexed_document_ids_for_sets(selected_ids, user), None, None, False
         if conversation.document_id:
             require_document_access(self.db, user, conversation.document_id)
             return str(conversation.document_id), None, None, None, False
         if conversation.document_set_id:
-            require_set_access(self.db, user, conversation.document_set_id)
-            return None, self.repository.indexed_document_ids_for_set(conversation.document_set_id), None, None, False
+            require_knowledge_scope_access(self.db, user, conversation.document_set_id)
+            return None, self.repository.indexed_document_ids_for_set(conversation.document_set_id, user), None, None, False
         if conversation.assistant_id:
             assistant = self.repository.get_assistant(conversation.assistant_id, user.organization_id)
             if assistant is None:
                 raise ApplicationError(kind="conflict", detail="Conversation assistant is unavailable")
             set_ids = self._assistant_set_ids(assistant, user)
-            return None, self.repository.indexed_document_ids_for_sets(set_ids) if set_ids else [], assistant.model_id, assistant.instructions, assistant.answer_mode == "hybrid"
+            return None, self.repository.indexed_document_ids_for_sets(set_ids, user) if set_ids else [], assistant.model_id, assistant.instructions, assistant.answer_mode == "hybrid"
         if conversation.workspace_scope:
-            set_ids = accessible_set_ids(self.db, user)
-            if not set_ids and user.role != "admin":
-                return None, [], None, None, False
-            return None, self.repository.indexed_workspace_document_ids(user.organization_id, set_ids), None, None, False
+            return None, self.repository.indexed_workspace_document_ids(user.organization_id, None, user), None, None, False
         raise ApplicationError(kind="conflict", detail="Conversation has no valid knowledge scope")
 
     def _assistant_set_ids(self, assistant, user: User) -> list[uuid.UUID]:
@@ -168,6 +165,21 @@ class ConversationService:
         if not set_ids and user.role != "admin":
             raise ApplicationError(kind="forbidden", detail="You do not have access to this assistant's knowledge")
         return set_ids
+
+    def _permitted_history(self, messages: list[Message], user: User) -> list[dict[str, str]]:
+        history: list[dict[str, str]] = []
+        for message in messages:
+            if message.role == "assistant" and message.sources:
+                try:
+                    for source in message.sources:
+                        document_id = source.get("document_id") if isinstance(source, dict) else None
+                        if not document_id:
+                            raise ValueError("Missing source document id")
+                        require_document_access(self.db, user, uuid.UUID(str(document_id)))
+                except (ApplicationError, ValueError, TypeError):
+                    continue
+            history.append({"role": message.role, "content": message.content})
+        return history
 
     @staticmethod
     def _no_results_message(question: str) -> str:

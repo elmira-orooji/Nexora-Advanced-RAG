@@ -9,7 +9,7 @@ import type { Source } from "../features/chat/types/chat";
 import "../styles/chat-answer.css";
 
 function toSource(source: SharedChat["messages"][number]["sources"][number], index: number): Source {
-  return { id: `${source.title}-${index}`, title: source.title, citationId: source.citation_id, excerpt: source.excerpt, page: source.page, section: source.section, ocrProvenance: source.ocr_provenance };
+  return { id: `${source.title}-${index}`, title: source.title, documentId: source.document_id, citationId: source.citation_id, excerpt: source.excerpt, page: source.page, section: source.section, ocrProvenance: source.ocr_provenance };
 }
 
 export default function SharedChatPage() {

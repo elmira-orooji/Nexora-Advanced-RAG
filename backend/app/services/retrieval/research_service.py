@@ -7,7 +7,7 @@ from app.services.transactions import transaction
 from app.repositories.answer_repository import AnswerRepository
 from app.repositories.knowledge_scope_repository import KnowledgeScopeRepository
 
-from app.core.document_set_access import require_set_access
+from app.core.document_set_access import require_knowledge_scope_access
 from app.core.metadata_filters import filter_document_ids
 from app.models.answer_feedback import AnswerRecord
 from app.models.user import User
@@ -28,9 +28,9 @@ class ResearchService:
 
     def run(self, payload: ResearchRequest, user: User) -> ResearchResponse:
         db = self.db
-        require_set_access(db, user, payload.document_set_id)
+        require_knowledge_scope_access(db, user, payload.document_set_id)
         if self.scopes.get_set(payload.document_set_id, user.organization_id) is None: raise ApplicationError(kind="not_found", detail="Document set not found")
-        available = self.scopes.indexed_document_ids(payload.document_set_id)
+        available = self.scopes.indexed_document_ids(payload.document_set_id, user)
         available = filter_document_ids(db, available, payload.filters)
         if payload.document_ids:
             requested = set(payload.document_ids)

@@ -1,4 +1,5 @@
 from app.core.application_errors import ApplicationError
+from app.core.document_set_access import require_document_access
 import uuid
 import shutil
 from pathlib import Path
@@ -25,8 +26,8 @@ class DocumentProcessingService:
         self.repository = DocumentRepository(db)
 
     def create_chunks(self, document_id: uuid.UUID, payload: ChunkingRequest, user: User | None) -> Document:
-        if user is not None and user.role != "admin":
-            raise ApplicationError(kind="forbidden", detail="Admin access is required")
+        if user is not None:
+            require_document_access(self.db, user, document_id, "edit")
         document = self.repository.get_document(document_id, user.organization_id if user else None, with_chunks=True)
 
         if document is None:
@@ -62,8 +63,8 @@ class DocumentProcessingService:
             raise ApplicationError(kind="internal_error", detail="Could not save document chunks") from exc
 
     def index(self, document_id: uuid.UUID, user: User | None) -> Document:
-        if user is not None and user.role != "admin":
-            raise ApplicationError(kind="forbidden", detail="Admin access is required")
+        if user is not None:
+            require_document_access(self.db, user, document_id, "edit")
         document = self.repository.get_document(document_id, user.organization_id if user else None, with_chunks=True)
 
         if document is None:
@@ -85,8 +86,7 @@ class DocumentProcessingService:
         return document
 
     def delete(self, document_id: uuid.UUID, user: User) -> DeleteDocumentResponse:
-        if user.role != "admin":
-            raise ApplicationError(kind="forbidden", detail="Admin access is required")
+        require_document_access(self.db, user, document_id, "manage")
         document = self.repository.get_document(document_id, user.organization_id)
         if document is None:
             raise ApplicationError(kind="not_found", detail="Document not found")

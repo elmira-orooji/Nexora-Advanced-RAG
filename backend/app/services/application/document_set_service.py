@@ -2,10 +2,11 @@ from app.core.application_errors import ApplicationError
 from app.services.transactions import transaction
 import uuid
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.document_set_access import accessible_set_ids, require_document_access, require_set_access
+from app.core.document_set_access import accessible_set_ids, document_access_predicate, require_document_access, require_knowledge_scope_access, require_set_access
 from app.models.document import Document
 from app.models.document_set import DocumentSet
 from app.repositories.document_set_repository import DocumentSetRepository
@@ -49,9 +50,9 @@ def list_document_sets(
     user: User,
 ):
     allowed = accessible_set_ids(db, user)
-    rows = DocumentSetRepository(db).list_counts(user.organization_id, allowed)
+    rows = DocumentSetRepository(db).list_counts(user.organization_id, allowed, user)
     permission_map = {} if user.role == "admin" else DocumentSetRepository(db).permissions(user.id)
-    return [_response(item, total, indexed, "manage" if user.role == "admin" else permission_map[item.id]) for item, total, indexed in rows]
+    return [_response(item, total, indexed, "manage" if user.role == "admin" else permission_map.get(item.id, "view")) for item, total, indexed in rows]
 
 
 def create_document_set(
@@ -83,11 +84,15 @@ def get_document_set(
     db: Session,
     user: User,
 ):
-    access_level = require_set_access(db, user, set_id)
+    access_level = require_knowledge_scope_access(db, user, set_id)
     item = _get_set(db, set_id, user, with_documents=True)
+    visible_ids = set(db.scalars(select(Document.id).where(
+        Document.id.in_([document.id for document in item.documents]), document_access_predicate(user)
+    )).all()) if item.documents else set()
+    visible_documents = [document for document in item.documents if document.id in visible_ids]
     return DocumentSetDetail(
-        **_response(item, len(item.documents), sum(doc.status == "indexed" for doc in item.documents), access_level).model_dump(),
-        documents=item.documents,
+        **_response(item, len(visible_documents), sum(doc.status == "indexed" for doc in visible_documents), access_level).model_dump(),
+        documents=visible_documents,
     )
 
 
@@ -149,10 +154,7 @@ def add_document_to_set(
         with transaction(db):
             item.documents.append(document)
         DocumentSetRepository(db).refresh(item)
-    return DocumentSetDetail(
-        **_response(item, len(item.documents), sum(doc.status == "indexed" for doc in item.documents), access_level).model_dump(),
-        documents=item.documents,
-    )
+    return _membership_response(db, item, access_level, user)
 
 
 def remove_document_from_set(
@@ -168,7 +170,18 @@ def remove_document_from_set(
         raise ApplicationError(kind="not_found", detail="Document is not in this set")
     with transaction(db):
         item.documents.remove(document)
+    return _membership_response(db, item, access_level, user)
+
+
+def _membership_response(db: Session, item: DocumentSet, access_level: str, user: User) -> DocumentSetDetail:
+    visible_ids = set(
+        db.scalars(select(Document.id).where(
+            Document.id.in_([document.id for document in item.documents]),
+            document_access_predicate(user),
+        )).all()
+    ) if item.documents else set()
+    visible_documents = [document for document in item.documents if document.id in visible_ids]
     return DocumentSetDetail(
-        **_response(item, len(item.documents), sum(doc.status == "indexed" for doc in item.documents), access_level).model_dump(),
-        documents=item.documents,
+        **_response(item, len(visible_documents), sum(doc.status == "indexed" for doc in visible_documents), access_level).model_dump(),
+        documents=visible_documents,
     )
