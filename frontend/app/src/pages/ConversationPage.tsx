@@ -220,6 +220,9 @@ export default function ConversationPage({ conversationId, onConversationChange,
           </div>
 
           {knowledgeReady && sendError && <InlineError className="mb-3" message={sendError} onDismiss={() => setSendError("")} />}
+          {knowledgeReady && authService.getUser()?.is_demo && <div className="mb-4 flex flex-wrap justify-center gap-2" aria-label={isFa ? "پرسش‌های پیشنهادی دمو" : "Suggested demo questions"}>
+            {(isFa ? ["نکسورا چیست و منابع پاسخ چگونه نمایش داده می‌شوند؟", "چطور اسناد به پایگاه دانش قابل جست‌وجو تبدیل می‌شوند؟", "اگر پاسخ در اسناد نباشد چه اتفاقی می‌افتد؟"] : ["What is Nexora and how do citations work?", "How do documents become a searchable knowledge set?", "What happens when the documents do not contain an answer?"]).map(prompt => <button key={prompt} type="button" disabled={sending} onClick={() => void send(prompt)} className="rounded-xl border px-3 py-2 text-xs leading-5 disabled:opacity-50" style={{ borderColor: "var(--border-subtle)", color: "var(--text-muted)", background: "var(--surface-panel)" }}>{prompt}</button>)}
+          </div>}
           <ChatInput prominent disabled={!knowledgeReady} isSending={sending} onSend={send} onCancel={cancelSend} />
           {!knowledgeReady && canCreateKnowledge && <KnowledgeStartPanel isFa={isFa} hasSet={Boolean(selectedSet) || (isAllKnowledgeSets && sets.length > 0)} canCreate={canCreateKnowledge} onOpenKnowledge={onOpenKnowledge} />}
 

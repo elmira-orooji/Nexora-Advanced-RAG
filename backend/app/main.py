@@ -37,6 +37,7 @@ from app.core.request_context import reset_request_id, set_request_id
 from app.core.request_context import get_request_id
 from app.api.contracts import API_MAJOR_VERSION, API_PREFIX, error_body
 from app.core.application_errors import ApplicationError
+from app.core.demo import DEMO_ENABLED, DEMO_PROXY_SECRET
 from app.api.application_errors import to_http_exception
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def demo_gateway(request: Request, call_next):
+    if DEMO_ENABLED and request.url.path.startswith("/api/"):
+        if DEMO_PROXY_SECRET and not hmac.compare_digest(request.headers.get("x-nexora-demo-proxy", "").encode(), DEMO_PROXY_SECRET.encode()):
+            return JSONResponse(status_code=403, content={"detail": "Demo gateway access is required."})
+        request.state.demo_proxy_verified = bool(DEMO_PROXY_SECRET)
+        if request.method not in {"GET", "HEAD", "OPTIONS"} and request.headers.get("origin") not in FRONTEND_ORIGINS:
+            return JSONResponse(status_code=403, content={"detail": "Request origin is not permitted."})
+    response = await call_next(request)
+    if DEMO_ENABLED and request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.middleware("http")

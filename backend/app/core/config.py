@@ -39,6 +39,9 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 QDRANT_URL = os.getenv("QDRANT_URL", "").rstrip("/")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "")
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "rag_chunks")
+QDRANT_INFERENCE_MODE = os.getenv("QDRANT_INFERENCE_MODE", "cloud").strip().lower()
+if QDRANT_INFERENCE_MODE not in {"cloud", "local"}:
+    raise RuntimeError("QDRANT_INFERENCE_MODE must be cloud or local")
 QDRANT_EMBEDDING_MODEL = os.getenv(
     "QDRANT_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
 )

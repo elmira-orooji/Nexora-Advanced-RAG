@@ -23,6 +23,8 @@ from app.schemas.auth import AuthUser, LoginRequest, LoginResponse, PasswordChan
 from app.services.security.login_throttle import clear_account_failures, record_failure, retry_after, throttle_keys
 from app.services.operations.security_audit import audit_security_event
 from app.core.rate_limit import auth_limiter, rate_limit
+from app.core.demo import DEMO_ENABLED, DEMO_QUESTION_LIMIT, DEMO_SESSION_SECONDS, enforce_demo_access
+from app.services.application.demo_service import create_demo_guest
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 bearer = HTTPBearer(auto_error=False)
@@ -95,6 +97,7 @@ def get_current_user(
     user = db.get(User, user_id)
     if user is None or not user.is_active:
         raise unauthorized
+    enforce_demo_access(request, user)
     return user
 
 
@@ -110,7 +113,7 @@ def login(payload: LoginRequest, response: Response, request: Request, db: Sessi
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many login attempts. Try again later.", headers={"Retry-After": str(wait_seconds)})
     organization = db.scalar(select(Organization).where(Organization.slug == organization_slug))
     user = db.scalar(select(User).where(User.username == username, User.organization_id == organization.id)) if organization else None
-    if user is None or not verify_password(payload.password, user.password_hash):
+    if user is None or getattr(user, "is_demo", False) or not verify_password(payload.password, user.password_hash):
         lock_seconds = record_failure(db, keys)
         audit_security_event("login", "denied", client_ip=client_ip, reason="invalid_credentials")
         logger.warning("Login failed", extra={"account_key": keys[0], "ip_key": keys[1], "locked_seconds": lock_seconds})
@@ -125,6 +128,10 @@ def login(payload: LoginRequest, response: Response, request: Request, db: Sessi
     audit_security_event("login", "allowed", actor_id=str(user.id), client_ip=client_ip)
 
     expires_in = AUTH_REMEMBER_SECONDS if payload.remember_me else AUTH_SESSION_SECONDS
+    return _start_session(db, response, user, organization, expires_in, remember_me=payload.remember_me)
+
+
+def _start_session(db: Session, response: Response, user: User, organization: Organization, expires_in: int, *, remember_me: bool = False) -> LoginResponse:
     session_id = uuid4()
     db.add(
         AuthSession(
@@ -137,7 +144,7 @@ def login(payload: LoginRequest, response: Response, request: Request, db: Sessi
     response.set_cookie(
         key=AUTH_COOKIE_NAME,
         value=create_access_token(str(user.id), user.role, expires_in, str(session_id)),
-        max_age=expires_in if payload.remember_me else None,
+        max_age=expires_in if remember_me else None,
         httponly=True,
         secure=AUTH_COOKIE_SECURE,
         samesite="lax",
@@ -146,8 +153,26 @@ def login(payload: LoginRequest, response: Response, request: Request, db: Sessi
     response.headers["Cache-Control"] = "no-store"
     return LoginResponse(
         expires_in=expires_in,
-        user=AuthUser(id=user.id, username=user.username, role=user.role, organization_id=organization.id, organization_name=organization.name, organization_slug=organization.slug),
+        user=AuthUser(id=user.id, username=user.username, role=user.role, organization_id=organization.id, organization_name=organization.name, organization_slug=organization.slug, is_demo=getattr(user, "is_demo", False)),
     )
+
+
+@router.get("/demo")
+def demo_availability(response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    return {"enabled": DEMO_ENABLED, "question_limit": DEMO_QUESTION_LIMIT, "session_seconds": DEMO_SESSION_SECONDS}
+
+
+@router.post("/demo", response_model=LoginResponse, dependencies=[Depends(rate_limit(auth_limiter))])
+def demo_login(response: Response, request: Request, db: Session = Depends(get_db)):
+    if not DEMO_ENABLED:
+        raise HTTPException(404, "Not found")
+    try:
+        user, organization = create_demo_guest(db, request)
+        return _start_session(db, response, user, organization, DEMO_SESSION_SECONDS)
+    except Exception:
+        db.rollback()
+        raise
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -213,4 +238,4 @@ def change_password(
 @router.get("/me", response_model=AuthUser)
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     organization = db.get(Organization, user.organization_id)
-    return AuthUser(id=user.id, username=user.username, role=user.role, organization_id=user.organization_id, organization_name=organization.name, organization_slug=organization.slug)
+    return AuthUser(id=user.id, username=user.username, role=user.role, organization_id=user.organization_id, organization_name=organization.name, organization_slug=organization.slug, is_demo=getattr(user, "is_demo", False))

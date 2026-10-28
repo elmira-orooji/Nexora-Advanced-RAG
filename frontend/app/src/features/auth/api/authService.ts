@@ -35,6 +35,28 @@ function saveSession(session: AuthSession, rememberMe: boolean) {
 }
 
 export const authService = {
+  async demoStatus(signal?: AbortSignal): Promise<{ enabled: boolean; question_limit: number; session_seconds: number }> {
+    const response = await fetch(`${API_URL}/auth/demo`, { signal, cache: "no-store" });
+    if (!response.ok) throw new Error("Demo availability could not be loaded");
+    return response.json();
+  },
+
+  async loginDemo(): Promise<AuthSession> {
+    let response: Response;
+    try {
+      response = await fetch(`${API_URL}/auth/demo`, { method: "POST", credentials: "include" });
+    } catch {
+      throw new LoginRequestError("Network request failed", 0);
+    }
+    const payload = await response.json().catch(() => null) as LoginResponse | null;
+    if (!response.ok || !payload?.user) {
+      throw new LoginRequestError(parseError(payload, "The demo is temporarily unavailable."), response.status);
+    }
+    const session = { expiresAt: Date.now() + payload.expires_in * 1000, user: payload.user };
+    saveSession(session, false);
+    return session;
+  },
+
   async login(data: LoginSchemaType): Promise<AuthSession> {
     let response: Response;
     try {

@@ -18,8 +18,8 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=nexora:nexora . ./
-RUN mkdir -p /app/storage/documents /home/nexora/.cache \
-    && chown -R nexora:nexora /app/storage /home/nexora/.cache
+RUN mkdir -p /app/storage/documents /data/documents /home/nexora/.cache \
+    && chown -R nexora:nexora /app/storage /data/documents /home/nexora/.cache
 
 USER nexora
 

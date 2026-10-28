@@ -91,7 +91,7 @@ export default function SettingsPage({ theme, setTheme }: SettingsPageProps) {
             })}
           </div>
         </section>
-        <section className="preferences-card" aria-labelledby="password-title">
+        {!authService.getUser()?.is_demo && <section className="preferences-card" aria-labelledby="password-title">
           <div className="preferences-section-heading">
             <span className="preferences-icon"><KeyRound size={18} aria-hidden="true" /></span>
             <div><h2 id="password-title">{copy.security}</h2><p>{copy.securitySub}</p></div>
@@ -119,7 +119,7 @@ export default function SettingsPage({ theme, setTheme }: SettingsPageProps) {
             {passwordError && <p className="preferences-password-error" role="alert">{passwordError}</p>}
             <button className="preferences-password-submit" type="submit" disabled={savingPassword}>{savingPassword && <LoaderCircle className="animate-spin" size={15} aria-hidden="true" />}{savingPassword ? copy.savingPassword : copy.savePassword}</button>
           </form>
-        </section>
+        </section>}
       </div>
     </div>
   );

@@ -18,6 +18,7 @@ class AuthUser(BaseModel):
     organization_id: UUID
     organization_name: str
     organization_slug: str
+    is_demo: bool = False
 
 
 class LoginResponse(BaseModel):

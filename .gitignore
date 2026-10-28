@@ -18,6 +18,8 @@ backend/ocr_lab/output/
 .env.*
 !.env.example
 !.env.docker.example
+!.env.demo.example
+.vercel/
 *.pem
 *.key
 *.p12

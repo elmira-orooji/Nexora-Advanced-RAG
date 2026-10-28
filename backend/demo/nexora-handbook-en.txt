@@ -1,0 +1,21 @@
+Nexora demo handbook
+
+This document describes the Nexora sample workspace. It contains no private company records. The public demo uses these sample documents to generate real model responses with citations. Each visitor has a separate guest account and conversation history. Guest sessions last one hour and allow up to ten answer requests, subject to the demo's shared daily capacity. Failed or cancelled answer requests also count toward the limit.
+
+What is Nexora?
+Nexora is a document-grounded AI workspace for teams. People organize approved documents into knowledge sets, ask questions, and inspect the document excerpts cited in each answer. The interface supports English and Persian, including right-to-left Persian text, and both light and dark themes.
+
+How documents become searchable
+An authorized editor adds a document to a knowledge set. A background worker extracts readable text, splits it into smaller chunks, builds embeddings, and indexes the chunks in Qdrant. PostgreSQL stores application records and permissions. Text PDFs and TXT files can be extracted locally. Scanned documents can use optional OCR providers in a normal installation; cloud OCR and guest uploads are disabled in this public demo.
+
+How cited answers work
+When a question is submitted, Nexora retrieves relevant chunks only from the knowledge sets the user can access. It sends the selected source text to a configured language model. The model writes an answer using that context. Citation numbers connect the answer to source excerpts. Open a citation or the sources panel to inspect the supporting text. A citation helps check the answer but does not guarantee correctness; generated answers can contain mistakes.
+
+When there is no answer
+If the documents do not contain enough information to answer a question, Nexora should say that the available documents do not contain an answer. In Persian the expected message is: پاسخی برای سؤال شما در اسناد موجود نیست. It should not claim that missing information was found in a source. Try a question about the sample handbook, then a question about an unrelated subject to observe the difference.
+
+Access and sharing
+Organizations and per-user knowledge-set permissions control access. Conversations belong to the signed-in user. In a full installation, authorized users can create assistants, manage documents, and publish revocable read-only conversation snapshots. These management and sharing operations are disabled for public demo guests. The demo does not accept personal or confidential information. Guest records and conversations are removed after 24 hours by demo maintenance; active sessions expire after one hour.
+
+Quick answer and deep research
+Quick answer retrieves relevant sources and produces a response. Deep research plans multiple searches and combines collected evidence into a longer result. Deep research is disabled for public guests to keep demo usage bounded. This public demo demonstrates the normal conversation flow, source inspection, bilingual text, and appearance settings.

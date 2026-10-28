@@ -42,6 +42,8 @@ See [ARCHITECTURE.md](documents/architecture/ARCHITECTURE.md) for component boun
 
 ## Quick start with Docker
 
+For a public guest demo with a Vercel frontend and an isolated backend stack, see [Live demo deployment](documents/operations/LIVE-DEMO.md). Guest entry is disabled in normal installations.
+
 Docker Compose starts PostgreSQL, Qdrant, Redis, the API, document worker, connector scheduler, and frontend together.
 
 ### Requirements

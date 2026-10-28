@@ -1,0 +1,105 @@
+name: nexora-demo
+
+x-backend: &backend
+  build: ./backend
+  env_file: .env.demo
+  volumes:
+    - demo_documents:/data/documents
+    - demo_models:/home/nexora/.cache
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes: [demo_postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.4
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?Set QDRANT_API_KEY}
+    volumes: [demo_qdrant:/qdrant/storage]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: [redis-server, --appendonly, 'yes', --appendfsync, always, --maxmemory, 64mb, --maxmemory-policy, noeviction]
+    volumes: [demo_redis:/data]
+    restart: unless-stopped
+    mem_limit: 128m
+
+  migrate:
+    <<: *backend
+    command: [alembic, upgrade, head]
+    depends_on:
+      postgres: {condition: service_healthy}
+    restart: 'no'
+
+  seed:
+    <<: *backend
+    command: [python, scripts/prepare_demo.py]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    restart: 'no'
+
+  api:
+    <<: *backend
+    depends_on:
+      seed: {condition: service_completed_successfully}
+      qdrant: {condition: service_started}
+      redis: {condition: service_started}
+    mem_limit: 2g
+    cpus: 1.0
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  document-worker:
+    <<: *backend
+    command: [python, -m, app.workers.document_worker]
+    depends_on:
+      seed: {condition: service_completed_successfully}
+      qdrant: {condition: service_started}
+    mem_limit: 2g
+    cpus: 0.75
+
+  maintenance:
+    <<: *backend
+    command: [python, scripts/prepare_demo.py, --cleanup, --loop]
+    depends_on:
+      seed: {condition: service_completed_successfully}
+    mem_limit: 256m
+
+  gateway:
+    image: caddy:2-alpine
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN to the backend DNS hostname}
+    ports: ['80:80', '443:443']
+    volumes:
+      - ./deployment/demo.Caddyfile:/etc/caddy/Caddyfile:ro
+      - demo_tls:/data
+      - demo_caddy:/config
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+
+volumes:
+  demo_postgres:
+  demo_qdrant:
+  demo_redis:
+  demo_documents:
+  demo_models:
+  demo_tls:
+  demo_caddy:

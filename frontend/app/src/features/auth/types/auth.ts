@@ -7,6 +7,7 @@ export interface AuthUser {
   organization_id: string;
   organization_name: string;
   organization_slug: string;
+  is_demo?: boolean;
 }
 
 export interface AuthSession {

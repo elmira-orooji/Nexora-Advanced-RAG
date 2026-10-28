@@ -90,6 +90,8 @@ export default function LoginPage() {
   const [capsLock, setCapsLock] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isLoading, setIsLoading] = useState(false);
+  const [demo, setDemo] = useState<{ enabled: boolean; question_limit: number; session_seconds: number } | null>(null);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [serverError, setServerError] = useState(() => (location.state as { reason?: string } | null)?.reason === "session-expired" ? (language === "fa" ? "نشست شما منقضی شده است. دوباره وارد شوید." : "Your session has expired. Please sign in again.") : "");
   const [successMessage, setSuccessMessage] = useState("");
   const t = {
@@ -99,6 +101,28 @@ export default function LoginPage() {
     changeLanguage: translate("login.changeLanguage"), showPassword: translate("login.showPassword"), hidePassword: translate("login.hidePassword"),
   };
   const isRtl = language === "fa";
+
+  useEffect(() => {
+    const controller = new AbortController();
+    authService.demoStatus(controller.signal).then(setDemo).catch(() => { /* Normal deployments need no demo endpoint. */ });
+    return () => controller.abort();
+  }, []);
+
+  const enterDemo = async () => {
+    setServerError("");
+    setDemoLoading(true);
+    try {
+      await authService.loginDemo();
+      navigate("/home/chat", { replace: true });
+    } catch (error) {
+      const limited = error instanceof LoginRequestError && error.status === 429;
+      setServerError(isRtl
+        ? (limited ? "ظرفیت فعلی دمو تکمیل شده است. بعداً دوباره تلاش کنید." : "دمو موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.")
+        : (limited ? "The demo has reached its current limit. Please try again later." : "The demo is temporarily unavailable. Please try again shortly."));
+    } finally {
+      setDemoLoading(false);
+    }
+  };
 
   const {
     register,
@@ -347,7 +371,7 @@ export default function LoginPage() {
                 whileTap={reduceMotion || isLoading ? undefined : { scale: .98 }}
                 transition={{ type: "spring", stiffness: 500, damping: 30, mass: .5 }}
                 type="submit"
-                disabled={isLoading || !isOnline}
+                disabled={isLoading || demoLoading || !isOnline}
                 aria-busy={isLoading}
                 className="nexora-login__submit"
               >
@@ -355,6 +379,14 @@ export default function LoginPage() {
                 <span>{isLoading ? t.loading : isRtl ? "ورود" : "Sign in"}</span>
               </motion.button>
             </form>
+
+            {demo?.enabled && <div className="nexora-login__demo">
+              <button type="button" className="nexora-login__demo-button" disabled={demoLoading || isLoading || !isOnline} aria-busy={demoLoading} onClick={() => void enterDemo()}>
+                {demoLoading && <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />}
+                {isRtl ? "ورود به دموی زنده" : "Try the live demo"}
+              </button>
+              <p>{isRtl ? `بدون ثبت‌نام · اسناد نمونه · تا ${demo.question_limit.toLocaleString("fa")} پرسش در ${Math.round(demo.session_seconds / 60).toLocaleString("fa")} دقیقه` : `No sign-up · Sample documents · Up to ${demo.question_limit} questions in ${Math.round(demo.session_seconds / 60)} minutes`}</p>
+            </div>}
 
           </motion.div>
         </main>

@@ -13,6 +13,7 @@ import "../../../styles/chat-answer.css";
 
 import { feedbackService, type FeedbackReason } from "../api/feedbackService";
 import type { ChatMessage, Source } from "../types/chat";
+import { authService } from "../../auth/api/authService";
 
 interface Props {
   messages: ChatMessage[];
@@ -78,7 +79,7 @@ export default function OnyxChatWindow({ messages, isThinking, isSlow = false, a
 
             <div className="chat-answer-actions">
               <Action label={isFa ? "کپی" : "Copy"} onClick={() => { void copyQuestion(message.content, isFa, setCopyError, isFa ? "کپی پاسخ انجام نشد" : "Could not copy response", isFa ? "پاسخ کپی شد" : "Response copied"); }}><Copy size={13} /></Action>
-              {message.responseId && <Feedback responseId={message.responseId} isFa={isFa} />}
+              {message.responseId && !authService.getUser()?.is_demo && <Feedback responseId={message.responseId} isFa={isFa} />}
             </div>
           </div>
         </article>)}

@@ -4,6 +4,7 @@ import { Menu } from "lucide-react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import Sidebar from "./components/Sidebar";
+import DemoNotice from "../features/auth/components/DemoNotice";
 import NotificationCenter from "../features/notifications/components/NotificationCenter";
 import InlineError from "../components/InlineError";
 import InlineSuccessMessages from "../components/InlineSuccessMessages";
@@ -140,6 +141,8 @@ export default function AppLayout() {
     } catch (error) { setInlineError((error as Error).message); }
   };
 
+  if (currentUser?.is_demo && !["home", "chat", "settings"].includes(activePage)) return <Navigate to="/home/chat" replace />;
+
   return (
     <div className="app-shell flex h-[100dvh] overflow-hidden text-white">
       <Sidebar
@@ -191,6 +194,7 @@ export default function AppLayout() {
         </header>
 
         <InlineSuccessMessages />
+        {currentUser?.is_demo && <DemoNotice />}
         <main className="nexora-app-content relative z-10 min-h-0 flex-1 overflow-hidden">{inlineError && <div className="relative z-20 px-4 pt-3"><InlineError message={inlineError} onDismiss={() => setInlineError("")} /></div>}<Suspense fallback={<PageFallback />}>
           {!validRoute && <Navigate to="/home" replace />}
           {activePage === "home" && validRoute && (canManageUsers(currentUser) ? <AnalyticsPage notificationCenter={<NotificationCenter onNavigate={navigate} />} /> : <WorkspacePage currentUser={currentUser} conversations={conversations} onNewConversation={newConversation} onOpenConversation={selectConversation} onOpenKnowledge={() => selectPage("upload")} />)}

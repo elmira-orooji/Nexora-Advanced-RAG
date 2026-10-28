@@ -7,6 +7,7 @@ stale entries to prevent unbounded memory growth.
 import time
 import threading
 import hashlib
+from ipaddress import ip_address
 from collections import OrderedDict
 from functools import wraps
 from typing import Callable
@@ -107,6 +108,11 @@ webhook_limiter = _limiter("webhook", 30)
 
 def _get_client_ip(request: Request) -> str:
     """Extract client IP, respecting X-Forwarded-For behind reverse proxies."""
+    if getattr(request.state, "demo_proxy_verified", False):
+        try:
+            return str(ip_address(request.headers.get("x-nexora-client-ip", "")))
+        except ValueError:
+            pass
     forwarded = request.headers.get("x-forwarded-for")
     peer_ip = request.client.host if request.client else "unknown"
     if forwarded and peer_ip in TRUSTED_PROXY_IPS:

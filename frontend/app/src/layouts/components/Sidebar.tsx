@@ -67,7 +67,7 @@ export default function Sidebar({
   const navigation = [
     { id: "home" as const, label: labels.home, icon: Home },
     ...(canManageKnowledge(currentUser) ? [{ id: "upload" as const, label: labels.upload, icon: FileUp }] : []),
-    { id: "assistants" as const, label: labels.assistants, icon: Bot },
+    ...(!currentUser?.is_demo ? [{ id: "assistants" as const, label: labels.assistants, icon: Bot }] : []),
     ...(canManageUsers(currentUser) ? [{ id: "users" as const, label: labels.users, icon: UserCog }] : []),
     { id: "settings" as const, label: labels.settings, icon: Settings },
   ];
@@ -203,7 +203,7 @@ export default function Sidebar({
           <div dir={isFa ? "rtl" : "ltr"} className="nexora-sidebar__account">
             <span className="nexora-sidebar__avatar" title={currentUser?.username}>{currentUser?.username.slice(0, 2) ?? "U"}</span>
             <div dir={isFa ? "rtl" : "ltr"} className="nexora-sidebar__account-copy nexora-sidebar__expanded">
-              <strong>{currentUser?.username ?? "User"}</strong>
+              <strong>{currentUser?.is_demo ? (isFa ? "مهمان" : "Guest") : (currentUser?.username ?? "User")}</strong>
               <span dir={isFa ? "rtl" : "ltr"} title={`${displayedOrganization} · ${displayedRole}`}>{displayedOrganization} · {displayedRole}</span>
             </div>
             <button type="button" onClick={onLogout} aria-label={isFa ? "خروج از حساب" : "Log out"} title={isFa ? "خروج از حساب" : "Log out"} className="nexora-sidebar__icon-button nexora-sidebar__logout"><LogOut size={16} /></button>

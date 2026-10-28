@@ -7,11 +7,13 @@ from app.core.config import (
     QDRANT_API_KEY,
     QDRANT_COLLECTION,
     QDRANT_EMBEDDING_MODEL,
+    QDRANT_INFERENCE_MODE,
     QDRANT_URL,
 )
 from app.services.providers.http_resilience import HttpStatusError, ResilientHttpClient, ResilientHttpError
 from app.services.operations.performance_measurement import observe_provider_latency
 from app.services.providers.provider_errors import VectorStoreError
+from app.services.providers.local_embeddings import embed_texts
 
 VECTOR_NAME = "dense"
 VECTOR_SIZE = 384
@@ -30,6 +32,18 @@ class QdrantClient:
         self.api_key = QDRANT_API_KEY
         self.collection = QDRANT_COLLECTION
         self.model = QDRANT_EMBEDDING_MODEL
+        self.inference_mode = QDRANT_INFERENCE_MODE
+
+    def _vectors(self, texts: list[str]) -> list[Any]:
+        if self.inference_mode == "cloud":
+            return [{"text": text, "model": self.model} for text in texts]
+        try:
+            vectors = embed_texts(self.model, texts)
+        except Exception as exc:
+            raise QdrantError("Local embedding generation failed") from exc
+        if len(vectors) != len(texts) or any(len(vector) != VECTOR_SIZE for vector in vectors):
+            raise QdrantError(f"Embedding model must produce {VECTOR_SIZE}-dimension vectors")
+        return vectors
 
     def ensure_collection(self) -> None:
         collection = quote(self.collection, safe="")
@@ -76,14 +90,12 @@ class QdrantClient:
 
         for start in range(0, len(chunks), 32):
             batch = chunks[start : start + 32]
+            vectors = self._vectors([chunk["content"] for chunk in batch])
             points = [
                 {
                     "id": chunk["id"],
                     "vector": {
-                        VECTOR_NAME: {
-                            "text": chunk["content"],
-                            "model": self.model,
-                        }
+                        VECTOR_NAME: vector
                     },
                     "payload": {
                         "chunk_id": chunk["id"],
@@ -93,7 +105,7 @@ class QdrantClient:
                         "content": chunk["content"],
                     },
                 }
-                for chunk in batch
+                for chunk, vector in zip(batch, vectors)
             ]
             self._request(
                 "PUT",
@@ -127,7 +139,8 @@ class QdrantClient:
         collection = quote(self.collection, safe="")
         for start in range(0, len(chunks), 32):
             batch = chunks[start:start + 32]
-            points = [{"id": chunk["id"], "vector": {VECTOR_NAME: {"text": chunk["content"], "model": self.model}}, "payload": {"chunk_id": chunk["id"], "document_id": document_id, "filename": filename, "chunk_index": chunk["chunk_index"], "content": chunk["content"]}} for chunk in batch]
+            vectors = self._vectors([chunk["content"] for chunk in batch])
+            points = [{"id": chunk["id"], "vector": {VECTOR_NAME: vector}, "payload": {"chunk_id": chunk["id"], "document_id": document_id, "filename": filename, "chunk_index": chunk["chunk_index"], "content": chunk["content"]}} for chunk, vector in zip(batch, vectors)]
             self._request("PUT", f"/collections/{collection}/points?wait=true", {"points": points})
 
     def search(
@@ -137,9 +150,11 @@ class QdrantClient:
         document_id: str | None = None,
         document_ids: list[str] | None = None,
     ) -> list[dict[str, Any]]:
+        if document_ids is not None and not document_ids and not document_id:
+            return []
         collection = quote(self.collection, safe="")
         body: dict[str, Any] = {
-            "query": {"text": query, "model": self.model},
+            "query": self._vectors([query])[0],
             "using": VECTOR_NAME,
             "limit": limit,
             "with_payload": True,
