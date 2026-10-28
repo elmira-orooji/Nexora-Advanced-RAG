@@ -61,7 +61,7 @@ class RagService:
         try:
             vector_store = self.providers.vector_store()
             vector_store.ensure_collection()
-            points = hybrid_search(self.db, query=payload.question, limit=payload.limit, document_id=str(payload.document_id) if payload.document_id else None, document_ids=document_ids, vector_store=vector_store)
+            points = hybrid_search(self.db, query=payload.question, limit=payload.limit, document_id=str(payload.document_id) if payload.document_id else None, document_ids=document_ids, vector_store=vector_store, organization_id=str(user.organization_id))
         except VectorStoreError as exc:
             increment("rag_failures_total", dependency="qdrant")
             send_operational_alert("qdrant-failure", "Vector store is unavailable", "A RAG request could not reach Qdrant. Check the Qdrant service and its network connection.")

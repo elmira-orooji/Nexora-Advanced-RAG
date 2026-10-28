@@ -7,6 +7,7 @@ from app.services.connectors.sources.google_drive import _google_drive
 from app.services.connectors.sources.sharepoint import _sharepoint
 from app.services.connectors.sources.s3 import _s3
 import hashlib
+import logging
 import shutil
 import tempfile
 import uuid
@@ -19,7 +20,7 @@ from uuid import UUID
 from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
 
-from app.core.config import BASE_DIR, UPLOAD_DIR, document_storage_relative
+from app.core.config import BASE_DIR, GRAPH_RAG_ENABLED, UPLOAD_DIR, document_storage_relative
 from app.db.database import SessionLocal
 from app.models.chunk import Chunk
 from app.models.connector import Connector, ConnectorItem
@@ -30,6 +31,23 @@ from app.services.documents.chunk_enrichment import enrich_chunk
 from app.services.documents.incremental_index import checksum, incremental_chunks
 from app.services.storage.file_storage import atomic_write_text
 from app.services.connectors.connector_secrets import ConnectorSecretError, get_connector_credentials
+from app.services.retrieval.graph_indexer import index_document_graph
+
+logger = logging.getLogger(__name__)
+
+
+def _index_graph_best_effort(document_id: uuid.UUID) -> None:
+    if not GRAPH_RAG_ENABLED:
+        return
+    try:
+        with SessionLocal() as graph_db:
+            index_document_graph(graph_db, document_id)
+    except Exception:
+        logger.warning(
+            "Graph extraction failed; connector document remains available to standard RAG",
+            extra={"document_id": str(document_id)},
+            exc_info=True,
+        )
 
 def _organization_credentials(organization_id: uuid.UUID, connector_type: str) -> dict[str, str]:
     try:
@@ -211,6 +229,7 @@ def sync_connector(connector_id: UUID) -> dict[str, int]:
             existing = {item.external_id: item for item in db.scalars(existing_query).all()}
 
             journal: dict[str, ExternalDocumentState] = {}
+            graph_document_ids: list[uuid.UUID] = []
             qdrant = get_vector_store(); qdrant.ensure_collection()
             document_set = db.get(DocumentSet, document_set_id)
             if document_set is None:
@@ -241,9 +260,12 @@ def sync_connector(connector_id: UUID) -> dict[str, int]:
                     document.indexed_parent_chunk_size = document_set.parent_chunk_size
                     document.indexed_chunking_config = "hierarchical"
                     db.flush(); _replace_document_vectors(qdrant, document); document.status = "indexed"
+                    graph_document_ids.append(document.id)
                     if item: item.content_hash = digest; item.source_url = src_url; item.title = title; b_updated += 1
                     else: db.add(ConnectorItem(connector_id=connector.id, document_id=document.id, external_id=external_id, content_hash=digest, source_url=src_url, title=title)); b_created += 1
                 db.commit()
+                for graph_document_id in graph_document_ids:
+                    _index_graph_best_effort(graph_document_id)
             except Exception as exc:
                 db.rollback()
                 _restore_external_states(qdrant, list(journal.values()), exc)
@@ -386,6 +408,7 @@ def ingest_webhook_event(db: Session, connector: Connector, action: str, externa
         connector.status = "ready"; connector.last_synced_at = datetime.now(timezone.utc); connector.last_error = None
         connector.last_sync_summary = {"discovered": 1, "created": int(created), "updated": int(not created), "unchanged": 0, "deleted": 0}
         db.commit()
+        _index_graph_best_effort(document.id)
     except Exception as exc:
         db.rollback(); _restore_external_states(qdrant, journal, exc); raise
     return "created" if created else "updated"

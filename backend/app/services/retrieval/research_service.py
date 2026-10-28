@@ -44,7 +44,7 @@ class ResearchService:
         try:
             qdrant = get_vector_store(); qdrant.ensure_collection(); unique: dict[str, SearchHit] = {}; steps = []
             for query in queries:
-                points = hybrid_search(db, query=query, limit=5, document_ids=document_ids)
+                points = hybrid_search(db, query=query, limit=5, document_ids=document_ids, organization_id=str(user.organization_id))
                 steps.append(ResearchStep(query=query, evidence_count=len(points)))
                 for point in points:
                     hit = SearchHit(score=point["score"], **point["payload"]); key = str(hit.chunk_id)

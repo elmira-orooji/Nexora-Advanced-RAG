@@ -1,4 +1,5 @@
 from app.core.application_errors import ApplicationError
+from app.core.config import GRAPH_RAG_ENABLED
 from app.services.transactions import transaction
 from app.services.providers.provider_factory import get_language_model
 import re
@@ -59,7 +60,7 @@ def semantic_search(payload: SearchRequest, db: Session, user: User):
     document_id, document_ids, _ = _scope(payload, db, user)
     try:
         # Removed: client = get_vector_store(); client.ensure_collection()
-        points = hybrid_search(db, query=payload.query, limit=payload.limit, document_id=document_id, document_ids=document_ids)
+        points = hybrid_search(db, query=payload.query, limit=payload.limit, document_id=document_id, document_ids=document_ids, organization_id=str(user.organization_id))
     except VectorStoreError as exc:
         raise ApplicationError(kind="upstream_unavailable", detail=str(exc)) from exc
     return SearchResponse(query=payload.query, results=[SearchHit(score=point["score"], **point["payload"]) for point in points])
@@ -69,7 +70,7 @@ def retrieval_playground(payload: SearchRequest, db: Session, user: User):
     document_id, document_ids, scoped_count = _scope(payload, db, user)
     # Removed: get_vector_store().ensure_collection()
     try:
-        points = hybrid_search(db, payload.query, payload.limit, document_id=document_id, document_ids=document_ids)
+        points = hybrid_search(db, payload.query, payload.limit, document_id=document_id, document_ids=document_ids, organization_id=str(user.organization_id))
     except VectorStoreError as exc: raise ApplicationError(kind="upstream_unavailable", detail=str(exc)) from exc
     results = [_playground_hit(point) for point in points]
     return PlaygroundResponse(query=payload.query, scoped_document_count=scoped_count, result_count=len(results), results=results)
@@ -82,7 +83,7 @@ def pipeline_trace(payload: SearchRequest, db: Session, user: User):
     metrics: dict = {}
     # Removed: get_vector_store().ensure_collection()
     try:
-        points = hybrid_search(db, payload.query, payload.limit, document_id=document_id, document_ids=document_ids, trace=metrics)
+        points = hybrid_search(db, payload.query, payload.limit, document_id=document_id, document_ids=document_ids, trace=metrics, organization_id=str(user.organization_id))
     except VectorStoreError as exc:
         raise ApplicationError(kind="upstream_unavailable", detail=str(exc)) from exc
     results = [_playground_hit(point) for point in points]
@@ -103,6 +104,7 @@ def pipeline_trace(payload: SearchRequest, db: Session, user: User):
     stages = [
         TraceStage(key="question", duration_ms=scope_ms, input_count=1, output_count=scoped_count),
         TraceStage(key="retrieval", duration_ms=metrics.get("vector_ms", 0) + metrics.get("bm25_ms", 0), input_count=scoped_count, output_count=metrics.get("fused_count", 0)),
+        TraceStage(key="graph", duration_ms=metrics.get("graph_ms", 0), input_count=metrics.get("graph_count", 0), output_count=metrics.get("graph_count", 0)),
         TraceStage(key="rerank", duration_ms=metrics.get("rerank_ms", 0), input_count=metrics.get("fused_count", 0), output_count=len(results)),
         TraceStage(key="answer", duration_ms=answer_ms, input_count=len(results), output_count=len(citations)),
     ]
@@ -114,7 +116,9 @@ def pipeline_trace(payload: SearchRequest, db: Session, user: User):
 
 def _run_variant(db: Session, payload: RetrieverComparisonRequest, document_id: str | None, document_ids: list[str] | None, config, user: User, usage_results) -> RetrieverVariantResult:
     started = perf_counter()
-    points = hybrid_search(db, payload.query, config.top_k, document_id=document_id, document_ids=document_ids, vector_weight=config.vector_weight, bm25_weight=config.bm25_weight, use_reranker=config.use_reranker)
+    if config.use_graph is True and not GRAPH_RAG_ENABLED:
+        raise ApplicationError(kind="conflict", detail="GraphRAG is disabled for this deployment")
+    points = hybrid_search(db, payload.query, config.top_k, document_id=document_id, document_ids=document_ids, vector_weight=config.vector_weight, bm25_weight=config.bm25_weight, use_reranker=config.use_reranker, organization_id=str(user.organization_id), include_graph=config.use_graph)
     results = [_playground_hit(point) for point in points]
     if results:
         llm_result = get_language_model().answer_with_usage(payload.query, [result.model_dump(mode="json") for result in results])

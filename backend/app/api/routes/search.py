@@ -1,13 +1,20 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.api.routes.auth import get_current_user
+from app.core.config import GRAPH_RAG_ENABLED, GRAPH_QUERY_MAX_HOPS
 from app.db.database import get_db
 from app.models.user import User
 from app.schemas.search import PipelineTraceResponse, PlaygroundResponse, RetrieverComparisonRequest, RetrieverComparisonResponse, SearchRequest, SearchResponse
 from app.services.retrieval import search_service
 
 router = APIRouter(prefix="/search", tags=["search"])
+
+
+@router.get("/graph-status", dependencies=[Depends(get_current_user)])
+def graph_status(response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    return {"enabled": GRAPH_RAG_ENABLED, "max_hops": GRAPH_QUERY_MAX_HOPS}
 
 
 @router.post("", response_model=SearchResponse)

@@ -92,6 +92,7 @@ class RetrieverConfig(BaseModel):
     bm25_weight: float = Field(default=1.0, ge=0, le=3)
     use_reranker: bool = True
     top_k: int = Field(default=5, ge=1, le=8)
+    use_graph: bool | None = None
 
 
 class RetrieverComparisonRequest(SearchRequest):

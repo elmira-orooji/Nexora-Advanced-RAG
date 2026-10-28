@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUpRight, Play, LoaderCircle, Bot, Database, FlaskConical, GitCompareArrows, ListFilter, Search, Sparkles, X } from "lucide-react";
+import { ArrowDown, ArrowUpRight, Play, LoaderCircle, Bot, Database, FlaskConical, GitCompareArrows, ListFilter, Search, Sparkles, Waypoints, X } from "lucide-react";
 import InlineError from "../../../components/InlineError";
 import { knowledgeService, type MetadataFilters, type PipelineTraceResponse } from "../api/knowledgeService";
 import "./RetrievalPlayground.css";
@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 import { sectionCopy } from "../../../locales/copy";
 
 type Props = { setId: string; documentIds: string[]; filters: MetadataFilters; isFa: boolean; onClose: () => void };
-const icons = { question: Search, retrieval: ListFilter, rerank: Sparkles, answer: Bot };
+const icons = { question: Search, retrieval: ListFilter, graph: Waypoints, rerank: Sparkles, answer: Bot };
 
 export default function RetrievalPlayground({ setId, documentIds, filters, isFa, onClose }: Props) {
   const { t } = useTranslation();
@@ -28,7 +28,7 @@ export default function RetrievalPlayground({ setId, documentIds, filters, isFa,
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const run = async () => { if (query.trim().length < 2 || running.current) return; running.current = true; setLoading(true); setRunError(""); try { setTrace(await knowledgeService.tracePipeline(query.trim(), setId, limit, documentIds, filters)); } catch (error) { setRunError((error as Error).message); } finally { running.current = false; setLoading(false); } };
 
-  const labels = sectionCopy(t, "retrieval", ["title", "sub", "placeholder", "run", "total", "grounded", "ungrounded", "empty", "question", "retrieval", "rerank", "answer", "questionDescription", "retrievalDescription", "rerankDescription", "answerDescription"]);
+  const labels = sectionCopy(t, "retrieval", ["title", "sub", "placeholder", "run", "total", "grounded", "ungrounded", "empty", "question", "retrieval", "graph", "rerank", "answer", "questionDescription", "retrievalDescription", "graphDescription", "rerankDescription", "answerDescription"]);
 
   const steps = ["question", "retrieval", "rerank", "answer"] as const;
   const descriptions = [labels.questionDescription, labels.retrievalDescription, labels.rerankDescription, labels.answerDescription];

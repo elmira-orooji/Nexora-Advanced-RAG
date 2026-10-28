@@ -5,8 +5,6 @@ Nexora is a document-grounded AI workspace for teams. It turns approved document
 > [!CAUTION]
 > This is proprietary, source-available software. Public access does not grant permission to use, copy, modify, distribute, deploy, or contribute to Nexora. See [LICENSE](LICENSE), [CONTRIBUTING.md](CONTRIBUTING.md), and [SECURITY.md](SECURITY.md).
 
-![Nexora product tour](documents/media/nexora-product-promo.gif)
-
 The project follows a clear path from knowledge to answer:
 
 ```text
@@ -22,6 +20,7 @@ Create a knowledge set → add documents or sources → process and index conten
 - **Assistants** — connect assistant behavior to one or more permitted knowledge sets.
 - **Controlled sharing and feedback** — publish revocable read-only conversation snapshots and collect answer feedback.
 - **Connectors** — synchronize supported website, GitHub, Google Drive, S3, SharePoint, and webhook sources through a background scheduler.
+- **Experimental GraphRAG** — optionally extract organization-scoped entities and evidence-linked relations to retrieve across documents for relationship questions.
 - **Team boundaries** — separate organizations, roles, document-set permissions, and user sessions.
 - **Bilingual interface** — Persian and English UI, light and dark themes, and responsive layouts.
 
@@ -34,11 +33,12 @@ Browser → React UI → FastAPI API → PostgreSQL
                               ↘ → Qdrant
                               ↘ → OpenRouter-compatible LLM
 
-Document worker → storage → extraction/OCR → chunking and indexing → Qdrant
+Document worker → storage → extraction/OCR → chunking and indexing → Qdrant + optional graph facts in PostgreSQL
 Connector scheduler → permitted remote sources → document processing queue
 ```
 
 See [ARCHITECTURE.md](documents/architecture/ARCHITECTURE.md) for component boundaries, data flow, worker behavior, and RAG retrieval details.
+See [GraphRAG pilot](documents/architecture/GRAPHRAG-PILOT.md) for enablement, backfill, and baseline comparison steps.
 
 ## Quick start with Docker
 

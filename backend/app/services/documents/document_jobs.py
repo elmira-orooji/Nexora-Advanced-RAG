@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import case, or_, select, update
 from sqlalchemy.orm import selectinload
 
-from app.core.config import BASE_DIR, DOCUMENT_JOB_HEARTBEAT_SECONDS, DOCUMENT_JOB_LEASE_SECONDS, DOCUMENT_JOB_MAX_ATTEMPTS, DOCUMENT_JOB_RETRY_BASE_SECONDS, DOCUMENT_JOB_RETRY_MAX_SECONDS, WORKER_STALE_THRESHOLD_SECONDS, document_storage_relative, resolve_document_path
+from app.core.config import BASE_DIR, DOCUMENT_JOB_HEARTBEAT_SECONDS, DOCUMENT_JOB_LEASE_SECONDS, DOCUMENT_JOB_MAX_ATTEMPTS, DOCUMENT_JOB_RETRY_BASE_SECONDS, DOCUMENT_JOB_RETRY_MAX_SECONDS, GRAPH_RAG_ENABLED, WORKER_STALE_THRESHOLD_SECONDS, document_storage_relative, resolve_document_path
 from app.db.database import SessionLocal
 from app.models.document import Document
 from app.models.indexing_outbox import IndexingOutbox
@@ -29,6 +29,7 @@ from app.services.documents.incremental_index import checksum, incremental_chunk
 from app.services.storage.file_storage import atomic_write_text
 from app.services.documents.processing_cancellation import ProcessingCancelled, cancellation_scope
 from app.core.config import CHUNKING_STRATEGY, SEMANTIC_CHUNK_MIN_SIZE, SEMANTIC_CHUNK_MAX_SIZE, SEMANTIC_SIMILARITY_THRESHOLD
+from app.services.retrieval.graph_indexer import index_document_graph
 
 logger = logging.getLogger(__name__)
 
@@ -438,6 +439,16 @@ def process_document_job(
                         .values(status="applied")
                     )
                     apply_db.commit()
+                    if GRAPH_RAG_ENABLED:
+                        try:
+                            index_document_graph(apply_db, document.id)
+                        except Exception:
+                            apply_db.rollback()
+                            logger.warning(
+                                "Graph extraction failed; document remains available to standard RAG",
+                                extra={"document_id": str(document.id)},
+                                exc_info=True,
+                            )
             except Exception:
                 logger.warning(
                     "Immediate Qdrant apply failed; reconciler will retry",

@@ -119,7 +119,7 @@ def answer_with_assistant(assistant_id: uuid.UUID, payload: AssistantAnswerReque
         points = []
         if document_ids:
             qdrant = get_vector_store(); qdrant.ensure_collection()
-            points = hybrid_search(db, payload.question, payload.limit, document_ids=document_ids)
+            points = hybrid_search(db, payload.question, payload.limit, document_ids=document_ids, organization_id=str(user.organization_id))
     except VectorStoreError as exc:
         raise ApplicationError(kind="upstream_unavailable", detail=str(exc)) from exc
     sources = [SearchHit(score=point["score"], **point["payload"]) for point in points]

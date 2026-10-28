@@ -98,7 +98,7 @@ class ConversationService:
             if document_id or document_ids:
                 vector_store = self.providers.vector_store()
                 vector_store.ensure_collection()
-                points = hybrid_search(self.db, query=retrieval_query, limit=payload.limit, document_id=document_id, document_ids=document_ids, vector_store=vector_store)
+                points = hybrid_search(self.db, query=retrieval_query, limit=payload.limit, document_id=document_id, document_ids=document_ids, vector_store=vector_store, organization_id=str(user.organization_id))
         except VectorStoreError as exc:
             raise provider_error(exc) from exc
         sources = [SearchHit(score=point["score"], **point["payload"]) for point in points]

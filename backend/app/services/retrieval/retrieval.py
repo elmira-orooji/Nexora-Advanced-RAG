@@ -1,4 +1,5 @@
 import math
+import logging
 import threading
 import re
 import uuid
@@ -7,18 +8,22 @@ from collections import Counter, OrderedDict
 from dataclasses import dataclass, field
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.chunk import Chunk
 from app.models.document import Document
+from app.core.config import GRAPH_RAG_ENABLED
 from app.services.ports import VectorSearchPort
 from app.services.providers.provider_factory import get_vector_store
 from app.services.retrieval.retrieval_fusion import fuse_results
 from app.services.retrieval.retrieval_ranking import rerank
+from app.services.retrieval.graph_search import graph_search
 
 TOKEN_PATTERN = re.compile(r"[\w\u0600-\u06ff]+", re.UNICODE)
 RRF_K = 60
 BM25_CACHE_SCOPES = 16
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -228,6 +233,8 @@ def hybrid_search(
     bm25_weight: float = 1.0,
     use_reranker: bool = True,
     vector_store: VectorSearchPort | None = None,
+    organization_id: str | None = None,
+    include_graph: bool | None = None,
 ) -> list[dict]:
     """Retrieve scoped context, optionally using an injected vector-store adapter."""
     if vector_weight <= 0 and bm25_weight <= 0:
@@ -267,6 +274,34 @@ def hybrid_search(
         bm25_weight,
         RRF_K,
     )
+    graph_ms = 0.0
+    graph_count = 0
+    graph_enabled = GRAPH_RAG_ENABLED and organization_id is not None and include_graph is not False
+    if graph_enabled:
+        started = perf_counter()
+        try:
+            graph_candidates = graph_search(
+                db,
+                query,
+                candidate_limit,
+                organization_id,
+                scoped_ids,
+            )
+            by_chunk_id = {str(item["payload"]["chunk_id"]): item for item in candidates}
+            for candidate in graph_candidates:
+                chunk_id = str(candidate["payload"]["chunk_id"])
+                if chunk_id in by_chunk_id:
+                    existing = by_chunk_id[chunk_id]
+                    existing["score"] = max(float(existing["score"]), float(candidate["score"]))
+                    existing["retrieval"] = {**existing.get("retrieval", {}), **candidate["retrieval"]}
+                elif chunk_id in active_chunks:
+                    candidates.append(candidate)
+                    by_chunk_id[chunk_id] = candidate
+            graph_count = len(graph_candidates)
+        except SQLAlchemyError:
+            db.rollback()
+            logger.warning("Graph retrieval failed; falling back to hybrid retrieval", exc_info=True)
+        graph_ms = round((perf_counter() - started) * 1000, 2)
     started = perf_counter()
     reranked_children = _rerank(query, candidates, candidate_limit) if use_reranker else candidates[:candidate_limit]
     rerank_ms = round((perf_counter() - started) * 1000, 2)
@@ -280,5 +315,5 @@ def hybrid_search(
         document_id = uuid.UUID(item["payload"]["document_id"])
         item["payload"]["ocr_provenance"] = ocr_provenance_by_document.get(document_id)
     if trace is not None:
-        trace.update({"vector_ms": vector_ms, "bm25_ms": lexical_ms, "rerank_ms": rerank_ms, "vector_count": len(vector_results), "bm25_count": len(lexical_results), "fused_count": len(candidates), "reranked_count": len(reranked_children), "answer_context_count": len(expanded)})
+        trace.update({"vector_ms": vector_ms, "bm25_ms": lexical_ms, "graph_ms": graph_ms, "graph_count": graph_count, "vector_count": len(vector_results), "bm25_count": len(lexical_results), "fused_count": len(candidates), "rerank_ms": rerank_ms, "reranked_count": len(reranked_children), "answer_context_count": len(expanded)})
     return expanded

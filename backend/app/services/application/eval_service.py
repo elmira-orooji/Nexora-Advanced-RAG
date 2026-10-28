@@ -142,7 +142,8 @@ def run_evaluation(
             retrieved_ids: list[str] = []
             if document_ids:
                 points = hybrid_search(db, query=case.question, limit=8,
-                                       document_ids=document_ids, use_reranker=True)
+                                       document_ids=document_ids, use_reranker=True,
+                                       organization_id=str(user.organization_id))
                 contexts = [{"content": p["payload"]["content"]} for p in points]
                 retrieved_ids = [str(p["payload"].get("chunk_id", p.get("id", ""))) for p in points]
 

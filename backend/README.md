@@ -28,6 +28,29 @@ it handles `SIGINT` and `SIGTERM` cleanly and is independent of the number of AP
 workers. Remote connector discovery releases its SQLAlchemy Session connection
 while OAuth and network downloads are in progress.
 
+## GraphRAG pilot
+
+Graph augmentation is opt-in and disabled by default. Set `GRAPH_RAG_ENABLED=true`
+only after approving the additional processing and model cost for document chunks.
+Apply migrations with `alembic upgrade head`; new document and connector indexing
+then extracts entities and explicitly supported relations. Extraction failures do
+not block ordinary vector/BM25 indexing. Each graph fact retains its source chunk,
+and graph retrieval is restricted to the current organization's permitted,
+active documents.
+
+Build graph facts for documents already indexed before enabling the feature:
+
+```powershell
+python -m scripts.reindex_graph
+```
+
+Use the knowledge-set Retriever comparison to compare the same query and source
+scope with GraphRAG disabled in one configuration and enabled in the other. The
+graph path only adds evidence for relationship-oriented questions (or questions
+with multiple matched entities); all generated answers still cite original
+document chunks. `GRAPH_QUERY_MAX_HOPS` is limited to 1 or 2 and defaults to 2.
+See [the GraphRAG pilot guide](../documents/architecture/GRAPHRAG-PILOT.md).
+
 ## OCR for scanned documents
 
 PDFs with an embedded text layer are extracted locally. By default, scanned

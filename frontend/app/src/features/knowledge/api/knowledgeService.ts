@@ -99,14 +99,14 @@ export interface PlaygroundResult {
 export interface PlaygroundResponse { query: string; scoped_document_count: number; result_count: number; results: PlaygroundResult[]; }
 export interface PipelineTraceResponse {
   question: string; answer: string; grounded: boolean; total_duration_ms: number;
-  stages: Array<{ key: "question" | "retrieval" | "rerank" | "answer"; duration_ms: number; input_count: number; output_count: number }>;
+    stages: Array<{ key: "question" | "retrieval" | "graph" | "rerank" | "answer"; duration_ms: number; input_count: number; output_count: number }>;
   results: PlaygroundResult[];
   citations: Array<{ id: number; chunk_id: string; filename: string; ocr_provenance: { provider: string; model?: string; completed_at: string } | null }>;
   usage: UsageMetrics | null;
 }
 export interface UsageMetrics { model: string; latency_ms: number; prompt_tokens: number; completion_tokens: number; total_tokens: number; estimated_cost_usd: number; }
 export interface EvaluationCase { id: string; document_set_id: string; question: string; expected_answer: string | null; expected_keywords: string[]; relevant_chunk_ids: string[]; created_at: string; updated_at: string; }
-export interface RetrieverConfig { name: string; vector_weight: number; bm25_weight: number; use_reranker: boolean; top_k: number; }
+export interface RetrieverConfig { name: string; vector_weight: number; bm25_weight: number; use_reranker: boolean; top_k: number; use_graph?: boolean; }
 export interface RetrieverVariant { config: RetrieverConfig; duration_ms: number; answer: string; grounded: boolean; results: PlaygroundResult[]; citations: Array<{ id: number; chunk_id: string; filename: string }>; usage: UsageMetrics | null; }
 export interface RetrieverComparison { question: string; overlap_count: number; rank_changes: Record<string, number>; variant_a: RetrieverVariant; variant_b: RetrieverVariant; }
 
@@ -119,6 +119,7 @@ function headers(json = false) {
 const request = <T,>(path: string, init?: ApiRequestInit) => apiRequest<T>(path, init);
 
 export const knowledgeService = {
+  graphRagStatus: () => request<{ enabled: boolean; max_hops: number }>("/search/graph-status", { headers: headers() }),
   listSets: () => request<DocumentSet[]>("/document-sets", { headers: headers() }),
   createSet: (data: { name: string; description?: string; child_chunk_size?: number; chunk_overlap?: number; parent_chunk_size?: number }) =>
     request<DocumentSet>("/document-sets", { method: "POST", headers: headers(true), body: JSON.stringify(data) }),

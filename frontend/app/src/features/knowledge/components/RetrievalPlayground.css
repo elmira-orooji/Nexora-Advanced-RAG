@@ -29,6 +29,7 @@
 .retriever-compare { position: absolute; inset: 0; z-index: 20; display: flex; min-width: 0; flex-direction: column; overflow: hidden; color: var(--text-primary); background: var(--surface-canvas); }
 .dark .retriever-compare { background: var(--surface-panel); }
 .retriever-compare-header { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 24px; border-bottom: 1px solid var(--border-subtle); background: var(--surface-panel); }
+.retriever-graph-notice { flex-shrink: 0; padding: 10px 20px; margin: 0; border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); background: var(--brand-soft); font-size: var(--font-size-helper); line-height: 1.7; }
 .retriever-compare-title { display: flex; min-width: 0; align-items: center; gap: 12px; }
 .retriever-compare-mark { display: grid; width: 40px; height: 40px; flex-shrink: 0; place-items: center; border: 1px solid var(--brand-line); border-radius: 11px; color: var(--brand); background: var(--brand-soft); }
 .retriever-compare-title h2 { margin: 0; font-size: 15px; font-weight: 650; }

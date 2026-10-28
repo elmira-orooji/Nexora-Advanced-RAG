@@ -45,6 +45,10 @@ if QDRANT_INFERENCE_MODE not in {"cloud", "local"}:
 QDRANT_EMBEDDING_MODEL = os.getenv(
     "QDRANT_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
 )
+GRAPH_RAG_ENABLED = _boolean_setting("GRAPH_RAG_ENABLED", default=False)
+GRAPH_QUERY_MAX_HOPS = int(os.getenv("GRAPH_QUERY_MAX_HOPS", "2"))
+if GRAPH_QUERY_MAX_HOPS not in {1, 2}:
+    raise RuntimeError("GRAPH_QUERY_MAX_HOPS must be 1 or 2")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free")
 ANSWER_MAX_TOKENS = max(256, min(16384, int(os.getenv("ANSWER_MAX_TOKENS", "2048"))))
