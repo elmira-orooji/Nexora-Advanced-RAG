@@ -75,4 +75,40 @@ describe("ChatInput", () => {
     expect(onCancel).toHaveBeenCalledOnce();
     expect(screen.getByRole("textbox")).toBeDisabled();
   });
+
+  it("adds recognized speech to the draft without sending it", async () => {
+    class MockRecognition {
+      static latest: MockRecognition | undefined;
+      lang = "";
+      continuous = false;
+      interimResults = false;
+      onresult: ((event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null = null;
+      onerror: ((event: { error: string }) => void) | null = null;
+      onend: (() => void) | null = null;
+      start = vi.fn();
+      stop = vi.fn(() => this.onend?.());
+      abort = vi.fn();
+      constructor() { MockRecognition.latest = this; }
+    }
+    Object.defineProperty(window, "SpeechRecognition", { configurable: true, value: MockRecognition });
+    const onSend = vi.fn();
+    const { unmount } = render(<ChatInput disabled={false} initialValue="Existing draft" onSend={onSend} />);
+    fireEvent.click(screen.getByRole("button", { name: /voice input/i }));
+    const instance = MockRecognition.latest;
+    expect(instance?.lang).toBe("en-US");
+    expect(instance?.start).toHaveBeenCalledOnce();
+    act(() => instance?.onresult?.({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: "spoken words" } }] }));
+    expect(screen.getByRole("textbox")).toHaveValue("Existing draft spoken words");
+    expect(onSend).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /stop voice input/i }));
+    expect(instance?.stop).toHaveBeenCalledOnce();
+    unmount();
+    delete (window as Window & { SpeechRecognition?: typeof MockRecognition }).SpeechRecognition;
+  });
+
+  it("shows an inline message when speech recognition is unavailable", () => {
+    render(<ChatInput disabled={false} onSend={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /voice input/i }));
+    expect(screen.getByRole("status")).toHaveTextContent("Voice input is not supported");
+  });
 });
