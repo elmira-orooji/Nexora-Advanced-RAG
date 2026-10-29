@@ -365,24 +365,25 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 .source-region-image img { display: block; width: auto; max-width: 100%; height: auto; border-radius: 6px; background: white; }
 .source-region-image a { display: inline-block; margin-top: 10px; color: var(--cv-accent, inherit); font-size: 12px; }
 
-/* Conversation reading hierarchy and compact, traceable evidence cards. */
-.conversation-page .chat-thread-messages{max-width:820px;padding:24px 12px 32px;gap:24px}
-.conversation-page .chat-thread .chat-answer{gap:12px;margin-block:8px}
-.conversation-page .chat-thread .chat-answer-body{padding:18px 20px 12px;border:1px solid var(--answer-border);border-radius:14px;background:var(--answer-panel)}
-.conversation-page .chat-answer-heading{margin-bottom:14px;min-height:18px}
-.conversation-page .chat-answer-heading>span:last-child:not(.chat-answer-mark){margin-inline-start:0;font-size:12px;font-weight:600;color:var(--answer-text)}
+/* Open conversation layout: keep the answer ahead of supporting evidence. */
+.conversation-page .chat-thread-messages{max-width:820px;padding:24px 8px 32px;gap:20px}
+.conversation-page .chat-thread .chat-answer{gap:12px;margin-block:0;align-items:flex-start}
+.conversation-page .chat-thread .chat-answer-body{padding:4px 0 0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.conversation-page .chat-answer-heading{margin-bottom:14px;min-height:20px}
+.conversation-page .chat-answer-heading>span:last-child:not(.chat-answer-mark){margin-inline-start:0;padding:0;border:0;font-size:12px;font-weight:500;color:var(--answer-text)}
 .conversation-page .chat-answer-text{line-height:1.95;overflow-wrap:anywhere}
-.conversation-page .answer-source-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--answer-border)}
-.conversation-page .answer-source-label{margin-bottom:12px;font-size:11px}
-.conversation-page .answer-source-grid{gap:10px}
-.conversation-page .answer-source-card{padding:12px;min-height:68px;border-radius:10px;background:var(--answer-panel)}
-.conversation-page .answer-source-icon{flex:0 0 32px;height:36px;border:1px solid var(--answer-border);border-radius:8px;background:var(--answer-tint)}
-.conversation-page .answer-source-info{gap:5px}
-.conversation-page .answer-source-info strong{font-size:12px}
-.conversation-page .answer-source-info small{font-size:11px;line-height:1.6}
-.conversation-page .answer-source-expand{padding:6px 0;margin-top:6px;font-size:11px}
-.conversation-page .chat-answer-actions{border-top:1px solid var(--answer-border);margin-top:14px;padding-top:10px}
-.conversation-page .conversation-scroll-rail{opacity:.35;transition:opacity 160ms ease}
-.conversation-page .conversation-scroll-rail:hover,.conversation-page .conversation-scroll-rail:focus-within{opacity:1}
-@media(max-width:640px){.conversation-page .chat-thread-messages{padding-inline:0}.conversation-page .chat-thread .chat-answer-body{padding:14px}.conversation-page .chat-thread .chat-answer{gap:8px}.conversation-page .answer-source-grid{grid-template-columns:1fr}}
+.conversation-page .answer-source-section{margin-top:18px;padding-top:0;border-top:0}
+.conversation-page .answer-source-label{margin-bottom:9px;font-size:11px}
+.conversation-page .answer-source-grid{gap:8px}
+.conversation-page .answer-source-card{padding:10px 12px;min-height:56px;border-radius:9px;background:transparent;gap:9px}
+.conversation-page .answer-source-icon{flex:0 0 18px;height:24px;border:0;border-radius:0;background:transparent;color:var(--answer-muted)}
+.conversation-page .answer-source-info{gap:3px}
+.conversation-page .answer-source-info strong{font-size:11px;font-weight:500}
+.conversation-page .answer-source-info small{font-size:10px;line-height:1.6}
+.conversation-page .answer-source-expand{padding:5px 0;margin-top:5px;font-size:11px}
+.conversation-page .chat-answer-actions{border:0;margin-top:12px;padding-top:0}
+.conversation-page .conversation-scroll-rail{opacity:0;transition:opacity 160ms ease}
+.conversation-page .chat-thread:hover .conversation-scroll-rail,.conversation-page .conversation-scroll-rail:focus-within{opacity:.4}
+.conversation-page .conversation-scroll-rail:hover{opacity:1}
+@media(max-width:640px){.conversation-page .chat-thread-messages{padding-inline:0}.conversation-page .chat-thread .chat-answer-body{padding:4px 0 0}.conversation-page .chat-thread .chat-answer{gap:8px}.conversation-page .answer-source-grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.conversation-page .conversation-scroll-rail{transition:none}}
