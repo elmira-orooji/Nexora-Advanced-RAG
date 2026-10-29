@@ -4,6 +4,7 @@ import { Menu } from "lucide-react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import Sidebar from "./components/Sidebar";
+import { AccountAvatar } from "../components/ProfileAvatar";
 import DemoNotice from "../features/auth/components/DemoNotice";
 import NotificationCenter from "../features/notifications/components/NotificationCenter";
 import InlineError from "../components/InlineError";
@@ -190,7 +191,7 @@ export default function AppLayout() {
             </span>
             Nexora
           </div>
-          <div className="flex items-center gap-2"><span className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[.06] text-xs font-bold uppercase">{currentUser?.username.slice(0, 2) ?? "U"}</span></div>
+          <button type="button" onClick={() => selectPage("settings")} aria-label={i18n.language.startsWith("fa") ? "تنظیمات حساب کاربری" : "Account settings"} className="grid size-10 place-items-center overflow-hidden rounded-full border border-white/10 bg-white/[.06] text-xs font-bold uppercase"><AccountAvatar initials={currentUser?.username.slice(0, 2) ?? "U"} /></button>
         </header>
 
         <InlineSuccessMessages />
