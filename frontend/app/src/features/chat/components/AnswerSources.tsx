@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, FileText } from "lucide-react";
 import type { Source } from "../types/chat";
 
 // Adapted from Vengeance UI Highlight Grid: one shared highlight follows the
@@ -16,7 +16,7 @@ export default function AnswerSources({ sources, isFa, onOpen }: { sources: Sour
       {(expanded ? sources : sources.slice(0, 4)).map((source, index) => <button key={`${source.id}-${index}`} type="button" className="answer-source-card"
         onMouseEnter={() => setActive(index)} onFocus={() => setActive(index)} onBlur={() => setActive(null)} onClick={() => onOpen(source)}>
         {active === index && <motion.span className="answer-source-highlight" layoutId={`source-${id}`} transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 35 }} />}
-        <span className="answer-source-info"><strong dir="auto">{source.title}</strong><small>{isFa ? "منبع" : "Source"} {source.citationId ?? index + 1}{source.page ? ` · ${isFa ? "صفحه" : "Page"} ${source.page}` : ""}</small><small className="answer-source-ocr">OCR · {source.ocrProvenance?.provider ?? (isFa ? "ارائه‌دهنده ثبت نشده" : "provider not recorded")}</small></span>
+        <span className="answer-source-icon"><FileText size={16} aria-hidden="true"/></span><span className="answer-source-info"><strong dir="auto">{source.title}</strong><small>{isFa ? "منبع" : "Source"} {source.citationId ?? index + 1}{source.page ? ` · ${isFa ? "صفحه" : "Page"} ${source.page}` : ""}</small>{source.ocrProvenance?.provider && <small className="answer-source-ocr">OCR · {source.ocrProvenance.provider}</small>}</span>
         <ArrowUpRight size={14} className="answer-source-arrow" />
       </button>)}
     </div>
