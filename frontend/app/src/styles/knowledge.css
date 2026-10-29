@@ -389,3 +389,24 @@ html:not(.dark) .kb-page {
     max-height: min(50dvh, 420px);
   }
 }
+
+/* Knowledge workspace: consistent library structure without clipped set cards. */
+.kb-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.kb-overview article{padding:18px;border:1px solid var(--kb-line);border-radius:12px;background:var(--kb-panel);min-width:0}
+.kb-overview article>div{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:var(--kb-muted)}
+.kb-overview svg{color:var(--kb-accent);flex-shrink:0}
+.kb-overview strong{display:block;margin-top:10px;color:var(--kb-text);font-size:24px;font-weight:600;line-height:1.4;font-variant-numeric:tabular-nums}
+.kb-eyebrow{display:inline-flex;align-items:center;gap:7px;color:var(--kb-accent);letter-spacing:.03em}
+.kb-main .kb-sets>.kb-sets-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;overflow:visible;padding:0}
+.kb-main .kb-sets-grid .kb-set-card-wrap{width:auto;min-width:0;max-width:none;flex-basis:auto}
+.kb-main .kb-sets-grid .kb-set-card{display:block;min-height:142px;height:100%;padding:16px;border-radius:12px}
+.kb-main .kb-sets-grid .kb-set-card>p{margin-top:8px}
+.kb-main .kb-selected-set-header{align-items:flex-start;padding:18px;border:1px solid var(--kb-line);border-radius:12px;background:var(--kb-panel)}
+.kb-selected-set-header .kb-selected-set-actions{align-self:flex-start}
+.kb-main .knowledge-dropzone{justify-content:flex-start;padding:20px;min-height:96px}
+.kb-main .kb-library{min-height:160px;flex:0 0 auto}
+.kb-library-heading{display:flex;align-items:center;gap:10px}
+.kb-library-heading>span{padding:3px 7px;border:1px solid var(--kb-line);border-radius:6px;background:var(--kb-bg);color:var(--kb-muted);font-size:11px}
+.kb-library-toolbar{border-bottom-color:var(--kb-line)}
+@media(max-width:600px){.kb-overview{grid-template-columns:1fr;gap:8px}.kb-overview article{display:flex;align-items:center;justify-content:space-between;padding:12px 16px}.kb-overview article>div{flex:1;margin-inline-end:20px}.kb-overview strong{margin-top:0;font-size:20px}.kb-main .kb-sets>.kb-sets-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.kb-main .kb-sets-grid .kb-set-card{padding:12px;min-height:140px}.kb-main .kb-selected-set-header{flex-wrap:wrap}}
+@container workspace (max-width:600px){.kb-main .kb-sets>.kb-sets-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
