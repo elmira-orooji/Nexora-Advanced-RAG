@@ -1,3 +1,4 @@
+import ProfileAvatar from "../components/ProfileAvatar";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, Eye, EyeOff, KeyRound, Languages, LoaderCircle, Moon, Palette, Sun } from "lucide-react";
@@ -55,6 +56,7 @@ export default function SettingsPage({ theme, setTheme }: SettingsPageProps) {
           <h1>{copy.title}</h1>
           <p>{copy.subtitle}</p>
         </header>
+        <ProfileAvatar />
         <section className="preferences-card" aria-labelledby="appearance-title">
           <div className="preferences-section-heading">
             <span className="preferences-icon"><Palette size={18} aria-hidden="true" /></span>

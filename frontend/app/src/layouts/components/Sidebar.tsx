@@ -1,3 +1,4 @@
+import {AccountAvatar} from "../../components/ProfileAvatar";
 import { useLayoutEffect, useRef, useState } from "react";
 import {
   Bot,
@@ -201,7 +202,7 @@ export default function Sidebar({
 
         <footer className="nexora-sidebar__footer">
           <div dir={isFa ? "rtl" : "ltr"} className="nexora-sidebar__account">
-            <span className="nexora-sidebar__avatar" title={currentUser?.username}>{currentUser?.username.slice(0, 2) ?? "U"}</span>
+            <span className="nexora-sidebar__avatar" title={currentUser?.username}><AccountAvatar initials={currentUser?.username.slice(0, 2) ?? "U"}/></span>
             <div dir={isFa ? "rtl" : "ltr"} className="nexora-sidebar__account-copy nexora-sidebar__expanded">
               <strong>{currentUser?.is_demo ? (isFa ? "مهمان" : "Guest") : (currentUser?.username ?? "User")}</strong>
               <span dir={isFa ? "rtl" : "ltr"} title={`${displayedOrganization} · ${displayedRole}`}>{displayedOrganization} · {displayedRole}</span>

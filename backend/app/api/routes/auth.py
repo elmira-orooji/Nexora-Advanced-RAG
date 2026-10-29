@@ -239,3 +239,53 @@ def change_password(
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     organization = db.get(Organization, user.organization_id)
     return AuthUser(id=user.id, username=user.username, role=user.role, organization_id=user.organization_id, organization_name=organization.name, organization_slug=organization.slug, is_demo=getattr(user, "is_demo", False))
+
+
+@router.get("/avatar")
+def get_avatar(user: User = Depends(get_current_user)):
+    from app.core.config import UPLOAD_DIR
+    from fastapi.responses import FileResponse
+    path = UPLOAD_DIR.parent / "avatars" / f"{user.id}.png"
+    if not path.is_file():
+        raise HTTPException(404, "Avatar not found")
+    return FileResponse(path, media_type="image/png", headers={"Cache-Control": "no-store"})
+
+
+@router.put("/avatar")
+async def put_avatar(request: Request, user: User = Depends(get_current_user)):
+    import io
+    import os
+    import tempfile
+    from PIL import Image, UnidentifiedImageError
+    from app.core.config import UPLOAD_DIR
+    content = bytearray()
+    async for chunk in request.stream():
+        content.extend(chunk)
+        if len(content) > 5 * 1024 * 1024:
+            raise HTTPException(413, "Image must be under 5 MB")
+    try:
+        with Image.open(io.BytesIO(content)) as image:
+            if image.format not in {"PNG", "JPEG", "WEBP"} or image.width * image.height > 25_000_000:
+                raise ValueError("Invalid image")
+            from PIL import ImageOps
+            avatar = ImageOps.fit(ImageOps.exif_transpose(image).convert("RGBA"), (192, 192))
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+        raise HTTPException(400, "Invalid image") from None
+    directory = UPLOAD_DIR.parent / "avatars"
+    directory.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(dir=directory, suffix=".png")
+    try:
+        with os.fdopen(fd, "wb") as output:
+            avatar.save(output, format="PNG")
+        os.replace(temporary, directory / f"{user.id}.png")
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+    return {"saved": True}
+
+
+@router.delete("/avatar")
+def delete_avatar(user: User = Depends(get_current_user)):
+    from app.core.config import UPLOAD_DIR
+    (UPLOAD_DIR.parent / "avatars" / f"{user.id}.png").unlink(missing_ok=True)
+    return Response(status_code=204)
