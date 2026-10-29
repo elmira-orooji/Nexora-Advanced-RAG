@@ -199,6 +199,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
           <span className="conversation-emblem">
             <img src="/brand/nexora-symbol.svg" alt="" width={48} height={48} />
           </span>
+          <span className="conversation-welcome-eyebrow">{isFa?"گفتگو با دانش سازمانی":"Your organizational knowledge"}</span>
           <h1 className="conversation-title">
             {isFa ? "امروز چه چیزی را بررسی کنیم؟" : "What would you like to explore?"}
           </h1>
@@ -214,7 +215,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
               <span className="hidden sm:inline">{isFa ? "پایگاه دانش" : "Knowledge base"}</span>
               <KnowledgeSetPicker sets={sets} value={selectedSetIds} onChange={setSelectedSetIds} isFa={isFa} disabled={sending} />
             </div>
-            <span className="text-xs conversation-muted" title={!knowledgeReady && !canCreateKnowledge ? (isFa ? "برای دسترسی به پایگاه دانش و اسناد آماده، با مدیر فضای کاری تماس بگیرید." : "Contact your workspace administrator for access to indexed knowledge.") : undefined}>
+            <span className={`conversation-ready-status text-xs conversation-muted ${knowledgeReady?"is-ready":""}`} title={!knowledgeReady && !canCreateKnowledge ? (isFa ? "برای دسترسی به پایگاه دانش و اسناد آماده، با مدیر فضای کاری تماس بگیرید." : "Contact your workspace administrator for access to indexed knowledge.") : undefined}>
               {knowledgeReady ? (isAllKnowledgeSets || selectedSetIds.length > 1 ? (isFa ? "آمادهٔ پاسخ‌گویی" : "Ready for answers") : `${indexedDocumentCount} ${isFa ? "سند آماده" : "indexed documents"}`) : !sets.length ? (isFa ? "پایگاه دانش قابل‌دسترسی وجود ندارد" : "No accessible knowledge base") : !selectedSetIds.length ? (isFa ? "حداقل یک پایگاه دانش انتخاب کنید." : "Select at least one knowledge base.") : (isFa ? "بدون سند آماده" : "No indexed documents")}
             </span>
           </div>
@@ -226,7 +227,7 @@ export default function ConversationPage({ conversationId, onConversationChange,
           <ChatInput prominent disabled={!knowledgeReady} isSending={sending} onSend={send} onCancel={cancelSend} />
           {!knowledgeReady && canCreateKnowledge && <KnowledgeStartPanel isFa={isFa} hasSet={Boolean(selectedSet) || (isAllKnowledgeSets && sets.length > 0)} canCreate={canCreateKnowledge} onOpenKnowledge={onOpenKnowledge} />}
 
-          <div className="mt-4 flex items-center justify-center gap-1.5 text-xs conversation-muted"><FileText size={10} />{isFa ? "پاسخ‌ها همراه با ارجاع به منابع ذخیره می‌شوند" : "Answers are saved with traceable source citations"}</div>
+          <div className="conversation-welcome-footnote mt-4 flex items-center justify-center gap-1.5 text-xs conversation-muted"><FileText size={13} aria-hidden="true"/>{isFa ? "پاسخ‌ها همراه با ارجاع به منابع ذخیره می‌شوند" : "Answers are saved with traceable source citations"}</div>
         </div>
       </main>
     </div>;

@@ -154,3 +154,22 @@ html:not(.dark) .conversation-page {
   .conversation-page:has(.chat-thread--with-evidence) > section,
   .conversation-page:has(.chat-thread--with-evidence) > .conversation-dock { padding-inline: 0; }
 }
+
+/* Focused first-conversation layout. */
+.conversation-page--welcome .conversation-welcome{width:100%;max-width:920px;margin-inline:auto;gap:0;padding-block:clamp(36px,7vh,72px)}
+.conversation-page--welcome .conversation-intro{max-width:620px;margin-bottom:36px}
+.conversation-page--welcome .conversation-emblem{width:68px;height:68px;border:1px solid var(--cv-line);border-radius:20px;background:var(--cv-panel);box-shadow:0 4px 16px color-mix(in srgb,var(--cv-accent) 6%,transparent)}
+.conversation-page--welcome .conversation-emblem img{width:38px;height:38px}
+.conversation-welcome-eyebrow{display:block;margin-top:22px;font-size:11px;letter-spacing:.02em;color:var(--cv-accent);font-weight:500}
+.conversation-page--welcome .conversation-title{margin-top:8px;font-size:clamp(24px,2.5vw,34px);line-height:1.5}
+.conversation-page--welcome .conversation-description{max-width:520px;font-size:12px;line-height:1.9;margin-top:12px}
+.conversation-page--welcome .conversation-compose-area{max-width:760px}
+.conversation-page--welcome .conversation-context{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;padding:10px 12px;border:1px solid var(--cv-line);border-radius:12px;background:var(--cv-panel)}
+.conversation-page--welcome .conversation-selector{gap:8px;min-width:0}
+.conversation-ready-status{display:inline-flex;align-items:center;gap:6px;font-size:11px;line-height:1.7}
+.conversation-ready-status:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--cv-muted);flex-shrink:0}
+.conversation-ready-status.is-ready:before{background:var(--cv-success)}
+.app-shell .conversation-page--welcome .app-composer{padding:16px;border-radius:16px;box-shadow:0 8px 28px color-mix(in srgb,var(--cv-accent) 5%,transparent)}
+.conversation-welcome-footnote{font-size:11px;line-height:1.8;text-align:center;padding-inline:12px}
+.conversation-welcome-footnote svg{flex-shrink:0}
+@media(max-width:540px){.conversation-page--welcome .conversation-welcome{padding-block:32px}.conversation-page--welcome .conversation-intro{margin-bottom:24px}.conversation-page--welcome .conversation-context{padding:10px}.conversation-ready-status{width:100%}.conversation-page--welcome .conversation-emblem{width:56px;height:56px;border-radius:16px}.app-shell .conversation-page--welcome .app-composer{padding:10px}}
