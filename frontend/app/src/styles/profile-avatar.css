@@ -1,1 +1,7 @@
 .account-avatar-image{width:100%;height:100%;object-fit:cover;border-radius:inherit}.profile-avatar-actions{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-block:1rem}.profile-avatar-preview{display:grid;place-items:center;width:4rem;height:4rem;border-radius:50%;overflow:hidden}.profile-avatar-grid{display:flex;flex-wrap:wrap;gap:.75rem}.profile-avatar-grid button{padding:.25rem;border:1px solid var(--border);border-radius:50%}.profile-avatar-grid button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}.profile-avatar-grid img{width:3.5rem;height:3.5rem;border-radius:50%}
+
+.profile-avatar-actions .preferences-password-submit{margin-top:0;width:auto}
+.profile-avatar-remove{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:10px 14px;border:1px solid var(--pref-line);border-radius:9px;background:var(--pref-panel);color:var(--pref-muted);font-size:12px;font-weight:600;transition:background-color 140ms ease,color 140ms ease,border-color 140ms ease}
+.profile-avatar-remove:hover:not(:disabled){background:var(--pref-tint);color:var(--pref-accent);border-color:var(--pref-accent)}
+.profile-avatar-remove:focus-visible{outline:2px solid var(--pref-accent);outline-offset:3px}
+.profile-avatar-remove:disabled{cursor:not-allowed;color:var(--pref-muted)}
