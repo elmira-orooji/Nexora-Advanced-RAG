@@ -1,7 +1,7 @@
 import ProfileAvatar from "../components/ProfileAvatar";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Eye, EyeOff, KeyRound, Languages, LoaderCircle, Moon, Palette, Sun } from "lucide-react";
+import { Check, Eye, EyeOff, KeyRound, Languages, LoaderCircle, Moon, Palette, Sun, Settings2 } from "lucide-react";
 import toast from "react-hot-toast";
 import "../styles/settings.css";
 import { sectionCopy } from "../locales/copy";
@@ -53,7 +53,7 @@ export default function SettingsPage({ theme, setTheme }: SettingsPageProps) {
     <div className="preferences-page" dir={isFa ? "rtl" : "ltr"}>
       <div className="preferences-content">
         <header className="preferences-header">
-          <h1>{copy.title}</h1>
+          <span className="preferences-eyebrow"><Settings2 size={15} aria-hidden="true"/>{isFa?"تنظیمات فضای کاری":"Workspace preferences"}</span><h1>{copy.title}</h1>
           <p>{copy.subtitle}</p>
         </header>
         <ProfileAvatar />

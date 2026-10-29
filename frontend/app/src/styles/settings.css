@@ -85,3 +85,27 @@ html:not(.dark) .preferences-page {
   .preferences-password-fields { grid-template-columns: 1fr; gap: 12px; }
   .preferences-password-submit { width: 100%; }
 }
+
+/* Settings workspace: consistent sections and balanced desktop columns. */
+.preferences-content{max-width:1040px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.preferences-content>.preferences-header,.preferences-content>.preferences-profile,.preferences-content>section[aria-labelledby=password-title]{grid-column:1/-1}
+.preferences-content>.preferences-header{margin-bottom:4px}
+.preferences-content>.preferences-card{margin-bottom:0;min-width:0}
+.preferences-eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:11px;color:var(--pref-accent);margin-bottom:6px}
+.preferences-profile{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px 28px}
+.preferences-profile>.preferences-section-heading{grid-column:1/-1}
+.preferences-profile .profile-avatar-actions{flex-direction:column;align-items:center;justify-content:center;gap:10px;margin:0;padding:18px;border:1px solid var(--pref-line);border-radius:10px;background:var(--pref-tint)}
+.preferences-profile .profile-avatar-preview{width:72px;height:72px;border:1px solid var(--pref-line);background:var(--pref-panel)}
+.preferences-profile .profile-avatar-actions button{min-height:36px;font-size:11px;padding:8px 12px}
+.preferences-profile .profile-avatar-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;align-content:center}
+.preferences-profile .profile-avatar-grid button{display:grid;place-items:center;justify-self:center;width:64px;height:64px;padding:3px;border:2px solid transparent;border-radius:50%;transition:border-color 140ms ease,background-color 140ms ease}
+.preferences-profile .profile-avatar-grid img{width:54px;height:54px;object-fit:cover;flex-shrink:0}
+.preferences-profile .profile-avatar-grid button:hover,.preferences-profile .profile-avatar-grid button[aria-pressed=true]{border-color:var(--pref-accent);background:var(--pref-tint)}
+.preferences-profile__hint{grid-column:1/-1;text-align:center;color:var(--pref-muted);font-size:11px;margin:0}
+.preferences-profile>[role=status],.preferences-profile>[role=alert]{grid-column:1/-1;font-size:12px;margin:0}
+.preferences-profile>[role=status]{color:var(--pref-accent)}
+.preferences-content>section[aria-labelledby=language-title] .preferences-options{grid-template-columns:1fr}
+@media(max-width:1000px){.preferences-profile{grid-template-columns:180px minmax(0,1fr)}.preferences-profile .profile-avatar-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:760px){.preferences-content{grid-template-columns:1fr}.preferences-content>.preferences-card{grid-column:1}.preferences-profile{grid-template-columns:1fr}.preferences-profile .profile-avatar-actions{flex-direction:row;flex-wrap:wrap}.preferences-profile .profile-avatar-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.preferences-content>section[aria-labelledby=language-title] .preferences-options{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.preferences-profile .profile-avatar-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.preferences-profile .profile-avatar-actions .preferences-password-submit{width:auto}}
+@container workspace (max-width:700px){.preferences-content{grid-template-columns:1fr}.preferences-content>.preferences-card{grid-column:1}.preferences-profile{grid-template-columns:1fr}.preferences-profile .profile-avatar-actions{flex-direction:row;flex-wrap:wrap}}
