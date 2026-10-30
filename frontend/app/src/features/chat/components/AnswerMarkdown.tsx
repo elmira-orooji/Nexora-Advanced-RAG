@@ -23,7 +23,7 @@ function citationLinks() {
   };
 }
 
-export default function AnswerMarkdown({ content, sources, onOpen, animate = false }: { content: string; sources: Source[]; onOpen: (source: Source) => void; animate?: boolean }) {
+export default function AnswerMarkdown({ content, animate = false }: { content: string; sources: Source[]; onOpen: (source: Source) => void; animate?: boolean }) {
   const { i18n } = useTranslation();
   const noAnswerMessages = [
     "پاسخی برای سوال شما یافت نشد",
@@ -59,10 +59,7 @@ export default function AnswerMarkdown({ content, sources, onOpen, animate = fal
   return <Markdown remarkPlugins={[remarkGfm, citationLinks]} skipHtml components={{
     a: ({ href, children }) => {
       const match = /^#citation-(\d+)$/.exec(href || "");
-      if (match) {
-        const source = sources.find((item) => item.citationId === Number(match[1]));
-        return source ? <button type="button" className="chat-answer-citation" title={source.title} onClick={() => onOpen(source)}>{source.citationId}</button> : <>{children}</>;
-      }
+      if (match) return null;
       return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
     },
     img: ({ alt }) => <span>{alt}</span>,
