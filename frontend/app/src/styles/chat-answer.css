@@ -456,3 +456,6 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 .conversation-page .chat-thread .chat-answer-heading > .nexora-avatar { flex: 0 0 27px; width: 30px; height: 30px; transform: translateY(-2px); }
 .conversation-page .chat-thread .chat-answer-heading > .nexora-avatar img { width: 30px; height: 30px; }
 .conversation-page .chat-thread .chat-answer-heading > .chat-brand-wordmark { font-family: "Cyber Copix", sans-serif !important; font-size: 20px; font-weight: 400; height: 27px; line-height: 25px; transform: scaleX(1) scaleY(1.2); transform-origin: center; }
+
+.answer-progress-aura { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex-shrink: 0; }
+.answer-progress-static-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); }
