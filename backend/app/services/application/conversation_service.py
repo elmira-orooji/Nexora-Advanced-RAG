@@ -1,6 +1,6 @@
 from app.core.application_errors import ApplicationError
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 
 from sqlalchemy.orm import Session
@@ -123,8 +123,9 @@ class ConversationService:
             with transaction(self.db):
                 self.answers.add(record)
                 self.answers.flush()
-                assistant_message = Message(role="assistant", content=answer, sources=[source.model_dump(mode="json") for source in sources] or None, answer_basis=answer_basis, answer_id=record.id, truncated=truncated)
-                conversation.messages.extend([Message(role="user", content=payload.content), assistant_message])
+                message_time = datetime.now(timezone.utc)
+                assistant_message = Message(created_at=message_time + timedelta(microseconds=1), role="assistant", content=answer, sources=[source.model_dump(mode="json") for source in sources] or None, answer_basis=answer_basis, answer_id=record.id, truncated=truncated)
+                conversation.messages.extend([Message(role="user", content=payload.content, created_at=message_time), assistant_message])
                 if conversation.title == "New conversation":
                     conversation.title = payload.content[:200]
                 conversation.updated_at = datetime.now(timezone.utc)
