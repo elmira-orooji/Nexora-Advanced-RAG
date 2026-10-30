@@ -48,12 +48,12 @@ export default function AnswerMarkdown({ content, sources, onOpen, animate = fal
     // Reveal complete words; cap total duration for long answers.
     const words = displayedContent.match(/\S+\s*/g) || [];
     let index = 0;
-    const batch = Math.max(1, Math.ceil(words.length / 100));
+    const batch = Math.max(1, Math.ceil(words.length / 160));
     const timer = window.setInterval(() => {
       for (let count = 0; count < batch && index < words.length; count++) length += words[index++].length;
       setVisibleLength(index >= words.length ? displayedContent.length : length);
       if (index >= words.length) window.clearInterval(timer);
-    }, 30);
+    }, 70);
     return () => window.clearInterval(timer);
   }, [animate, displayedContent]);
   return <Markdown remarkPlugins={[remarkGfm, citationLinks]} skipHtml components={{
