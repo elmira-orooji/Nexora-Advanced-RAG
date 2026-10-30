@@ -185,5 +185,5 @@ class ConversationService:
     @staticmethod
     def _no_results_message(question: str) -> str:
         if any("\u0600" <= character <= "\u06ff" for character in question):
-            return "در اسناد مجاز اطلاعات مرتبطی برای پاسخ پیدا نشد."
+            return "پاسخی برای سوال شما یافت نشد"
         return "No relevant information was found in the permitted indexed documents."

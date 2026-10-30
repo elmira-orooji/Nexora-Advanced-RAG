@@ -42,7 +42,7 @@ export function useKnowledgeChat({ selectedSetId, selectedDocumentIds, metadataF
         : await knowledgeService.ask(content, selectedSetId, selectedDocumentIds, metadataFilters, controller.signal);
       setChatMessages((current) => [...current, {
         id: crypto.randomUUID(), role: "assistant", content: !result.grounded && result.citations.length === 0
-          ? "پاسخی برای سوال شما در اسناد موجود نیست"
+          ? "پاسخی برای سوال شما یافت نشد"
           : result.answer, responseId: result.response_id, createdAt: new Date().toISOString(),
         grounded: result.grounded,
         research: isResearch ? { steps: (result as ResearchResponse).steps, evidenceReviewed: (result as ResearchResponse).evidence_reviewed } : undefined,
