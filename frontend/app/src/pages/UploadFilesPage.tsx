@@ -208,7 +208,6 @@ export default function UploadFilesPage({ initialAction }: UploadFilesPageProps)
         await knowledgeService.deleteDocument(doc.id);
         setDocuments((items) => items.filter((item) => item.id !== doc.id));
         await loadSets();
-        toast.success(isFa ? "سند حذف و پردازش آن لغو شد" : "Document deleted and processing cancelled");
     }
     catch (error) {
         setPageError(operationError(error, "load", isFa));
