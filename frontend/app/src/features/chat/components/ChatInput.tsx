@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { ArrowUp, Mic, MicOff, Square } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useReducedMotion } from "framer-motion";
+const VoiceAura = lazy(() => import("../../../components/agents-ui/agent-audio-visualizer-aura").then(module => ({ default: module.AgentAudioVisualizerAura })));
+
 
 interface SpeechRecognitionResultEvent extends Event {
   resultIndex: number;
@@ -42,6 +45,7 @@ export default function ChatInput({ disabled, onSend, isSending = false, onCance
   const isFa = i18n.language.startsWith("fa");
   const [value, setValue] = useState(initialValue);
   const [isListening, setIsListening] = useState(false);
+  const reducedMotion = useReducedMotion();
   const [voiceError, setVoiceError] = useState("");
   const sendPending = useRef(false);
   const recognitionRef = useRef<SpeechRecognitionController | null>(null);
@@ -149,6 +153,10 @@ export default function ChatInput({ disabled, onSend, isSending = false, onCance
         className="chat-composer-textarea max-h-32 min-h-10 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2.5 text-sm leading-6 outline-none disabled:opacity-50"
       />
       <div className="mb-0.5 flex shrink-0 items-center gap-1">
+      {isListening && <span className="grid size-10 place-items-center shrink-0" role="status" aria-label={isFa ? "در حال دریافت صدا" : "Listening"}>
+        {reducedMotion ? <span className="size-2 rounded-full bg-[var(--brand)]" /> : <Suspense fallback={<span className="size-2 rounded-full bg-[var(--brand)]" />}><VoiceAura size="icon" state="listening" color="#7950bb" themeMode={document.documentElement.classList.contains("dark") ? "dark" : "light"} /></Suspense>}
+      </span>}
+
       <button
         type="button"
         onClick={toggleVoiceInput}
