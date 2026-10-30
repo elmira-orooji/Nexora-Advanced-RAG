@@ -230,7 +230,7 @@ html:not(.dark) .conversation-scroll-ticks span.is-active { background: #7950bb;
 
 .conversation-scroll-preview { position: absolute; inset-inline-end: 36px; width: min(280px, 55vw); translate: 0 -50%; padding: 13px 15px; border: 1px solid #ffffff18; border-radius: 12px; background: #20232b; color: #e7eaf3; box-shadow: 0 8px 28px #0003; pointer-events: none; z-index: 10; }
 .conversation-scroll-preview > span { display: block; margin-bottom: 6px; font-size: var(--font-size-helper); font-weight: 600; color: var(--answer-muted); }
-.conversation-scroll-preview p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 0; font-size: 12px; line-height: 1.85; overflow-wrap: anywhere; text-align: start; }
+.conversation-scroll-preview p { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 0; font-size: 12px; line-height: 1.85; overflow-wrap: anywhere; text-align: start; }
 html:not(.dark) .conversation-scroll-preview { background: #fff; color: #252c3e; border-color: #dfe4ed; box-shadow: 0 8px 28px #18213314; }
 html:not(.dark) .conversation-scroll-preview > span { color: #687287; }
 
@@ -304,7 +304,7 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 .chat-evidence-source-title svg { flex: 0 0 auto; margin-top: 2px; color: var(--answer-accent); }
 .chat-evidence-source-title strong { overflow: hidden; font-size: 12px; font-weight: 550; text-overflow: ellipsis; }
 .chat-evidence-source > small { color: var(--answer-muted); font-size: 10px; }
-.chat-evidence-source-excerpt { display: -webkit-box; overflow: hidden; color: var(--answer-muted); font-size: 11px; line-height: 1.6; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.chat-evidence-source-excerpt { display: -webkit-box; overflow: hidden; color: var(--answer-muted); font-size: 11px; line-height: 1.6; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; }
 .chat-evidence-selected { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--answer-border); }
 @media (max-width: 480px) { .chat-evidence { border-radius: 12px; } .chat-evidence-content, .chat-evidence-header { padding: 16px; } }
 @media (max-width: 760px) {
