@@ -445,3 +445,6 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 @media (prefers-reduced-motion: reduce) { .answer-progress-pulse i { animation: none; opacity: .6; } }
 
 .app-shell .answer-progress-brand > .answer-progress-wordmark { font-family: "Cyber Copix", sans-serif !important; font-weight: 400; }
+
+.app-shell .answer-progress-brand > .answer-progress-wordmark { font-size: 14px; height: 19px; line-height: 19px; transform: none; }
+.app-shell .answer-progress-brand { gap: 3px; direction: ltr; }
