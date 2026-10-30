@@ -434,8 +434,8 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 /* Compact preparation status with stable, accessible motion. */
 .answer-progress { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 18px; width: 100%; padding-block: 12px 20px; color: var(--text-primary); }
 .answer-progress-brand { display: inline-flex; align-items: center; gap: 1px; flex-shrink: 0; font-size: 13px; font-weight: 500; }
-.answer-progress-brand .nexora-avatar, .answer-progress-brand .nexora-avatar img { width: 22px; height: 22px; }
-.answer-progress-wordmark { display: inline-flex; align-items: center; font-family: "Cyber Copix", sans-serif; font-size: 23px; font-weight: 400; height: 22.5px; line-height: 22.5px; transform: translateY(1px) scaleY(1.25); transform-origin: center; }
+.answer-progress-brand .nexora-avatar, .answer-progress-brand .nexora-avatar img { width: 30px; height: 30px; }
+.answer-progress-wordmark { display: inline-flex; align-items: center; font-family: "Cyber Copix", sans-serif; font-size: 30px; font-weight: 400; height: 23px; line-height: 22.5px; transform: translateY(2px) scaleY(1.25); transform-origin: center; }
 .answer-progress-status { display: flex; align-items: center; gap: 10px; min-width: 0; color: var(--text-muted); font-size: 12px; line-height: 1.8; }
 .answer-progress-pulse { display: inline-flex; gap: 4px; align-items: center; flex-shrink: 0; }
 .answer-progress-pulse i { display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--brand); animation: answer-status-pulse 1.4s ease-in-out infinite; }
@@ -446,7 +446,13 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 
 .app-shell .answer-progress-brand > .answer-progress-wordmark { font-family: "Cyber Copix", sans-serif !important; font-weight: 400; }
 
-.app-shell .answer-progress-brand > .answer-progress-wordmark { font-size: 14px; height: 19px; line-height: 19px; transform: none; }
-.app-shell .answer-progress-brand { gap: 1px; direction: ltr; }
+.app-shell .answer-progress-brand > .answer-progress-wordmark { font-size: 20px; height: 27px; line-height: 25px; transform: scaleX(1) scaleY(1.2);}
+.app-shell .answer-progress-brand { gap: 3px; direction: ltr; }
 
-.answer-progress-brand > .nexora-avatar { flex: 0 0 19px; }
+.answer-progress-brand > .nexora-avatar { flex: 0 0 27px;  transform: translateY(-2px); }
+
+/* Keep completed-answer branding identical to the preparation state. */
+.conversation-page .chat-thread .chat-answer-heading { gap: 3px; direction: ltr; min-height: 30px; }
+.conversation-page .chat-thread .chat-answer-heading > .nexora-avatar { flex: 0 0 27px; width: 30px; height: 30px; transform: translateY(-2px); }
+.conversation-page .chat-thread .chat-answer-heading > .nexora-avatar img { width: 30px; height: 30px; }
+.conversation-page .chat-thread .chat-answer-heading > .chat-brand-wordmark { font-family: "Cyber Copix", sans-serif !important; font-size: 20px; font-weight: 400; height: 27px; line-height: 25px; transform: scaleX(1) scaleY(1.2); transform-origin: center; }
