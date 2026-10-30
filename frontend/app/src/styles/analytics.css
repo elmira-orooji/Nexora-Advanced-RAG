@@ -153,3 +153,9 @@ html:not(.dark) .analytics-dashboard {
 .analytics-details-button:hover{border-color:var(--an-violet)}
 @media(max-width:760px){.analytics-viewport .analytics-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.analytics-viewport .analytics-summary .analytics-metric{padding:14px}.analytics-viewport .analytics-metric__value{font-size:24px}.analytics-viewport .analytics-chart-section{flex:none;height:310px;min-height:0}.analytics-content{overflow-y:auto}}
 @media(prefers-reduced-motion:reduce){.analytics-data-point{transition:none}}
+
+.analytics-chart-tooltip { position: absolute; top: 12px; transform: translateX(-50%); z-index: 5; min-width: 150px; pointer-events: none; padding: 10px 12px; border: 1px solid var(--an-line); border-radius: 10px; background: var(--an-panel); color: var(--an-text, var(--text-primary)); box-shadow: 0 6px 20px #10192c14; font-family: var(--font-ui); font-size: 12px; }
+.analytics-chart-tooltip > span { display: block; color: var(--an-muted); font-size: 11px; margin-bottom: 6px; }
+.analytics-chart-tooltip strong { display: flex; align-items: center; justify-content: space-between; gap: 18px; font-weight: 500; }
+.analytics-chart-tooltip b { color: var(--an-violet); font-variant-numeric: tabular-nums; }
+.analytics-data-point:focus-visible { outline: 2px solid var(--an-violet); outline-offset: 3px; }
