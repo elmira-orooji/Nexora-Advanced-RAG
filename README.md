@@ -22,6 +22,7 @@ Create a knowledge set → add documents or sources → process and index conten
 - **Connectors** — synchronize supported website, GitHub, Google Drive, S3, SharePoint, and webhook sources through a background scheduler.
 - **Experimental GraphRAG** — optionally extract organization-scoped entities and evidence-linked relations to retrieve across documents for relationship questions.
 - **Team boundaries** — separate organizations, roles, document-set permissions, and user sessions.
+- **Cloud or local generation** — select OpenRouter or an LM Studio OpenAI-compatible server through backend configuration.
 - **Bilingual interface** — Persian and English UI, light and dark themes, and responsive layouts.
 
 ## Architecture at a glance
@@ -31,7 +32,7 @@ Nexora uses a React/Vite frontend, a FastAPI backend, PostgreSQL for application
 ```text
 Browser → React UI → FastAPI API → PostgreSQL
                               ↘ → Qdrant
-                              ↘ → OpenRouter-compatible LLM
+                              ↘ → OpenRouter or LM Studio (selected generation provider)
 
 Document worker → storage → extraction/OCR → chunking and indexing → Qdrant + optional graph facts in PostgreSQL
 Connector scheduler → permitted remote sources → document processing queue
@@ -39,6 +40,42 @@ Connector scheduler → permitted remote sources → document processing queue
 
 See [ARCHITECTURE.md](documents/architecture/ARCHITECTURE.md) for component boundaries, data flow, worker behavior, and RAG retrieval details.
 See [GraphRAG pilot](documents/architecture/GRAPHRAG-PILOT.md) for enablement, backfill, and baseline comparison steps.
+
+## Language model configuration
+
+Choose one generation provider in `backend/.env` for the native backend. Generation does not switch providers automatically when a request fails.
+
+### OpenRouter (default)
+
+```dotenv
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=your-openrouter-key
+OPENROUTER_MODEL=openrouter/free
+```
+
+The key must have access to the selected model. A cloud provider can reject requests or apply rate limits even when earlier requests succeeded.
+
+### LM Studio (local)
+
+Load a chat model in LM Studio and start its Developer server. In `backend/.env`, set:
+
+```dotenv
+LLM_PROVIDER=lm_studio
+LM_STUDIO_BASE_URL=http://127.0.0.1:1234/v1
+LM_STUDIO_MODEL=your-model-api-identifier
+LM_STUDIO_API_KEY=
+```
+
+Use the exact API model identifier shown by LM Studio. Restart the backend after changing these values. If server authentication is enabled, supply its key through `LM_STUDIO_API_KEY`. To switch back, set `LLM_PROVIDER=openrouter`. Local mode uses the configured local model regardless of cloud model IDs selected in existing conversations. Embedding, OCR and vector-store configuration are independent; this setting only changes language-model generation. Keep the LM Studio server running while using Nexora. For a backend running inside Docker, use a host address reachable from the container instead of `127.0.0.1`.
+
+To list the model identifiers after starting the server:
+
+```powershell
+(Invoke-RestMethod http://127.0.0.1:1234/v1/models).data.id
+```
+
+The model identifier is different from the model file path. Use the public server address shown by LM Studio, not the internal model-worker port. Local generation requires enough RAM/VRAM for the selected model; performance and Persian answer quality depend on that model and the device.
+
 
 ## Quick start with Docker
 
@@ -256,21 +293,9 @@ SECURITY.md                 Security posture and operational requirements
 | A scanned document fails | Check `OCR_PROVIDER`, provider credentials, page limits, and OCR timeout settings. |
 | The frontend reports `ECONNREFUSED 127.0.0.1:8000` | Start the FastAPI API on port 8000 or correct the development proxy target. |
 | `/ready` returns 503 | Check PostgreSQL, Qdrant, writable storage, document worker, and connector scheduler. |
+| Answer generation returns 503 | Inspect the provider failure log. OpenRouter 403 indicates a rejected request; 429 indicates rate limiting. For LM Studio, check that the server and model are running, the API identifier is correct, and the URL is reachable from the backend. |
 | A connector does not synchronize | Check the scheduler, connector configuration, lease state, and the last synchronization error. |
 
 ## Security note
 
 Do not commit `.env` files, passwords, API keys, OAuth refresh tokens, Qdrant keys, OCR credentials, uploaded data, or backups. Review [SECURITY.md](SECURITY.md) before exposing the application to users or connecting it to organization data. Report vulnerabilities privately; do not use public GitHub issues for sensitive security details.
-
-### Local generation with LM Studio
-
-Load a chat model in LM Studio and start its Developer server. In `backend/.env`, set:
-
-```dotenv
-LLM_PROVIDER=lm_studio
-LM_STUDIO_BASE_URL=http://127.0.0.1:1234/v1
-LM_STUDIO_MODEL=your-model-api-identifier
-LM_STUDIO_API_KEY=
-```
-
-Use the exact API model identifier shown by LM Studio. Restart the backend after changing these values. If server authentication is enabled, supply its key through `LM_STUDIO_API_KEY`. To switch back, set `LLM_PROVIDER=openrouter`. Local mode uses the configured local model regardless of cloud model IDs selected in existing conversations. Embedding, OCR and vector-store configuration are independent; this setting only changes language-model generation. Keep the LM Studio server running while using Nexora. For a backend running inside Docker, use a host address reachable from the container instead of `127.0.0.1`.
