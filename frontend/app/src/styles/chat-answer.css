@@ -443,3 +443,5 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 .answer-progress-pulse i:nth-child(3) { animation-delay: 320ms; }
 @keyframes answer-status-pulse { 0%, 70%, 100% { opacity: .3; } 35% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .answer-progress-pulse i { animation: none; opacity: .6; } }
+
+.app-shell .answer-progress-brand > .answer-progress-wordmark { font-family: "Cyber Copix", sans-serif !important; font-weight: 400; }
