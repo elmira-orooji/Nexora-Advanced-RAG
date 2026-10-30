@@ -1,4 +1,5 @@
 import Markdown from "react-markdown";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import remarkGfm from "remark-gfm";
 import type { Source } from "../types/chat";
@@ -22,7 +23,7 @@ function citationLinks() {
   };
 }
 
-export default function AnswerMarkdown({ content, sources, onOpen }: { content: string; sources: Source[]; onOpen: (source: Source) => void }) {
+export default function AnswerMarkdown({ content, sources, onOpen, animate = false }: { content: string; sources: Source[]; onOpen: (source: Source) => void; animate?: boolean }) {
   const { i18n } = useTranslation();
   const noAnswerMessages = [
     "پاسخی برای سوال شما یافت نشد",
@@ -36,6 +37,25 @@ export default function AnswerMarkdown({ content, sources, onOpen }: { content: 
   const displayedContent = noAnswerMessages.includes(normalized)
     ? (i18n.language.startsWith("fa") ? "پاسخی برای سوال شما یافت نشد" : "No answer was found for your question.")
     : content;
+  const [visibleLength, setVisibleLength] = useState(animate ? 0 : displayedContent.length);
+  useEffect(() => {
+    if (!animate || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setVisibleLength(displayedContent.length);
+      return;
+    }
+    let length = 0;
+    setVisibleLength(0);
+    // Reveal complete words; cap total duration for long answers.
+    const words = displayedContent.match(/\S+\s*/g) || [];
+    let index = 0;
+    const batch = Math.max(1, Math.ceil(words.length / 100));
+    const timer = window.setInterval(() => {
+      for (let count = 0; count < batch && index < words.length; count++) length += words[index++].length;
+      setVisibleLength(index >= words.length ? displayedContent.length : length);
+      if (index >= words.length) window.clearInterval(timer);
+    }, 30);
+    return () => window.clearInterval(timer);
+  }, [animate, displayedContent]);
   return <Markdown remarkPlugins={[remarkGfm, citationLinks]} skipHtml components={{
     a: ({ href, children }) => {
       const match = /^#citation-(\d+)$/.exec(href || "");
@@ -47,5 +67,5 @@ export default function AnswerMarkdown({ content, sources, onOpen }: { content: 
     },
     img: ({ alt }) => <span>{alt}</span>,
     table: ({ children }) => <div className="answer-table-scroll"><table>{children}</table></div>,
-  }}>{displayedContent}</Markdown>;
+  }}>{displayedContent.slice(0, visibleLength)}</Markdown>;
 }
