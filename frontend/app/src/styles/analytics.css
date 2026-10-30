@@ -162,3 +162,6 @@ html:not(.dark) .analytics-dashboard {
 
 .analytics-y-labels { position: absolute; inset: 0 auto 28px 0; width: 28px; pointer-events: none; color: var(--an-muted); font-family: var(--font-ui); font-size: 12px; line-height: 1; font-variant-numeric: tabular-nums; }
 .analytics-y-labels > span { position: absolute; inset-inline-end: 3px; transform: translateY(-50%); }
+
+.analytics-viewport .analytics-health-summary { border: 0; background: transparent; border-radius: 0; padding-inline: 0; }
+.app-shell .analytics-viewport .analytics-details-button { border: 0; background: transparent; box-shadow: none; border-radius: 0; padding-inline: 0; }
