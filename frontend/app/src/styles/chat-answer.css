@@ -417,8 +417,8 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 
 /* Match the sidebar lockup at three quarters of its original scale. */
 .conversation-page .chat-thread .chat-answer-heading { display: flex; align-items: center; gap: 3px; padding-inline-start: 0; min-height: 23px; }
-.conversation-page .chat-thread .chat-answer-heading > .nexora-avatar { position: static; display: inline-flex; flex: 0 0 22.5px; width: 22.5px; height: 22.5px; }
-.conversation-page .chat-thread .chat-answer-heading > .nexora-avatar img { width: 22.5px; height: 22.5px; }
+.conversation-page .chat-thread .chat-answer-heading > .nexora-avatar { position: static; display: inline-flex; flex: 0 0 19px; width: 19px; height: 19px; }
+.conversation-page .chat-thread .chat-answer-heading > .nexora-avatar img { width: 19px; height: 19px; }
 .conversation-page .chat-thread .chat-answer-heading > .chat-brand-wordmark { display: inline-flex; align-items: center; height: 22.5px; line-height: 22.5px; transform-origin: center top; }
 
 .conversation-page .chat-thread .chat-answer-heading > .chat-brand-wordmark { font-size: 23px; height: 22.5px; line-height: 22.5px; transform: translateY(1px) scaleY(1.25); transform-origin: center; }
