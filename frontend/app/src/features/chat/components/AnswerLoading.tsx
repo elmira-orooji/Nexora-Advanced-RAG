@@ -3,18 +3,9 @@ export default function AnswerLoading({ isFa, assistantName, slow = false }: { i
   const label = slow
     ? (isFa ? "دریافت پاسخ بیش از حد معمول طول کشیده است. می‌توانید آن را متوقف کنید." : "This is taking longer than usual. You can stop the request.")
     : (isFa ? "در حال آماده‌سازی پاسخ" : "Preparing your answer");
-  const liveLabel = isFa ? "در حال فکر کردن" : "Thinking";
-  return <article className="chat-answer chat-loading" dir={isFa ? "rtl" : "ltr"}>
-    <div className="chat-answer-body" role="status" aria-live="polite">
-      <span className="sr-only">{label}</span>
-      <header className="chat-answer-heading" aria-hidden="true">
-        <NexoraAvatar />
-        {assistantName && <strong dir="auto">{assistantName}</strong>}
-        <span className="answer-thinking-state"><span />{liveLabel}</span>
-      </header>
-      <div className="answer-thinking-content" aria-hidden="true">
-        <p>{label}</p><span className="answer-thinking-dots"><i /><i /><i /></span>
-      </div>
-    </div>
+  return <article className="answer-progress" dir={isFa ? "rtl" : "ltr"} role="status" aria-live="polite">
+    <div className="answer-progress-brand"><NexoraAvatar /><span dir="auto">{assistantName || "Nexora"}</span></div>
+    <div className="answer-progress-status"><span className="answer-progress-orbit" aria-hidden="true" /><span>{label}</span></div>
+    <div className="answer-progress-track" aria-hidden="true"><span /></div>
   </article>;
 }

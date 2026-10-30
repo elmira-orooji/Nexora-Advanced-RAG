@@ -430,3 +430,15 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 @media (max-width: 640px) { .conversation-page .chat-thread-messages { padding-inline: 8px; } }
 
 .conversation-page .conversation-scroll-rail { inset-inline-end: 0; }
+
+.answer-progress { width: min(100%, 320px); padding-block: 8px 16px; color: var(--answer-text); }
+.answer-progress-brand { display: flex; align-items: center; gap: 5px; margin-bottom: 14px; font-size: 13px; font-weight: 600; }
+.answer-progress-brand .nexora-avatar, .answer-progress-brand .nexora-avatar img { width: 20px; height: 20px; }
+.answer-progress-status { display: flex; align-items: center; gap: 9px; color: var(--answer-muted); font-size: 13px; line-height: 1.8; }
+.answer-progress-orbit { width: 13px; height: 13px; flex-shrink: 0; border: 1.5px solid var(--answer-border); border-top-color: var(--answer-accent); border-radius: 50%; animation: answer-progress-spin 1.1s linear infinite; }
+.answer-progress-track { height: 2px; background: var(--answer-border); border-radius: 2px; overflow: hidden; margin-top: 14px; }
+.answer-progress-track > span { display: block; height: 100%; width: 35%; background: var(--answer-accent); border-radius: inherit; animation: answer-progress-slide 2s ease-in-out infinite alternate; }
+@keyframes answer-progress-spin { to { transform: rotate(360deg); } }
+@keyframes answer-progress-slide { from { transform: translateX(-100%); } to { transform: translateX(285%); } }
+[dir="rtl"] .answer-progress-track { direction: ltr; }
+@media (prefers-reduced-motion: reduce) { .answer-progress-orbit, .answer-progress-track > span { animation: none; } .answer-progress-track > span { width: 100%; opacity: .4; } }
