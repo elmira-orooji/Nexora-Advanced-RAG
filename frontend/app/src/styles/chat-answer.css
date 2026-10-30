@@ -356,9 +356,9 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 @media (max-width: 640px) { .chat-thread .answer-markdown { font-size: 14px; } .chat-thread-messages { gap: 24px; } .answer-markdown h1 { font-size: 20px; } .answer-markdown h2 { font-size: 18px; } }
 @media (max-width: 640px) { .chat-thread .chat-loading { margin-block-start: 28px; } }
 
-.chat-thread .chat-answer { animation: answer-arrive 220ms ease-out both; }
-@keyframes answer-arrive { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) { .chat-thread .chat-answer { animation: none; } }
+.chat-thread .chat-answer.is-new-answer { animation: answer-arrive 100ms cubic-bezier(.16,1,.3,1) both; }
+@keyframes answer-arrive { from { opacity: 0; transform: translate3d(0,20px,0); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .chat-thread .chat-answer.is-new-answer { animation: none; } }
 .source-region-image { margin: 18px 0; padding: 14px; border: 1px solid var(--cv-line, #8883); border-radius: 12px; background: var(--cv-panel, transparent); max-width: 100%; }
 .source-region-image figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-bottom: 12px; font-size: 13px; }
 .source-region-image figcaption strong { overflow-wrap: anywhere; }
