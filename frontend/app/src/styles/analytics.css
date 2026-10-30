@@ -159,3 +159,6 @@ html:not(.dark) .analytics-dashboard {
 .analytics-chart-tooltip strong { display: flex; align-items: center; justify-content: space-between; gap: 18px; font-weight: 500; }
 .analytics-chart-tooltip b { color: var(--an-violet); font-variant-numeric: tabular-nums; }
 .analytics-data-point:focus-visible { outline: 2px solid var(--an-violet); outline-offset: 3px; }
+
+.analytics-y-labels { position: absolute; inset: 0 auto 28px 0; width: 28px; pointer-events: none; color: var(--an-muted); font-family: var(--font-ui); font-size: 12px; line-height: 1; font-variant-numeric: tabular-nums; }
+.analytics-y-labels > span { position: absolute; inset-inline-end: 3px; transform: translateY(-50%); }
