@@ -174,3 +174,5 @@ html:not(.dark) .conversation-page {
 .conversation-welcome-footnote svg{flex-shrink:0}
 @media(max-width:540px){.conversation-page--welcome .conversation-welcome{padding-block:32px}.conversation-page--welcome .conversation-intro{margin-bottom:24px}.conversation-page--welcome .conversation-context{padding:10px}.conversation-ready-status{width:100%}.conversation-page--welcome .conversation-emblem{width:56px;height:56px;border-radius:16px}.app-shell .conversation-page--welcome .app-composer{padding:10px}}
 @media(max-width:540px){.conversation-page--welcome .conversation-emblem img{width:52px;height:52px}}
+
+.app-shell .conversation-page .conversation-dock > .app-composer { width: 100%; margin-inline: auto; }
