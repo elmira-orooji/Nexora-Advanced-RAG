@@ -1,4 +1,5 @@
 import Markdown from "react-markdown";
+import { useTranslation } from "react-i18next";
 import remarkGfm from "remark-gfm";
 import type { Source } from "../types/chat";
 
@@ -22,6 +23,19 @@ function citationLinks() {
 }
 
 export default function AnswerMarkdown({ content, sources, onOpen }: { content: string; sources: Source[]; onOpen: (source: Source) => void }) {
+  const { i18n } = useTranslation();
+  const noAnswerMessages = [
+    "پاسخی برای سوال شما یافت نشد",
+    "پاسخی برای سوال شما در اسناد موجود نیست",
+    "در اسناد مجاز اطلاعات مرتبطی برای پاسخ پیدا نشد",
+    "No answer was found for your question",
+    "No relevant information was found in the permitted indexed documents",
+    "The available documents do not provide enough information to answer this question",
+  ];
+  const normalized = content.trim().replace(/[.。]+$/, "");
+  const displayedContent = noAnswerMessages.includes(normalized)
+    ? (i18n.language.startsWith("fa") ? "پاسخی برای سوال شما یافت نشد" : "No answer was found for your question.")
+    : content;
   return <Markdown remarkPlugins={[remarkGfm, citationLinks]} skipHtml components={{
     a: ({ href, children }) => {
       const match = /^#citation-(\d+)$/.exec(href || "");
@@ -33,5 +47,5 @@ export default function AnswerMarkdown({ content, sources, onOpen }: { content: 
     },
     img: ({ alt }) => <span>{alt}</span>,
     table: ({ children }) => <div className="answer-table-scroll"><table>{children}</table></div>,
-  }}>{content}</Markdown>;
+  }}>{displayedContent}</Markdown>;
 }
