@@ -165,3 +165,6 @@ html:not(.dark) .analytics-dashboard {
 
 .analytics-viewport .analytics-health-summary { border: 0; background: transparent; border-radius: 0; padding-inline: 0; }
 .app-shell .analytics-viewport .analytics-details-button { border: 0; background: transparent; box-shadow: none; border-radius: 0; padding-inline: 0; }
+
+.analytics-viewport .analytics-health-summary { padding-bottom: 0; }
+.app-shell .analytics-viewport .analytics-details-button { margin-top: 2px; padding-block: 2px; }
