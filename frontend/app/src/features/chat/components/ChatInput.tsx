@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { ArrowUp, Mic, MicOff, Square } from "lucide-react";
+import { ArrowUp, Mic, Square } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useReducedMotion } from "framer-motion";
 const VoiceAura = lazy(() => import("../../../components/agents-ui/agent-audio-visualizer-aura").then(module => ({ default: module.AgentAudioVisualizerAura })));
@@ -46,6 +46,12 @@ export default function ChatInput({ disabled, onSend, isSending = false, onCance
   const [value, setValue] = useState(initialValue);
   const [isListening, setIsListening] = useState(false);
   const reducedMotion = useReducedMotion();
+  const [showAura, setShowAura] = useState(false);
+  useEffect(() => {
+    if (isListening) { setShowAura(true); return; }
+    const timer = window.setTimeout(() => setShowAura(false), reducedMotion ? 0 : 220);
+    return () => window.clearTimeout(timer);
+  }, [isListening, reducedMotion]);
   const [voiceError, setVoiceError] = useState("");
   const sendPending = useRef(false);
   const recognitionRef = useRef<SpeechRecognitionController | null>(null);
@@ -153,10 +159,6 @@ export default function ChatInput({ disabled, onSend, isSending = false, onCance
         className="chat-composer-textarea max-h-32 min-h-10 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2.5 text-sm leading-6 outline-none disabled:opacity-50"
       />
       <div className="mb-0.5 flex shrink-0 items-center gap-1">
-      {isListening && <span className="grid size-10 place-items-center shrink-0" role="status" aria-label={isFa ? "در حال دریافت صدا" : "Listening"}>
-        {reducedMotion ? <span className="size-2 rounded-full bg-[var(--brand)]" /> : <Suspense fallback={<span className="size-2 rounded-full bg-[var(--brand)]" />}><VoiceAura size="icon" state="listening" color="#7950bb" themeMode={document.documentElement.classList.contains("dark") ? "dark" : "light"} /></Suspense>}
-      </span>}
-
       <button
         type="button"
         onClick={toggleVoiceInput}
@@ -164,9 +166,12 @@ export default function ChatInput({ disabled, onSend, isSending = false, onCance
         aria-label={isListening ? (isFa ? "توقف ورودی صوتی" : "Stop voice input") : (isFa ? "ورودی صوتی" : "Voice input")}
         aria-pressed={isListening}
         title={isListening ? (isFa ? "توقف ورودی صوتی" : "Stop voice input") : (isFa ? "ورودی صوتی" : "Voice input")}
-        className={`grid size-10 place-items-center rounded-xl bg-[var(--brand-soft)] transition hover:bg-[var(--brand-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 ${isListening ? "text-red-500" : "text-slate-500"} disabled:opacity-40`}
+        className={`relative grid size-10 place-items-center rounded-xl bg-[var(--brand-soft)] transition hover:bg-[var(--brand-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 ${isListening ? "text-red-500" : "text-slate-500"} disabled:opacity-40`}
       >
-        {isListening ? <MicOff size={18} aria-hidden="true" /> : <Mic size={18} aria-hidden="true" />}
+        <span aria-hidden="true" className="absolute inset-0 grid place-items-center" style={{ opacity: isListening ? 0 : 1, transform: isListening ? "scale(.65)" : "scale(1)", transition: reducedMotion ? "none" : "opacity 180ms ease, transform 180ms ease" }}><Mic size={18} /></span>
+        <span aria-hidden="true" className="absolute inset-0 grid place-items-center" style={{ opacity: isListening ? 1 : 0, transform: isListening ? "scale(1)" : "scale(.65)", transition: reducedMotion ? "none" : "opacity 220ms ease, transform 220ms ease" }}>
+          {showAura && (reducedMotion ? <span className="size-2 rounded-full bg-[var(--brand)]" /> : <Suspense fallback={<span className="size-2 rounded-full bg-[var(--brand)]" />}><VoiceAura size="icon" state="listening" color="#7950bb" themeMode={document.documentElement.classList.contains("dark") ? "dark" : "light"} /></Suspense>)}
+        </span>
       </button>
       <button
         type="button"
