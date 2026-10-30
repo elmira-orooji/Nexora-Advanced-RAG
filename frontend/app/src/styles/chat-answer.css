@@ -366,16 +366,16 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 .source-region-image a { display: inline-block; margin-top: 10px; color: var(--cv-accent, inherit); font-size: 12px; }
 
 /* Conversation reading column and progressive source disclosure. */
-.conversation-page .chat-thread-messages { max-width: 800px; padding: 28px 20px 48px; gap: 32px; }
+.conversation-page .chat-thread-messages { max-width: 860px; padding: 24px 28px 48px; gap: 36px; }
 .conversation-page .chat-thread .chat-answer { display: block; margin: 0; }
-.conversation-page .chat-thread .chat-answer-body { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.conversation-page .chat-thread .chat-answer-body { padding: 0 0 0 0; padding-inline-start: 46px; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .conversation-page .chat-thread .chat-answer > .nexora-avatar { top: 0; width: 30px; height: 30px; }
 .conversation-page .chat-thread .chat-answer > .nexora-avatar img { width: 30px; height: 30px; }
-.conversation-page .chat-thread .chat-answer-heading { min-height: 30px; padding-inline-start: 42px; margin-bottom: 18px; }
+.conversation-page .chat-thread .chat-answer-heading { min-height: 30px; padding-inline-start: 0; margin-bottom: 12px; }
 .conversation-page .chat-thread .chat-answer-heading > span:last-child { margin: 0; padding: 0; border: 0; font-size: 13px; font-weight: 600; color: var(--answer-text); }
 .conversation-page .chat-thread .chat-answer-text { font-size: 15px; line-height: 2; overflow-wrap: anywhere; }
 .chat-source-disclosure { margin-top: 20px; }
-.chat-source-disclosure > summary { display: flex; align-items: center; gap: 8px; width: fit-content; padding: 8px 11px; border: 1px solid var(--answer-border); border-radius: 9px; color: var(--answer-muted); font-size: 12px; cursor: pointer; list-style: none; transition: background 150ms ease; }
+.chat-source-disclosure > summary { display: flex; align-items: center; gap: 8px; width: 100%; padding: 12px 0; border: 0; border-top: 1px solid var(--answer-border); border-radius: 0; color: var(--answer-muted); font-size: 12px; cursor: pointer; list-style: none; transition: background 150ms ease; }
 .chat-source-disclosure > summary::-webkit-details-marker { display: none; }
 .chat-source-disclosure > summary:hover { background: var(--answer-tint); color: var(--answer-text); }
 .chat-source-disclosure > summary:focus-visible { outline: 2px solid var(--answer-accent); outline-offset: 3px; }
@@ -390,7 +390,18 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 .chat-source-disclosure .answer-source-info small { font-size: 11px; }
 .conversation-page .chat-thread .chat-answer-actions { margin-top: 12px; padding-top: 0; border: 0; }
 .conversation-page .chat-question-label { display: none; }
-.conversation-page .conversation-scroll-rail { opacity: 0; transition: opacity 150ms ease; }
+.conversation-page .conversation-scroll-rail { opacity: 1; transition: opacity 150ms ease; }
 .conversation-page .conversation-scroll-rail:hover, .conversation-page .conversation-scroll-rail:focus-within { opacity: 1; }
 @media (max-width: 640px) { .conversation-page .chat-thread-messages { padding: 18px 8px 32px; gap: 28px; } .chat-source-disclosure .answer-source-grid { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .chat-source-disclosure > summary, .chat-source-disclosure > summary > svg:last-child, .conversation-page .conversation-scroll-rail { transition: none; } }
+
+/* Keep evidence secondary, with a consistent reading edge. */
+.chat-source-disclosure > summary > svg:last-child { margin-inline-start: auto; }
+.chat-source-disclosure > summary:hover { background: transparent; }
+.conversation-page .chat-thread .chat-question-stack { max-width: 75%; }
+.conversation-page .chat-thread .chat-question-bubble { padding: 12px 18px; border-radius: 16px; }
+.conversation-page .chat-thread .chat-answer-actions { gap: 6px; }
+.conversation-page .chat-thread .chat-answer-action { width: 34px; height: 34px; border-radius: 8px; }
+.chat-source-disclosure .answer-source-card { min-height: 60px; background: transparent; }
+.chat-source-disclosure .answer-source-icon { background: transparent; border: 0; width: 24px; flex-basis: 24px; }
+@media (max-width: 640px) { .conversation-page .chat-thread .chat-answer-body { padding-inline-start: 0; } .conversation-page .chat-thread .chat-answer-heading { padding-inline-start: 42px; } }
