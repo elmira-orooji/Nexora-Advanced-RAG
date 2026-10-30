@@ -1,0 +1,4 @@
+Document ID: security
+Information security
+
+Administrators must use multi-factor authentication. Sessions expire after 25 minutes of inactivity. Backups run daily at 03:00 UTC and are retained for 45 days. Confidential documents must not be sent to public services without authorization.

@@ -1,0 +1,4 @@
+Document ID: project
+Atlas pilot project
+
+The fictional company Cedar Works runs Atlas to search internal documents. The project manager is Maya Chen. The pilot delivery date is 18 December 2026. The team has 5 developers and 2 analysts. Training a proprietary model is outside the pilot scope.

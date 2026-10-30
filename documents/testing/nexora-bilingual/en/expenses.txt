@@ -1,0 +1,4 @@
+Document ID: expenses
+Business travel expenses
+
+The accommodation limit is USD 160 per night. Meals are reimbursed up to USD 55 per day. Receipts are mandatory. Claims must be submitted within 12 business days after the trip ends.

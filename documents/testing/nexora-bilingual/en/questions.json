@@ -1,0 +1,89 @@
+[
+  {
+    "id": "en-hr",
+    "question": "How many unused leave days can be carried forward?",
+    "reference_answer": "4 days",
+    "expected_document_ids": [
+      "hr"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "en-expenses",
+    "question": "What is the deadline for travel expense claims?",
+    "reference_answer": "Within 12 business days after the trip ends",
+    "expected_document_ids": [
+      "expenses"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "en-support",
+    "question": "What is the critical incident response target for Premium?",
+    "reference_answer": "20 minutes",
+    "expected_document_ids": [
+      "support"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "en-security",
+    "question": "How long are backups retained?",
+    "reference_answer": "45 days",
+    "expected_document_ids": [
+      "security"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "en-project",
+    "question": "Who manages the Atlas project?",
+    "reference_answer": "Maya Chen",
+    "expected_document_ids": [
+      "project"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "en-extra-1",
+    "question": "How many remote days are allowed, and how many leave days can carry forward?",
+    "reference_answer": "3 remote days per week; 4 leave days carried forward",
+    "expected_document_ids": [
+      "hr"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "en-extra-2",
+    "question": "How many developers and analysts work on Atlas in total?",
+    "reference_answer": "7 people: 5 developers and 2 analysts",
+    "expected_document_ids": [
+      "project"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "en-extra-3",
+    "question": "Who manages Atlas, and how long are backups retained?",
+    "reference_answer": "Maya Chen; 45 days",
+    "expected_document_ids": [
+      "project",
+      "security"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "en-extra-4",
+    "question": "What is the project manager salary?",
+    "reference_answer": "No answer was found for your question.",
+    "expected_document_ids": [],
+    "answerable": false
+  },
+  {
+    "id": "en-extra-5",
+    "question": "What is the support telephone number?",
+    "reference_answer": "No answer was found for your question.",
+    "expected_document_ids": [],
+    "answerable": false
+  }
+]

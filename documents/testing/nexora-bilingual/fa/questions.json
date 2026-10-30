@@ -1,0 +1,89 @@
+[
+  {
+    "id": "fa-hr",
+    "question": "سقف انتقال مرخصی به سال بعد چقدر است؟",
+    "reference_answer": "۵ روز",
+    "expected_document_ids": [
+      "hr"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "fa-expenses",
+    "question": "مهلت ثبت درخواست بازپرداخت مأموریت چند روز است؟",
+    "reference_answer": "۱۰ روز کاری پس از پایان مأموریت",
+    "expected_document_ids": [
+      "expenses"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "fa-support",
+    "question": "زمان پاسخ اولیه رخداد بحرانی در قرارداد طلایی چقدر است؟",
+    "reference_answer": "۳۰ دقیقه",
+    "expected_document_ids": [
+      "support"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "fa-security",
+    "question": "نسخه‌های پشتیبان چند روز نگهداری می‌شوند؟",
+    "reference_answer": "۳۰ روز",
+    "expected_document_ids": [
+      "security"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "fa-project",
+    "question": "مدیر پروژه سپهر چه کسی است؟",
+    "reference_answer": "نازنین مهر",
+    "expected_document_ids": [
+      "project"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "fa-extra-1",
+    "question": "با تأیید مدیر چند روز در هفته می‌توان دورکاری کرد و سقف انتقال مرخصی چقدر است؟",
+    "reference_answer": "۲ روز دورکاری در هفته و ۵ روز انتقال مرخصی",
+    "expected_document_ids": [
+      "hr"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "fa-extra-2",
+    "question": "در پروژه سپهر چند نفر توسعه‌دهنده و تحلیلگر حضور دارند؟",
+    "reference_answer": "۵ نفر: ۴ توسعه‌دهنده و ۱ تحلیلگر",
+    "expected_document_ids": [
+      "project"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "fa-extra-3",
+    "question": "چه کسی مدیر پروژه است و نسخه‌های پشتیبان چند روز نگهداری می‌شوند؟",
+    "reference_answer": "نازنین مهر؛ ۳۰ روز",
+    "expected_document_ids": [
+      "project",
+      "security"
+    ],
+    "answerable": true
+  },
+  {
+    "id": "fa-extra-4",
+    "question": "حقوق مدیر پروژه چقدر است؟",
+    "reference_answer": "پاسخی برای سوال شما یافت نشد",
+    "expected_document_ids": [],
+    "answerable": false
+  },
+  {
+    "id": "fa-extra-5",
+    "question": "شماره تلفن واحد پشتیبانی چیست؟",
+    "reference_answer": "پاسخی برای سوال شما یافت نشد",
+    "expected_document_ids": [],
+    "answerable": false
+  }
+]

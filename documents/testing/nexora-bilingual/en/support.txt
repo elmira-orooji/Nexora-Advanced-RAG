@@ -1,0 +1,4 @@
+Document ID: support
+Customer support
+
+Standard support operates Monday through Friday, 08:00 to 18:00 UTC. The initial response target for a critical incident is 20 minutes on the Premium plan and 3 hours on the Standard plan.
