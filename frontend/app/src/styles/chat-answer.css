@@ -422,3 +422,9 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 .conversation-page .chat-thread .chat-answer-heading > .chat-brand-wordmark { display: inline-flex; align-items: center; height: 22.5px; line-height: 22.5px; transform-origin: center top; }
 
 .conversation-page .chat-thread .chat-answer-heading > .chat-brand-wordmark { font-size: 23px; height: 22.5px; line-height: 22.5px; transform: translateY(1px) scaleY(1.25); transform-origin: center; }
+
+/* Share the composer reading width instead of a separate nested column. */
+.conversation-page .chat-thread-messages { max-width: var(--conversation-content-max); padding-inline: 0; }
+.conversation-page .chat-thread .chat-answer-body { padding-inline-start: 0; }
+.conversation-page .chat-thread-scroll { padding-inline: 0; }
+@media (max-width: 640px) { .conversation-page .chat-thread-messages { padding-inline: 8px; } }
