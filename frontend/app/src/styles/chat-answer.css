@@ -428,3 +428,5 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 .conversation-page .chat-thread .chat-answer-body { padding-inline-start: 0; }
 .conversation-page .chat-thread-scroll { padding-inline: 0; }
 @media (max-width: 640px) { .conversation-page .chat-thread-messages { padding-inline: 8px; } }
+
+.conversation-page .conversation-scroll-rail { inset-inline-end: max(0px, calc((100% - var(--chat-content-max)) / 2 - 26px)); }
