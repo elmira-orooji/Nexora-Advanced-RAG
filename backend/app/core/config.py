@@ -254,3 +254,8 @@ SEMANTIC_CHUNK_MIN_SIZE = int(os.getenv("SEMANTIC_CHUNK_MIN_SIZE", "200"))
 SEMANTIC_CHUNK_MAX_SIZE = int(os.getenv("SEMANTIC_CHUNK_MAX_SIZE", "1500"))
 SEMANTIC_SIMILARITY_THRESHOLD = float(os.getenv("SEMANTIC_SIMILARITY_THRESHOLD", "0.45"))
 
+
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openrouter").strip().lower()
+LM_STUDIO_BASE_URL = os.getenv("LM_STUDIO_BASE_URL", "http://127.0.0.1:1234/v1").rstrip("/")
+LM_STUDIO_MODEL = os.getenv("LM_STUDIO_MODEL", "").strip()
+LM_STUDIO_API_KEY = os.getenv("LM_STUDIO_API_KEY", "")

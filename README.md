@@ -261,3 +261,16 @@ SECURITY.md                 Security posture and operational requirements
 ## Security note
 
 Do not commit `.env` files, passwords, API keys, OAuth refresh tokens, Qdrant keys, OCR credentials, uploaded data, or backups. Review [SECURITY.md](SECURITY.md) before exposing the application to users or connecting it to organization data. Report vulnerabilities privately; do not use public GitHub issues for sensitive security details.
+
+### Local generation with LM Studio
+
+Load a chat model in LM Studio and start its Developer server. In `backend/.env`, set:
+
+```dotenv
+LLM_PROVIDER=lm_studio
+LM_STUDIO_BASE_URL=http://127.0.0.1:1234/v1
+LM_STUDIO_MODEL=your-model-api-identifier
+LM_STUDIO_API_KEY=
+```
+
+Use the exact API model identifier shown by LM Studio. Restart the backend after changing these values. If server authentication is enabled, supply its key through `LM_STUDIO_API_KEY`. To switch back, set `LLM_PROVIDER=openrouter`. Local mode uses the configured local model regardless of cloud model IDs selected in existing conversations. Embedding, OCR and vector-store configuration are independent; this setting only changes language-model generation. Keep the LM Studio server running while using Nexora. For a backend running inside Docker, use a host address reachable from the container instead of `127.0.0.1`.
