@@ -410,3 +410,7 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 .conversation-page .chat-thread .chat-answer-text > :last-child { margin-bottom: 0; }
 .conversation-page .chat-source-disclosure { margin-top: 14px; }
 .conversation-page .chat-thread .chat-question-meta { min-height: 18px; }
+
+.conversation-page .chat-thread .chat-answer-heading > .chat-brand-wordmark { font-family: "Cyber Copix", sans-serif; font-size: 18px; font-weight: 400; line-height: 24px; transform: scaleY(1.12); transform-origin: center; direction: ltr; }
+.conversation-page .chat-thread .chat-answer > .nexora-avatar, .conversation-page .chat-thread .chat-answer > .nexora-avatar img { width: 24px; height: 24px; }
+.conversation-page .chat-thread .chat-answer > .nexora-avatar { top: 3px; }
