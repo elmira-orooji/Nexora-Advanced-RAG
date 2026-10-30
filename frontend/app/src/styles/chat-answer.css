@@ -420,3 +420,5 @@ html.dark .answer-source-card:focus-visible { outline: 2px solid var(--answer-ac
 .conversation-page .chat-thread .chat-answer-heading > .nexora-avatar { position: static; display: inline-flex; flex: 0 0 22.5px; width: 22.5px; height: 22.5px; }
 .conversation-page .chat-thread .chat-answer-heading > .nexora-avatar img { width: 22.5px; height: 22.5px; }
 .conversation-page .chat-thread .chat-answer-heading > .chat-brand-wordmark { display: inline-flex; align-items: center; height: 22.5px; line-height: 22.5px; transform-origin: center top; }
+
+.conversation-page .chat-thread .chat-answer-heading > .chat-brand-wordmark { font-size: 23px; height: 22.5px; line-height: 22.5px; transform: scaleY(1.12); transform-origin: center; }
