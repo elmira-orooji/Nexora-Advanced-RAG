@@ -1,5 +1,7 @@
 # Nexora
 
+[▶ Watch the Nexora product demo](https://github.com/elmira-orooji/Nexora-Advanced-RAG/raw/refs/heads/dev/documents/media/Nexora-promo.mp4)
+
 Nexora is a document-grounded AI workspace for teams. It turns approved documents and connected sources into knowledge collections that people can search, discuss, and verify through cited answers.
 
 > [!CAUTION]
