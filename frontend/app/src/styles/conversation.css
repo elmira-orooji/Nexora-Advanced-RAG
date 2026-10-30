@@ -176,3 +176,5 @@ html:not(.dark) .conversation-page {
 @media(max-width:540px){.conversation-page--welcome .conversation-emblem img{width:52px;height:52px}}
 
 .app-shell .conversation-page .conversation-dock > .app-composer { width: 100%; margin-inline: auto; }
+
+.conversation-page .conversation-dock > div:has(> .app-composer) { max-width: var(--conversation-content-max); width: 100%; margin-inline: auto; }
