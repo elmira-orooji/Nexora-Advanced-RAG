@@ -145,7 +145,6 @@ export default function UploadFilesPage({ initialAction }: UploadFilesPageProps)
             return;
         try {
             await knowledgeService.deleteSet(set.id);
-            toast.success(isFa ? "مجموعه حذف شد" : "Set deleted");
             await loadSets();
         }
         catch (error) {
